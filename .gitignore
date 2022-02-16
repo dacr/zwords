@@ -1,0 +1,12 @@
+.DS_Store/
+*~
+.~*
+.idea/
+.bsp/
+nohup.out
+*.swp
+*.iml
+target/
+test*.log
+*.tmp
+.metals/
