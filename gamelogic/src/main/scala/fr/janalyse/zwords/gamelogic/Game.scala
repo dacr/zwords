@@ -1,6 +1,7 @@
 package fr.janalyse.zwords.gamelogic
 
 import fr.janalyse.zwords.*
+import fr.janalyse.zwords.dictionary.DictionaryService
 import zio.*
 
 import java.util.UUID
@@ -9,6 +10,7 @@ import scala.io.AnsiColor.*
 
 case class Word(text: String):
   val normalized = text.toUpperCase
+  def size = text.size
 
 sealed trait GuessCell
 
@@ -41,8 +43,10 @@ object Board:
     Board(initialRow, Nil, maxAttemptsCount)
 
 sealed trait GameIssue
-case class GameIsOver()                     extends GameIssue
-case class GamePlayInvalidInput(word: Word) extends GameIssue
+case class GameIsOver()                              extends GameIssue
+case class GamePlayInvalidInput(word: Word)          extends GameIssue
+case class GameWordNotInDictionary(word: Word)       extends GameIssue
+case class GameDictionaryIssue(throwable: Throwable) extends GameIssue
 
 case class Game(private val uuid: UUID, private val hiddenWord: Word, board: Board):
 
@@ -77,14 +81,17 @@ case class Game(private val uuid: UUID, private val hiddenWord: Word, board: Boa
       flippedCells.map(cells => cells.find(_.isInstanceOf[GoodPlaceCell]).getOrElse(EmptyCell()))
     GuessRow(newCells)
 
-  def play(givenWord: Word): IO[GameIssue, Game] =
-    if board.isOver then ZIO.fail(GameIsOver())
-    else if givenWord.normalized.size != hiddenWord.normalized.size then ZIO.fail(GamePlayInvalidInput(givenWord))
-    else
-      val newRows       = computeRow(hiddenWord, givenWord) :: board.rows
-      val newCurrentRow = computeCurrentRow(newRows)
-      val newBoard      = board.copy(currentRow = newCurrentRow, rows = newRows)
-      ZIO.succeed(copy(board = newBoard))
+  def play(givenWord: Word): ZIO[DictionaryService, GameIssue, Game] =
+    for
+      dico         <- ZIO.service[DictionaryService]
+      wordInDic    <- dico.wordExists(givenWord.text).mapError(th => GameDictionaryIssue(th))
+      _            <- ZIO.cond(wordInDic, (), GameWordNotInDictionary(givenWord))
+      _            <- ZIO.cond(!board.isOver, (), GameIsOver())
+      _            <- ZIO.cond(givenWord.size != hiddenWord.size, (), GamePlayInvalidInput(givenWord))
+      newRows       = computeRow(hiddenWord, givenWord) :: board.rows
+      newCurrentRow = computeCurrentRow(newRows)
+      newBoard      = board.copy(currentRow = newCurrentRow, rows = newRows)
+    yield copy(board = newBoard)
 
 object Game:
   def apply(hiddenWord: Word, maxAttemptsCount: Int = 6, showFirst: Boolean = true): Game =

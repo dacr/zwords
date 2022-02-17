@@ -17,9 +17,9 @@ val sharedSettings = Seq(
   excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13"
 )
 
-lazy val wordGenerator =
+lazy val dictionary =
   project
-    .in(file("wordgen"))
+    .in(file("dictionary"))
     .settings(
       sharedSettings,
       libraryDependencies ++= Seq(
@@ -30,9 +30,22 @@ lazy val wordGenerator =
       )
     )
 
+lazy val wordGenerator =
+  project
+    .in(file("wordgen"))
+    .dependsOn(dictionary)
+    .settings(
+      sharedSettings,
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio"        % versions.zio,
+        "dev.zio" %% "zio-test"   % versions.zio % Test
+      )
+    )
+
 lazy val gameLogic =
   project
     .in(file("gamelogic"))
+    .dependsOn(dictionary)
     .settings(
       sharedSettings,
       libraryDependencies ++= Seq(
@@ -47,6 +60,7 @@ lazy val consoleUI =
     .in(file("console"))
     .dependsOn(gameLogic)
     .dependsOn(wordGenerator)
+    .dependsOn(dictionary)
     .settings(
       sharedSettings,
       libraryDependencies ++= Seq(

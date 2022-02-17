@@ -1,8 +1,10 @@
-package fr.janalyse.zwords.wordgen
+package fr.janalyse.zwords.dictionary
 
+import zio.nio.*
+import zio.nio.charset.*
 import zio.{Chunk, Console, ZIO}
 
-class WordGenerator {
+class Hunspell {
 
   case class HunspellEntry(word: String, flags: Option[String], attributes: Map[String, String]) {
     val isDiv       = attributes.get("po") == Some("div") // Separator
