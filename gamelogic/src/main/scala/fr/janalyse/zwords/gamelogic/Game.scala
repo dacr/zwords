@@ -31,7 +31,7 @@ case class GuessRow(state: List[GuessCell]):
 case class Board(currentRow: GuessRow, rows: List[GuessRow], maxRowsCount: Int = 6):
   def isWin: Boolean    = currentRow.state.forall(_.isInstanceOf[GoodPlaceCell])
   def isOver: Boolean   = isWin || rows.size >= maxRowsCount
-  override def toString = rows.mkString("\n")
+  override def toString = (currentRow::rows).reverse.mkString("\n")
 
 object Board:
   def apply(hiddenWord: Word): Board =
