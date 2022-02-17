@@ -1,7 +1,6 @@
 package fr.janalyse.zwords.gamelogic
 
 import fr.janalyse.zwords.*
-import jdk.internal.vm.annotation.Hidden
 import zio.*
 
 import java.util.UUID
@@ -28,18 +27,18 @@ case class EmptyCell() extends GuessCell:
 case class GuessRow(state: List[GuessCell]):
   override def toString = state.mkString
 
-case class Board(currentRow: GuessRow, rows: List[GuessRow], maxRowsCount: Int = 6):
+case class Board(currentRow: GuessRow, rows: List[GuessRow], maxRowsCount: Int):
   def isWin: Boolean    = currentRow.state.forall(_.isInstanceOf[GoodPlaceCell])
   def isOver: Boolean   = isWin || rows.size >= maxRowsCount
-  override def toString = (currentRow::rows).reverse.mkString("\n")
+  override def toString = (currentRow :: rows).reverse.mkString("\n")
 
 object Board:
-  def apply(hiddenWord: Word): Board =
+  def apply(hiddenWord: Word, maxAttemptsCount: Int, showFirst: Boolean): Board =
     val chars      = hiddenWord.normalized.toList
-    val initialRow = GuessRow(
-      GoodPlaceCell(chars.head) :: chars.tail.map(_ => EmptyCell())
-    )
-    Board(initialRow, Nil)
+    val initialRow =
+      if showFirst then GuessRow(GoodPlaceCell(chars.head) :: chars.tail.map(_ => EmptyCell()))
+      else GuessRow(chars.map(_ => EmptyCell()))
+    Board(initialRow, Nil, maxAttemptsCount)
 
 sealed trait GameIssue
 case class GameIsOver()                     extends GameIssue
@@ -48,26 +47,24 @@ case class GamePlayInvalidInput(word: Word) extends GameIssue
 case class Game(private val uuid: UUID, private val hiddenWord: Word, board: Board):
 
   def computeRow(hiddenWord: Word, givenWord: Word): GuessRow =
-    val hiddenTuples = hiddenWord.normalized.zipWithIndex.map(_.swap).toSet
-    val givenTuples = givenWord.normalized.zipWithIndex.map(_.swap).toSet
-    val commonTuples = hiddenTuples.intersect(givenTuples)
-    val otherHiddenChars = (hiddenTuples--commonTuples).toList.collect{case (idx,ch) => ch}
-    val otherGivenTuples = (givenTuples--commonTuples).toList.sorted
-    def computeOtherTuples(remainTuples:List[(Int,Char)], remainCharCount:Map[Char,Int], accu:List[(Int,GuessCell)]=Nil):List[(Int,GuessCell)] =
+    val hiddenTuples                                                                                                                                     = hiddenWord.normalized.zipWithIndex.map(_.swap).toSet
+    val givenTuples                                                                                                                                      = givenWord.normalized.zipWithIndex.map(_.swap).toSet
+    val commonTuples                                                                                                                                     = hiddenTuples.intersect(givenTuples)
+    val otherHiddenChars                                                                                                                                 = (hiddenTuples -- commonTuples).toList.collect { case (idx, ch) => ch }
+    val otherGivenTuples                                                                                                                                 = (givenTuples -- commonTuples).toList.sorted
+    def computeOtherTuples(remainTuples: List[(Int, Char)], remainCharCount: Map[Char, Int], accu: List[(Int, GuessCell)] = Nil): List[(Int, GuessCell)] =
       if remainTuples.isEmpty then accu
       else
-        val (pos,char) = remainTuples.head
+        val (pos, char) = remainTuples.head
         val remainCount = remainCharCount.get(char).getOrElse(0)
-        if remainCount>0 then
-          computeOtherTuples(remainTuples.tail, remainCharCount+(char->(remainCount-1)), accu:+(pos->WrongPlaceCell(char)))
-        else
-          computeOtherTuples(remainTuples.tail, remainCharCount, accu:+(pos->NotUsedCell(char)))
+        if remainCount > 0 then computeOtherTuples(remainTuples.tail, remainCharCount + (char -> (remainCount - 1)), accu :+ (pos -> WrongPlaceCell(char)))
+        else computeOtherTuples(remainTuples.tail, remainCharCount, accu :+ (pos              -> NotUsedCell(char)))
 
-    val otherTuples = computeOtherTuples(otherGivenTuples, otherHiddenChars.groupMapReduce(identity)(_=>1)(_ + _))
-    val cells =
-      (commonTuples.map{case (pos,ch)=>pos->GoodPlaceCell(ch)}.toList ++ otherTuples)
-        .sortBy{case (pos, cell) => pos}
-        .map{case (pos,cell) => cell}
+    val otherTuples = computeOtherTuples(otherGivenTuples, otherHiddenChars.groupMapReduce(identity)(_ => 1)(_ + _))
+    val cells       =
+      (commonTuples.map { case (pos, ch) => pos -> GoodPlaceCell(ch) }.toList ++ otherTuples)
+        .sortBy { case (pos, cell) => pos }
+        .map { case (pos, cell) => cell }
     GuessRow(cells)
 
   def computeCurrentRow(rows: List[GuessRow]): GuessRow =
@@ -90,7 +87,7 @@ case class Game(private val uuid: UUID, private val hiddenWord: Word, board: Boa
       ZIO.succeed(copy(board = newBoard))
 
 object Game:
-  def apply(hiddenWord: Word): Game =
+  def apply(hiddenWord: Word, maxAttemptsCount: Int = 6, showFirst: Boolean = true): Game =
     val uuid  = UUID.randomUUID()
-    val board = Board(hiddenWord)
+    val board = Board(hiddenWord, maxAttemptsCount, showFirst)
     Game(uuid, hiddenWord, board)
