@@ -17,7 +17,7 @@ case class GoodPlaceCell(char: Char) extends GuessCell:
   override def toString: String = s"$GREEN_B$char$RESET"
 
 case class NotUsedCell(char: Char) extends GuessCell:
-  override def toString: String = s"$BLUE_B$char$RESET"
+  override def toString: String = s"$char"
 
 case class WrongPlaceCell(char: Char) extends GuessCell:
   override def toString: String = s"$RED_B$char$RESET"
