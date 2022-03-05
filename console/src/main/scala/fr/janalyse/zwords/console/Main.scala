@@ -30,6 +30,7 @@ object Main extends ZIOAppDefault {
     for
       wordgen    <- ZIO.service[WordGeneratorService]
       randomWord <- wordgen.todayWord
+      _          <- ZIO.log(s"(today's word is $randomWord")
       game        = Game(randomWord)
       result     <- consoleBasedRound(game)
       _          <- Console.printLine(result.board)
