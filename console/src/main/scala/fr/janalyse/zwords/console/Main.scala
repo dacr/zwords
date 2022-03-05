@@ -1,19 +1,28 @@
 package fr.janalyse.zwords.console
 
-import fr.janalyse.zwords.gamelogic.{Game, Word}
+import fr.janalyse.zwords.gamelogic.{Game, GameIssue}
 import fr.janalyse.zwords.dictionary.DictionaryService
 import fr.janalyse.zwords.wordgen.WordGeneratorService
 import zio.*
+import scala.Console.{RED, RESET}
+
+import java.io.IOException
 
 object Main extends ZIOAppDefault {
 
-  def consoleBasedRound(game: Game): ZIO[Console & DictionaryService, Object, Game] =
+  def playLogic(game: Game): ZIO[Console & WordGeneratorService, GameIssue | IOException, Game] =
+    for
+      _        <- Console.printLine(game.board)
+      word     <- Console.readLine
+      nextGame <- game.play(word)
+    yield nextGame
+
+  def consoleBasedRound(game: Game): ZIO[Console & WordGeneratorService, Object, Game] =
     for
       _        <- Console.printLine("--------------------")
-      _        <- Console.printLine(game.board)
-      input    <- Console.readLine
-      word      = Word(input)
-      nextGame <- game.play(word)
+      nextGame <- playLogic(game)
+                    .tapError(err => Console.printLine(s"$RED$err$RESET"))
+                    .retryN(10)
       lastGame <- ZIO.when(!nextGame.board.isOver)(consoleBasedRound(nextGame))
     yield lastGame.getOrElse(nextGame)
 
@@ -21,7 +30,7 @@ object Main extends ZIOAppDefault {
     for
       wordgen    <- ZIO.service[WordGeneratorService]
       randomWord <- wordgen.todayWord
-      game        = Game(Word(randomWord))
+      game        = Game(randomWord)
       result     <- consoleBasedRound(game)
       _          <- Console.printLine(result.board)
       _          <- Console.printLine(if result.board.isWin then "YOU WIN" else "YOU LOOSE")
@@ -32,7 +41,8 @@ object Main extends ZIOAppDefault {
     WordGeneratorService.live,
     Clock.live,
     Random.live,
-    Console.live
+    Console.live,
+    System.live
   )
 
 }

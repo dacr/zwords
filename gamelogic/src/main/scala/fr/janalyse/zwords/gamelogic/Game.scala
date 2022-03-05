@@ -1,16 +1,12 @@
 package fr.janalyse.zwords.gamelogic
 
 import fr.janalyse.zwords.*
-import fr.janalyse.zwords.dictionary.DictionaryService
+import fr.janalyse.zwords.wordgen.WordGeneratorService
 import zio.*
 
 import java.util.UUID
 import scala.collection.LazyZip2
 import scala.io.AnsiColor.*
-
-case class Word(text: String):
-  val normalized = text.toUpperCase
-  def size = text.size
 
 sealed trait GuessCell
 
@@ -35,24 +31,25 @@ case class Board(currentRow: GuessRow, rows: List[GuessRow], maxRowsCount: Int):
   override def toString = (currentRow :: rows).reverse.mkString("\n")
 
 object Board:
-  def apply(hiddenWord: Word, maxAttemptsCount: Int, showFirst: Boolean): Board =
-    val chars      = hiddenWord.normalized.toList
+  def apply(hiddenWord: String, maxAttemptsCount: Int, showFirst: Boolean): Board =
+    val chars      = hiddenWord.toList
     val initialRow =
       if showFirst then GuessRow(GoodPlaceCell(chars.head) :: chars.tail.map(_ => EmptyCell()))
       else GuessRow(chars.map(_ => EmptyCell()))
     Board(initialRow, Nil, maxAttemptsCount)
 
-sealed trait GameIssue
+sealed trait GameIssue // TODO migrate to union type instead !
 case class GameIsOver()                              extends GameIssue
-case class GamePlayInvalidInput(word: Word)          extends GameIssue
-case class GameWordNotInDictionary(word: Word)       extends GameIssue
+case class GamePlayInvalidSize(word: String)         extends GameIssue
+case class GameWordNotInDictionary(word: String)     extends GameIssue
 case class GameDictionaryIssue(throwable: Throwable) extends GameIssue
+case class GameInternalIssue(throwable: Throwable)   extends GameIssue
 
-case class Game(private val uuid: UUID, private val hiddenWord: Word, board: Board):
+case class Game(private val uuid: UUID, private val hiddenWord: String, board: Board):
 
-  def computeRow(hiddenWord: Word, givenWord: Word): GuessRow =
-    val hiddenTuples                                                                                                                                     = hiddenWord.normalized.zipWithIndex.map(_.swap).toSet
-    val givenTuples                                                                                                                                      = givenWord.normalized.zipWithIndex.map(_.swap).toSet
+  def computeRow(hiddenWord: String, givenWord: String): GuessRow =
+    val hiddenTuples                                                                                                                                     = hiddenWord.zipWithIndex.map(_.swap).toSet
+    val givenTuples                                                                                                                                      = givenWord.zipWithIndex.map(_.swap).toSet
     val commonTuples                                                                                                                                     = hiddenTuples.intersect(givenTuples)
     val otherHiddenChars                                                                                                                                 = (hiddenTuples -- commonTuples).toList.collect { case (idx, ch) => ch }
     val otherGivenTuples                                                                                                                                 = (givenTuples -- commonTuples).toList.sorted
@@ -81,20 +78,21 @@ case class Game(private val uuid: UUID, private val hiddenWord: Word, board: Boa
       flippedCells.map(cells => cells.find(_.isInstanceOf[GoodPlaceCell]).getOrElse(EmptyCell()))
     GuessRow(newCells)
 
-  def play(givenWord: Word): ZIO[DictionaryService, GameIssue, Game] =
+  def play(roundWord: String): ZIO[WordGeneratorService, GameIssue, Game] =
     for
-      dico         <- ZIO.service[DictionaryService]
-      wordInDic    <- dico.wordExists(givenWord.text).mapError(th => GameDictionaryIssue(th))
+      wordGen      <- ZIO.service[WordGeneratorService]
+      givenWord    <- wordGen.wordNormalize(roundWord).mapError(th => GameInternalIssue(th))
+      wordInDic    <- wordGen.wordExists(givenWord).mapError(th => GameDictionaryIssue(th))
       _            <- ZIO.cond(wordInDic, (), GameWordNotInDictionary(givenWord))
       _            <- ZIO.cond(!board.isOver, (), GameIsOver())
-      _            <- ZIO.cond(givenWord.size != hiddenWord.size, (), GamePlayInvalidInput(givenWord))
+      _            <- ZIO.cond(givenWord.size == hiddenWord.size, (), GamePlayInvalidSize(givenWord))
       newRows       = computeRow(hiddenWord, givenWord) :: board.rows
       newCurrentRow = computeCurrentRow(newRows)
       newBoard      = board.copy(currentRow = newCurrentRow, rows = newRows)
     yield copy(board = newBoard)
 
 object Game:
-  def apply(hiddenWord: Word, maxAttemptsCount: Int = 6, showFirst: Boolean = true): Game =
+  def apply(hiddenWord: String, maxAttemptsCount: Int = 6, showFirst: Boolean = true): Game =
     val uuid  = UUID.randomUUID()
     val board = Board(hiddenWord, maxAttemptsCount, showFirst)
     Game(uuid, hiddenWord, board)

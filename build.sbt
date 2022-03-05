@@ -45,7 +45,7 @@ lazy val wordGenerator =
 lazy val gameLogic =
   project
     .in(file("gamelogic"))
-    .dependsOn(dictionary)
+    .dependsOn(wordGenerator)
     .settings(
       sharedSettings,
       libraryDependencies ++= Seq(
