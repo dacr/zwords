@@ -11,7 +11,7 @@ val versions = new {
 }
 
 val sharedSettings = Seq(
-  scalaVersion := "3.1.1",
+  scalaVersion                                   := "3.1.1",
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   scalacOptions ++= Seq("-Xfatal-warnings"),
   excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13"
@@ -23,10 +23,11 @@ lazy val dictionary =
     .settings(
       sharedSettings,
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio"        % versions.zio,
-        "dev.zio" %% "zio-config" % versions.zioconfig,
-        "dev.zio" %% "zio-nio"    % versions.zionio,
-        "dev.zio" %% "zio-test"   % versions.zio % Test
+        "dev.zio" %% "zio"          % versions.zio,
+        "dev.zio" %% "zio-config"   % versions.zioconfig,
+        "dev.zio" %% "zio-nio"      % versions.zionio,
+        "dev.zio" %% "zio-test"     % versions.zio % Test,
+        "dev.zio" %% "zio-test-sbt" % versions.zio % Test
       )
     )
 
@@ -37,8 +38,8 @@ lazy val wordGenerator =
     .settings(
       sharedSettings,
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio"        % versions.zio,
-        "dev.zio" %% "zio-test"   % versions.zio % Test
+        "dev.zio" %% "zio"      % versions.zio,
+        "dev.zio" %% "zio-test" % versions.zio % Test
       )
     )
 

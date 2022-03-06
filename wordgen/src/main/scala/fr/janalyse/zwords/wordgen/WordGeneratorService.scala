@@ -7,6 +7,7 @@ trait WordGeneratorService:
   def todayWord: Task[String]
   def wordExists(word: String): Task[Boolean]
   def wordNormalize(word: String): Task[String]
+  def matchingWords(pattern: String, includedLetters: Map[Char, Set[Int]], excludedLetters: Map[Int, Set[Char]]): Task[List[String]]
 
 object WordGeneratorService:
   def todayWord: ZIO[WordGeneratorService, Throwable, String] =
@@ -17,6 +18,9 @@ object WordGeneratorService:
 
   def wordNormalize(word: String): ZIO[WordGeneratorService, Throwable, String] =
     ZIO.serviceWithZIO(_.wordNormalize(word))
+
+  def matchingWords(pattern: String, includedLetters: Map[Char, Set[Int]], excludedLetters: Map[Int, Set[Char]]): ZIO[WordGeneratorService, Throwable, List[String]] =
+    ZIO.serviceWithZIO(_.matchingWords(pattern, includedLetters, excludedLetters))
 
   def live = (
     for
@@ -45,7 +49,7 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, entries: Chunk[Huns
       .filterNot(_.isCompound)
       .map(_.word)
       .map(normalize)
-      .filter(_.size > 5)
+      .filter(_.size >= 5)
 
   val selectedWordsSet = selectedWords.toSet
 
@@ -64,3 +68,28 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, entries: Chunk[Huns
 
   override def wordNormalize(word: String): Task[String] =
     Task.attempt(normalize(word))
+
+  override def matchingWords(pattern: String, includedLettersMap: Map[Char, Set[Int]], excludedLettersMap: Map[Int, Set[Char]]): Task[List[String]] =
+    val includedLetters = includedLettersMap.keys.mkString // TODO temporary
+    val excludedLetters = excludedLettersMap.values.flatten.mkString // TODO temporary
+    val replacement     =
+      normalize(excludedLetters.filterNot(includedLetters.contains)) match
+        case "" => "."
+        case ex => ex.mkString("[^", "", "]")
+
+    val wordRE = pattern.replaceAll("_", replacement).r
+
+    def mask(givenWord: String): String =
+      val word = givenWord
+        .zip(pattern)
+        .collect { case (l, p) if "_.".contains(p) => l.toString }
+        .mkString
+      word
+
+    Task(
+      selectedWords
+        .filter(_.size == pattern.size)
+        .filter(wordRE.matches)
+        .filter(word => includedLetters.forall(mask(word).contains))
+        .toList
+    )
