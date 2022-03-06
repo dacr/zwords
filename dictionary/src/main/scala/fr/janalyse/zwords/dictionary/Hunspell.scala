@@ -31,16 +31,55 @@ object HunspellEntry {
   }
 }
 
+case class SfxRuleReplace(replace: Option[String], change: Option[String], flags: Option[String], attributes: Map[String, String])
+
+case class SfxRule(key: String, alternatives: List[SfxRuleReplace])
+object SfxRule:
+  def fromString(spec: String): SfxRule =
+    val lines        = spec.split("\n").toList
+    val header       = lines.head
+    val ruleId       = header.trim.split("""\s+""").drop(1).head
+    val replacements =
+      lines.tail.map(_.split("""\s+""").toList).collect {
+        case "SFX" :: `ruleId` :: "0" :: s"0/$flags" :: attrs           => SfxRuleReplace(None, None, Some(flags), Map.empty)
+        case "SFX" :: `ruleId` :: "0" :: s"$change/$flags" :: attrs     => SfxRuleReplace(None, Some(change), Some(flags), Map.empty)
+        case "SFX" :: `ruleId` :: replace :: s"$change/$flags" :: attrs => SfxRuleReplace(Some(replace), Some(change), Some(flags), Map.empty)
+      }
+    if (ruleId == "S.")
+      println(lines.tail.mkString("\n"))
+    SfxRule(ruleId, replacements)
+
 case class AffixRules(specs: String):
   val blocs =
     specs
       .split("""\n(\s*\n)+""")
       .map(_.trim)
-      .filter(_.size>0)
+      .filter(_.size > 0)
       .filterNot(_.startsWith("#"))
+      .toList
+
+  val suffixes =
+    blocs
+      .filter(_.startsWith("SFX"))
+      .map(SfxRule.fromString)
+      .groupBy(_.key)
+      .view
+      .mapValues(_.head)
+      .toMap
 
   def decompose(entry: HunspellEntry): List[String] =
-    List(entry.word)
+    entry.flags
+      .flatMap {
+        case "S.()"|"" =>
+          suffixes.get("S.").map { rule =>
+            rule.alternatives.map { replacement =>
+              val regex = replacement.replace.map(_ + "$").getOrElse("$")
+              entry.word.replaceAll(regex, replacement.change.getOrElse(""))
+            }
+          }
+        case _      => Some(entry.word :: Nil)
+      }
+      .getOrElse(Nil)
 
 case class Hunspell(entries: Chunk[HunspellEntry], affixRules: AffixRules) {
   def generateWords(entry: HunspellEntry): List[String] = affixRules.decompose(entry)
