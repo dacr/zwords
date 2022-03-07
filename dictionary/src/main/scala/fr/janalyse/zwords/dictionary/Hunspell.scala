@@ -67,22 +67,21 @@ case class AffixRules(specs: String):
       .mapValues(_.head)
       .toMap
 
-  def decompose(entry: HunspellEntry): List[String] =
+  def decompose(entry: HunspellEntry): List[HunspellEntry] =
     entry.flags
-      .flatMap {
-        case "S.()"|"" =>
-          suffixes.get("S.").map { rule =>
-            rule.alternatives.map { replacement =>
-              val regex = replacement.replace.map(_ + "$").getOrElse("$")
-              entry.word.replaceAll(regex, replacement.change.getOrElse(""))
-            }
+      .flatMap { ruleId =>
+        suffixes.get("S.").map { rule =>
+          rule.alternatives.map { replacement =>
+            val regex = replacement.replace.map(_ + "$").getOrElse("$")
+            val generatedWord = entry.word.replaceAll(regex, replacement.change.getOrElse(""))
+            entry.copy(word = generatedWord) // TODO concatenate additional flags and properties coming from the rule
           }
-        case _      => Some(entry.word :: Nil)
+        }
       }
       .getOrElse(Nil)
 
 case class Hunspell(entries: Chunk[HunspellEntry], affixRules: AffixRules) {
-  def generateWords(entry: HunspellEntry): List[String] = affixRules.decompose(entry)
+  def generateWords(entry: HunspellEntry): List[HunspellEntry] = affixRules.decompose(entry)
 }
 
 object Hunspell {
@@ -104,6 +103,8 @@ object Hunspell {
       specs        = dicLines.tail
       entries      = specs.flatMap(HunspellEntry.fromLine)
       _           <- Console.printLine(s"Found ${entries.size} hunspell entries")
+      fullCount    = entries.map(entry => affixRules.decompose(entry).size).sum
+      _           <- Console.printLine(s"All hunspell generated words $fullCount")
       // hunspell <- ZIO.cond(entries.size == count, Hunspell(entries), Error("Didn't find the right number of words in dictionary"))
       hunspell     = Hunspell(Chunk.fromIterable(entries), affixRules) // No check as count input data looks invalid :(
     } yield hunspell

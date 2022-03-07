@@ -15,7 +15,8 @@ object HunspellSpec extends DefaultRunnableSpec {
           dico  <- ZIO.service[DictionaryService].provide(dicoLayer)
           entry <- dico.find("comique").some
           words <- dico.generateWords(entry)
-        } yield assertTrue(entry.word == "comique") && assert(words)(hasSameElements(List("comique", "comiques")))
+        } yield assertTrue(entry.word == "comique") &&
+          assert(words.map(_.word))(hasSameElements(List("comique", "comiques")))
       )
     )
   }

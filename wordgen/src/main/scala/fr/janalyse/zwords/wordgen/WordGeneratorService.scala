@@ -27,7 +27,7 @@ object WordGeneratorService:
       clock      <- ZIO.service[Clock]
       random     <- ZIO.service[Random]
       dictionary <- ZIO.service[DictionaryService]
-      entries    <- dictionary.entries
+      entries    <- dictionary.entries(true)
     yield WordGeneratorServiceImpl(clock, random, entries)
   ).toLayer
 
@@ -57,10 +57,11 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, entries: Chunk[Huns
     for
       dateTime <- clock.currentDateTime
       seed      = dateTime.toEpochSecond / 3600 / 24
-      wordCount = selectedWords.size
+      count     = selectedWords.size
       _        <- random.setSeed(seed)
-      index    <- random.nextIntBetween(0, wordCount)
+      index    <- random.nextIntBetween(0, count)
       word      = selectedWords(index)
+      _        <- ZIO.log(s"Choosing word $word at index $index/$count (seed = $seed)")
     yield word
 
   override def wordExists(word: String): Task[Boolean] =
@@ -70,7 +71,7 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, entries: Chunk[Huns
     Task.attempt(normalize(word))
 
   override def matchingWords(pattern: String, includedLettersMap: Map[Char, Set[Int]], excludedLettersMap: Map[Int, Set[Char]]): Task[List[String]] =
-    val includedLetters = includedLettersMap.keys.mkString // TODO temporary
+    val includedLetters = includedLettersMap.keys.mkString           // TODO temporary
     val excludedLetters = excludedLettersMap.values.flatten.mkString // TODO temporary
     val replacement     =
       normalize(excludedLetters.filterNot(includedLetters.contains)) match
