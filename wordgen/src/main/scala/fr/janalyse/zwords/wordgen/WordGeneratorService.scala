@@ -22,18 +22,19 @@ object WordGeneratorService:
   def matchingWords(pattern: String, includedLetters: Map[Char, Set[Int]], excludedLetters: Map[Int, Set[Char]]): ZIO[WordGeneratorService, Throwable, List[String]] =
     ZIO.serviceWithZIO(_.matchingWords(pattern, includedLetters, excludedLetters))
 
-  def live = (
+  val live = (
     for
-      clock      <- ZIO.service[Clock]
-      random     <- ZIO.service[Random]
-      dictionary <- ZIO.service[DictionaryService]
-      entries    <- dictionary.entries(true)
-    yield WordGeneratorServiceImpl(clock, random, entries)
+      clock           <- ZIO.service[Clock]
+      random          <- ZIO.service[Random]
+      dictionary      <- ZIO.service[DictionaryService]
+      selectedEntries <- dictionary.entries(false)
+      possibleEntries <- dictionary.entries(true)
+    yield WordGeneratorServiceImpl(clock, random, selectedEntries, possibleEntries)
   ).toLayer
 
-class WordGeneratorServiceImpl(clock: Clock, random: Random, entries: Chunk[HunspellEntry]) extends WordGeneratorService:
+class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Chunk[HunspellEntry], possibleEntries: Chunk[HunspellEntry]) extends WordGeneratorService:
 
-  def normalize(word: String): String =
+  def standardize(word: String): String =
     word.trim.toLowerCase
       .replaceAll("[áàäâ]", "a")
       .replaceAll("[éèëê]", "e")
@@ -43,15 +44,18 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, entries: Chunk[Huns
       .replaceAll("[ç]", "c")
       .toUpperCase
 
-  val selectedWords =
+  def normalizeEntries(entries: Chunk[HunspellEntry]): IndexedSeq[String] =
     entries
       .filter(_.isCommun)
       .filterNot(_.isCompound)
       .map(_.word)
-      .map(normalize)
-      .filter(_.size >= 5)
+      .map(standardize)
+      .filter(_.size >= 4)
+      .filter(_.size <= 9)
 
-  val selectedWordsSet = selectedWords.toSet
+  val selectedWords    = normalizeEntries(selectedEntries)
+  val possibleWords    = normalizeEntries(possibleEntries)
+  val possibleWordsSet = possibleWords.toSet
 
   override def todayWord: Task[String] =
     for
@@ -65,32 +69,40 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, entries: Chunk[Huns
     yield word
 
   override def wordExists(word: String): Task[Boolean] =
-    Task.succeed(selectedWordsSet.contains(normalize(word)))
+    Task.succeed(possibleWordsSet.contains(standardize(word)))
 
   override def wordNormalize(word: String): Task[String] =
-    Task.attempt(normalize(word))
+    Task.attempt(standardize(word))
 
   override def matchingWords(pattern: String, includedLettersMap: Map[Char, Set[Int]], excludedLettersMap: Map[Int, Set[Char]]): Task[List[String]] =
-    val includedLetters = includedLettersMap.keys.mkString           // TODO temporary
-    val excludedLetters = excludedLettersMap.values.flatten.mkString // TODO temporary
-    val replacement     =
-      normalize(excludedLetters.filterNot(includedLetters.contains)) match
-        case "" => "."
-        case ex => ex.mkString("[^", "", "]")
 
-    val wordRE = pattern.replaceAll("_", replacement).r
+    val wordRE    = pattern.replaceAll("_", ".").r
+    val excludeRE = 0
+      .until(pattern.size)
+      .map { index =>
+        excludedLettersMap.get(index).map(_.mkString("[^", "", "]")).getOrElse(".")
+      }
+      .mkString
+      .r
 
-    def mask(givenWord: String): String =
-      val word = givenWord
-        .zip(pattern)
-        .collect { case (l, p) if "_.".contains(p) => l.toString }
-        .mkString
-      word
+    println("-------------- PATTERN ----------------")
+    println(pattern)
+    println(wordRE.toString())
+    println("-------------- INCLUDED ----------------")
+    println(includedLettersMap.toList.sorted.mkString("\n"))
+    println("-------------- EXCLUDED ----------------")
+    println(excludedLettersMap.toList.sorted.mkString("\n"))
+    println(excludeRE.toString())
+    println("----------------------------------------")
+
+    def included(word: String): Boolean =
+      includedLettersMap.forall((char, positions) => positions.flatMap(word.lift).contains(char))
 
     Task(
       selectedWords
         .filter(_.size == pattern.size)
         .filter(wordRE.matches)
-        .filter(word => includedLetters.forall(mask(word).contains))
+        .filter(excludeRE.matches)
+        .filter(included)
         .toList
     )

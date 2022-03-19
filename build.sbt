@@ -3,9 +3,10 @@ description := "Guess a word everyday game"
 
 val versions = new {
   val zio        = "2.0.0-RC2"
-  val zioconfig  = "3.0.0-RC2"
   val zionio     = "2.0.0-RC2"
-  val ziocli     = "0.2.0"
+  val zioconfig  = "3.0.0-RC2"
+  val ziocli     = "0.2.2"
+  val ziojson    = "0.3.0-RC3"
   val ziologging = "2.0.0-RC5"
   val logback    = "1.2.10"
 }
@@ -51,6 +52,7 @@ lazy val gameLogic =
       sharedSettings,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio"        % versions.zio,
+        "dev.zio" %% "zio-json"   % versions.ziojson,
         "dev.zio" %% "zio-config" % versions.zioconfig,
         "dev.zio" %% "zio-test"   % versions.zio % Test
       )
@@ -61,7 +63,6 @@ lazy val consoleUI =
     .in(file("console"))
     .dependsOn(gameLogic)
     .dependsOn(wordGenerator)
-    .dependsOn(dictionary)
     .settings(
       sharedSettings,
       libraryDependencies ++= Seq(

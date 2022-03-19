@@ -70,12 +70,12 @@ case class AffixRules(specs: String):
   def decompose(entry: HunspellEntry): List[HunspellEntry] =
     entry.flags
       .flatMap { ruleId =>
-        suffixes.get("S.").map { rule =>
+        suffixes.get(ruleId.take(2)).map { rule =>
           rule.alternatives.map { replacement =>
             val regex = replacement.replace.map(_ + "$").getOrElse("$")
             val generatedWord = entry.word.replaceAll(regex, replacement.change.getOrElse(""))
             entry.copy(word = generatedWord) // TODO concatenate additional flags and properties coming from the rule
-          }
+          }.distinct
         }
       }
       .getOrElse(Nil)

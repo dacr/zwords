@@ -6,18 +6,28 @@ import zio.test.Assertion.*
 
 object HunspellSpec extends DefaultRunnableSpec {
 
-  val dicoLayer = ZLayer.make[DictionaryService](Console.live, System.live, DictionaryService.live)
-
   override def spec = {
     suite("dictionary")(
-      test("standard features")(
+      test("standard features with comique")(
         for {
-          dico  <- ZIO.service[DictionaryService].provide(dicoLayer)
+          dico  <- ZIO.service[DictionaryService]
           entry <- dico.find("comique").some
           words <- dico.generateWords(entry)
         } yield assertTrue(entry.word == "comique") &&
           assert(words.map(_.word))(hasSameElements(List("comique", "comiques")))
+      ),
+      test("standard features with restaure")(
+        for {
+          dico  <- ZIO.service[DictionaryService]
+          entry <- dico.find("restaurer").some
+          words <- dico.generateWords(entry)
+        } yield assertTrue(entry.word == "restaurer") &&
+          assert(words.map(_.word))(hasSubset(List("restaurer", "restaure", "restaurant")))
       )
+    ).provideShared(
+      DictionaryService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize dictionary service $err"))),
+      Console.live,
+      System.live
     )
   }
 }

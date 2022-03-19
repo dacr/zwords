@@ -12,14 +12,10 @@ object Main extends ZIOAppDefault {
 
   def playLogic(game: Game): ZIO[Console & WordGeneratorService, GameIssue | IOException, Game] =
     for
-      pattern       <- Task.succeed(game.board.currentRow.pattern)
-      included       = game.board.possiblePlaces
-      excluded       = game.board.impossiblePlaces
-      wordgen       <- ZIO.service[WordGeneratorService]
-      possibleWords <- wordgen.matchingWords(pattern, included, excluded).mapError(th => GameInternalIssue(th))
-      _             <- Console.printLine(s"${game.board} $YELLOW(${possibleWords.size})$RESET")
-      word          <- Console.readLine
-      nextGame      <- game.play(word)
+      pattern   <- Task.succeed(game.board.currentRow.pattern)
+      _         <- Console.printLine(s"$game")
+      word      <- Console.readLine
+      nextGame  <- game.play(word)
     yield nextGame
 
   def consoleBasedRound(game: Game): ZIO[Console & WordGeneratorService, Object, Game] =
@@ -36,9 +32,7 @@ object Main extends ZIOAppDefault {
       wordgen    <- ZIO.service[WordGeneratorService]
       randomWord <- wordgen.todayWord
       _          <- ZIO.log(s"(today's word is $randomWord)")
-      wordMask    = randomWord.head +: randomWord.tail.map(_ => '_')
-      _          <- ZIO.log(s"Using mask $wordMask")
-      game        = Game(randomWord, wordMask)
+      game       <- Game.init(randomWord, 6)
       result     <- consoleBasedRound(game)
       _          <- Console.printLine(result.board)
       _          <- Console.printLine(if result.board.isWin then "YOU WIN" else "YOU LOOSE")

@@ -21,13 +21,13 @@ object DictionaryService:
   def generateWords(entry: HunspellEntry): ZIO[DictionaryService, Throwable, List[HunspellEntry]] =
     ZIO.serviceWithZIO(_.generateWords(entry))
 
-  def live: ZLayer[Console & System, Any, DictionaryService] = (
+  val live = (
     for dictionary <- Hunspell.loadHunspellDictionary
-    yield DictionaryServiceImpl(dictionary)
+    yield DictionaryServiceLive(dictionary)
   ).toLayer
 
 
-case class DictionaryServiceImpl(dictionary: Hunspell) extends DictionaryService:
+case class DictionaryServiceLive(dictionary: Hunspell) extends DictionaryService:
 
   override def count = Task(dictionary.entries.size)
 
