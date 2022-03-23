@@ -33,26 +33,26 @@ object GameSolver {
 
   // ===============================================================================================
 
-  def knownPlaces(board: Board): Map[Int, Char] = board.rows.flatMap(knownPlaces).toMap
+  def knownPlaces(playedRows: List[GuessRow]): Map[Int, Char] = playedRows.flatMap(knownPlaces).toMap
 
-  def knownPlacesIndices(board: Board): Set[Int] = board.rows.flatMap(knownPlacesIndices).toSet
+  def knownPlacesIndices(playedRows: List[GuessRow]): Set[Int] = playedRows.flatMap(knownPlacesIndices).toSet
 
-  def possiblePlaces(board: Board): Map[Char, Set[Int]] =
-    board.rows
+  def possiblePlaces(playedRows: List[GuessRow]): Map[Char, Set[Int]] =
+    playedRows
       .flatMap(possiblePlaces)
       .groupMapReduce((ch, _) => ch)((_, pos) => pos)((a, b) => a.intersect(b))
-      .map((ch, pos) => ch -> pos.removedAll(knownPlacesIndices(board)))
+      .map((ch, pos) => ch -> pos.removedAll(knownPlacesIndices(playedRows)))
       .filterNot((ch, pos) => pos.isEmpty)
 
-  def impossiblePlaces(board: Board): Map[Int, Set[Char]] =
-    board.rows
+  def impossiblePlaces(playedRows: List[GuessRow]): Map[Int, Set[Char]] =
+    playedRows
       .map(impossiblePlaces)
       .reduceOption((a, b) =>
         (a.toList ++ b.toList)
           .groupMapReduce((position, _) => position)((_, chars) => chars)((aChars, bChars) => aChars ++ bChars)
       )
       .getOrElse(Map.empty)
-      .removedAll(knownPlacesIndices(board))
+      .removedAll(knownPlacesIndices(playedRows))
       .filterNot((pos, chars) => chars.isEmpty)
 
 }

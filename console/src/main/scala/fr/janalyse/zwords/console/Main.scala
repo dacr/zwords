@@ -10,9 +10,9 @@ import java.io.IOException
 
 object Main extends ZIOAppDefault {
 
-  def playLogic(game: Game): ZIO[Console & WordGeneratorService, GameIssue | IOException, Game] =
+  def playLogic(game: Game): ZIO[Console & WordGeneratorService, GameIssue | GameInternalIssue | IOException, Game] =
     for
-      pattern   <- Task.succeed(game.board.currentRow.pattern)
+      pattern   <- Task.succeed(game.board.patternRow.pattern)
       _         <- Console.printLine(s"$game")
       word      <- Console.readLine
       nextGame  <- game.play(word)

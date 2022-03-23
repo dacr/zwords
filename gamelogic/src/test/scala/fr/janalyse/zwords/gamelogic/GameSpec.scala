@@ -11,36 +11,41 @@ import zio.test.TestAspect.*
 object GameSpec extends DefaultRunnableSpec {
 
   override def spec = {
-    suite("dictionary")(
+    suite("game logic spec")(
       test("game example 1") {
         for {
           round0 <- Game.init("FOLIE", 6)
-          _      <- Console.printLine(round0)
           round1 <- round0.play("FANER")
-          _      <- Console.printLine(round1)
           round2 <- round1.play("FETES")
-          _      <- Console.printLine(round2)
           round3 <- round2.play("FOINS")
           _      <- Console.printLine(round3)
+          round4 <- round3.play("FOLIE")
         } yield assertTrue(
           round0.possibleWordsCount == 184,
-          round3.possibleWordsCount > 0
+          List(round0, round1, round2, round3).forall(_.isWin == false),
+          List(round0, round1, round2, round3).forall(_.isLost == false),
+          List(round0, round1, round2, round3).forall(_.isOver == false),
+          round4.isWin,
+          round4.isOver,
+          !round4.isLost
         )
       },
       test("game example 2") {
         for {
           round0 <- Game.init("RIGOLOTE", 6)
-          _      <- Console.printLine(round0)
           round1 <- round0.play("RESTAURE")
-          _      <- Console.printLine(round1)
           round2 <- round1.play("RONFLEUR")
-          _      <- Console.printLine(round2)
           round3 <- round2.play("RIPOSTES")
           _      <- Console.printLine(round3)
-          _      <- Console.printLine(round3.board.toJsonPretty)
+          round4 <- round3.play("RIGOLOTE")
         } yield assertTrue(
           round0.possibleWordsCount == 577,
-          round3.possibleWordsCount > 0
+          List(round0, round1, round2, round3).forall(_.isWin == false),
+          List(round0, round1, round2, round3).forall(_.isLost == false),
+          List(round0, round1, round2, round3).forall(_.isOver == false),
+          round4.isWin,
+          round4.isOver,
+          !round4.isLost
         )
       }
     ) @@ sequential

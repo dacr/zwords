@@ -2,12 +2,25 @@ package fr.janalyse.zwords.wordgen
 
 import fr.janalyse.zwords.dictionary.{DictionaryService, HunspellEntry}
 import zio.*
+import zio.json.*
+
+case class WordStats(
+  message: String,
+  language: String,
+  dictionaryBaseSize: Int,
+  dictionaryExpandedSize: Int,
+  filteredSelectedWordsCount: Int,
+  filteredAcceptableWordsCount: Int
+)
+object WordStats:
+  given JsonCodec[WordStats] = DeriveJsonCodec.gen
 
 trait WordGeneratorService:
   def todayWord: Task[String]
   def wordExists(word: String): Task[Boolean]
   def wordNormalize(word: String): Task[String]
   def matchingWords(pattern: String, includedLetters: Map[Char, Set[Int]], excludedLetters: Map[Int, Set[Char]]): Task[List[String]]
+  def stats: Task[WordStats]
 
 object WordGeneratorService:
   def todayWord: ZIO[WordGeneratorService, Throwable, String] =
@@ -21,6 +34,9 @@ object WordGeneratorService:
 
   def matchingWords(pattern: String, includedLetters: Map[Char, Set[Int]], excludedLetters: Map[Int, Set[Char]]): ZIO[WordGeneratorService, Throwable, List[String]] =
     ZIO.serviceWithZIO(_.matchingWords(pattern, includedLetters, excludedLetters))
+
+  def stats: ZIO[WordGeneratorService, Throwable, WordStats] =
+    ZIO.serviceWithZIO(_.stats)
 
   val live = (
     for
@@ -74,11 +90,23 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
   override def wordNormalize(word: String): Task[String] =
     Task.attempt(standardize(word))
 
-  override def matchingWords(pattern: String, includedLettersMap: Map[Char, Set[Int]], excludedLettersMap: Map[Int, Set[Char]]): Task[List[String]] =
+  override def stats: Task[WordStats] =
+    Task.succeed(
+      WordStats(
+        message = "Used dictionary information",
+        language = "français",
+        dictionaryBaseSize = selectedEntries.size,
+        dictionaryExpandedSize = possibleEntries.size,
+        filteredSelectedWordsCount = selectedWords.size,
+        filteredAcceptableWordsCount = possibleWords.size
+      )
+    )
 
-    val wordRE    = pattern.replaceAll("_", ".").r
+  override def matchingWords(wordMask: String, includedLettersMap: Map[Char, Set[Int]], excludedLettersMap: Map[Int, Set[Char]]): Task[List[String]] =
+
+    val wordRE    = wordMask.replaceAll("_", ".").r
     val excludeRE = 0
-      .until(pattern.size)
+      .until(wordMask.size)
       .map { index =>
         excludedLettersMap.get(index).map(_.mkString("[^", "", "]")).getOrElse(".")
       }
@@ -86,7 +114,7 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
       .r
 
     println("-------------- PATTERN ----------------")
-    println(pattern)
+    println(wordMask)
     println(wordRE.toString())
     println("-------------- INCLUDED ----------------")
     println(includedLettersMap.toList.sorted.mkString("\n"))
@@ -100,7 +128,7 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
 
     Task(
       selectedWords
-        .filter(_.size == pattern.size)
+        .filter(_.size == wordMask.size)
         .filter(wordRE.matches)
         .filter(excludeRE.matches)
         .filter(included)

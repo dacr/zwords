@@ -9,10 +9,12 @@ val versions = new {
   val ziojson    = "0.3.0-RC3"
   val ziologging = "2.0.0-RC5"
   val logback    = "1.2.10"
+  val zhttp      = "2.0.0-RC4"
+  val tapir      = "1.0.0-M3"
 }
 
 val sharedSettings = Seq(
-  scalaVersion                                   := "3.1.1",
+  scalaVersion := "3.1.1",
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   scalacOptions ++= Seq("-Xfatal-warnings"),
   excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13"
@@ -40,6 +42,7 @@ lazy val wordGenerator =
       sharedSettings,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio"      % versions.zio,
+        "dev.zio" %% "zio-json"   % versions.ziojson,
         "dev.zio" %% "zio-test" % versions.zio % Test
       )
     )
@@ -63,10 +66,29 @@ lazy val consoleUI =
     .in(file("console"))
     .dependsOn(gameLogic)
     .dependsOn(wordGenerator)
+    .dependsOn(dictionary)
     .settings(
       sharedSettings,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-cli"  % versions.ziocli,
         "dev.zio" %% "zio-test" % versions.zio % Test
+      )
+    )
+
+lazy val webapi =
+  project
+    .in(file("webapi"))
+    .dependsOn(gameLogic)
+    .dependsOn(wordGenerator)
+    .dependsOn(dictionary)
+    .settings(
+      sharedSettings,
+      libraryDependencies ++= Seq(
+        "com.softwaremill.sttp.tapir" %% "tapir-zio"             % versions.tapir,
+        "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server" % versions.tapir,
+        "com.softwaremill.sttp.tapir" %% "tapir-json-zio"        % versions.tapir,
+        "com.softwaremill.sttp.tapir" %% "tapir-redoc-bundle"    % versions.tapir,
+        "dev.zio"                     %% "zio-json"              % versions.ziojson,
+        "dev.zio"                     %% "zio-test"              % versions.zio % Test
       )
     )
