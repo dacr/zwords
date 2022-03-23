@@ -6,7 +6,10 @@ import java.util.UUID
 import fr.janalyse.zwords.gamelogic.Game
 
 case class GameStats(
-  activeGame: Int
+  playedCount: Int,
+  wonCount: Int,
+  lostCount: Int,
+  activeCount: Int
 )
 object GameStats {
   given JsonCodec[GameStats] = DeriveJsonCodec.gen
@@ -42,7 +45,11 @@ case class GameStoreServiceLive(ref: Ref[Map[UUID, Game]]) extends GameStoreServ
 
   def stats: Task[GameStats] =
     for {
-      games      <- ref.get
-      activeGames = games.size
-    } yield GameStats(activeGames)
+      games <- ref.get
+    } yield GameStats(
+      playedCount = games.size,
+      wonCount = games.values.filter(_.isWin).size,
+      lostCount = games.values.filter(_.isLost).size,
+      activeCount = games.values.filterNot(_.isOver).size
+    )
 }

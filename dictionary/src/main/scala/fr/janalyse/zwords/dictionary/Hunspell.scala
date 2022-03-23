@@ -70,15 +70,17 @@ case class AffixRules(specs: String):
   def decompose(entry: HunspellEntry): List[HunspellEntry] =
     entry.flags
       .flatMap { ruleId =>
-        suffixes.get(ruleId.take(2)).map { rule =>
+        val result = suffixes.get(ruleId.take(2)).map { rule =>
           rule.alternatives.map { replacement =>
-            val regex = replacement.replace.map(_ + "$").getOrElse("$")
+            val regex         = replacement.replace.map(_ + "$").getOrElse("$")
             val generatedWord = entry.word.replaceAll(regex, replacement.change.getOrElse(""))
             entry.copy(word = generatedWord) // TODO concatenate additional flags and properties coming from the rule
-          }.distinct
+          }
+
         }
+        result.map(expanded => (entry :: expanded).distinct)
       }
-      .getOrElse(Nil)
+      .getOrElse(entry :: Nil)
 
 case class Hunspell(entries: Chunk[HunspellEntry], affixRules: AffixRules) {
   def generateWords(entry: HunspellEntry): List[HunspellEntry] = affixRules.decompose(entry)

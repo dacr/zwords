@@ -8,6 +8,18 @@ object HunspellSpec extends DefaultRunnableSpec {
 
   override def spec = {
     suite("dictionary")(
+      test("words check")(
+        for {
+          dico            <- ZIO.service[DictionaryService]
+          baseEntries     <- dico.entries(false)
+          expandedEntries <- dico.entries(true)
+          baseWords        = baseEntries.map(_.word).filter(_.startsWith("fatu"))
+          expandedWords    = expandedEntries.map(_.word).filter(_.startsWith("fatu"))
+        } yield assertTrue(
+          baseWords.contains("fatum"),
+          expandedWords.contains("fatum")
+        )
+      ),
       test("standard features with comique")(
         for {
           dico  <- ZIO.service[DictionaryService]
