@@ -30,20 +30,30 @@ case class GameRow(
   notUsedPlacesMask: String
 )
 
-object GameRow   {
+object GameRow     {
   given JsonCodec[GameRow] = DeriveJsonCodec.gen
 }
 
-case class GameState(
+case class CurrentGame(
   gameUUID: String,
   rows: List[GameRow],
   currentMask: String,
   state: String
 )
-object GameState {
-  given JsonCodec[GameState] = DeriveJsonCodec.gen
+object CurrentGame {
+  given JsonCodec[CurrentGame] = DeriveJsonCodec.gen
+}
 
-  def fromGame(game: Game): GameState = {
+case class PlayerState(
+  playerUUID: String,
+  playerStats: PlayStats,
+  game: CurrentGame
+)
+object PlayerState {
+  given JsonCodec[PlayerState] = DeriveJsonCodec.gen
+
+  def fromPlayer(player: Player): PlayerState = {
+    val game  = player.currentGame
     val state =
       if (game.isWin) "success"
       else if (game.isOver) "lost"
@@ -65,34 +75,42 @@ object GameState {
         }.mkString
       )
     }
-    GameState(
-      gameUUID = game.uuid.toString,
-      rows = rows,
-      currentMask = game.board.patternRow.pattern,
-      state = state
+    PlayerState(
+      playerUUID = player.uuid.toString,
+      playerStats = PlayStats(),
+      game = CurrentGame(
+        gameUUID = game.uuid.toString,
+        rows = rows,
+        currentMask = game.board.patternRow.pattern,
+        state = state
+      )
     )
   }
 }
 
 object WebApiApp extends ZIOAppDefault {
-  type GameEnv = GameStoreService & DictionaryService & WordGeneratorService & Clock & Random & Console & System
+  type GameEnv = PlayerStoreService & DictionaryService & WordGeneratorService & Clock & Random & Console & System
 
   // -------------------------------------------------------------------------------------------------------------------
 
-  val gameCreate: ZIO[GameEnv, GameIssue | GameInternalIssue, GameState] =
+  val gameCreate: ZIO[GameEnv, GameIssue | GameInternalIssue, PlayerState] =
     for {
-      store <- ZIO.service[GameStoreService]
-      game  <- Game.init(6)
-      state <- store.saveGame(game).mapError(th => GameStorageIssue(th))
-    } yield GameState.fromGame(game)
+      store      <- ZIO.service[PlayerStoreService]
+      game       <- Game.init(6)
+      created    <- Clock.instant
+      _          <- Random.setSeed(created.toEpochMilli)
+      playerUUID <- Random.nextUUID
+      player      = Player(uuid = playerUUID, currentGame = game, stats = PlayStats())
+      state      <- store.upsertPlayer(player).mapError(th => GameStorageIssue(th))
+    } yield PlayerState.fromPlayer(player)
 
   val gameCreateEndPoint =
     endpoint
-      .name("create game")
-      .description("Create a new game")
+      .name("create player")
+      .description("Create a new game and initialize its daily game")
       .post
       .in("game")
-      .out(jsonBody[GameState])
+      .out(jsonBody[PlayerState])
       .errorOut(
         oneOf(
           oneOfVariant(NotAcceptable, jsonBody[GameIssue]),
@@ -104,21 +122,22 @@ object WebApiApp extends ZIOAppDefault {
 
   // -------------------------------------------------------------------------------------------------------------------
 
-  def gameGet(gameUUID: String): ZIO[GameEnv, GameIssue | GameInternalIssue, GameState] =
+  def gameGet(playerUUID: String): ZIO[GameEnv, GameIssue | GameInternalIssue, PlayerState] =
     for {
-      store <- ZIO.service[GameStoreService]
-      uuid  <- ZIO.attempt(UUID.fromString(gameUUID)).mapError(th => GameInvalidUUID(gameUUID))
-      game  <- store.getGame(gameUUID = uuid).some.mapError(_ => GameNotFound(gameUUID))
-    } yield GameState.fromGame(game)
+      store  <- ZIO.service[PlayerStoreService]
+      uuid   <- ZIO.attempt(UUID.fromString(playerUUID)).mapError(th => GameInvalidUUID(playerUUID))
+      player <- store.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
+      now    <- Clock.instant
+    } yield PlayerState.fromPlayer(player)
 
   val gameGetEndPoint =
     endpoint
       .name("get game")
-      .description("get current game state")
+      .description("get player information and current game state")
       .get
       .in("game")
-      .in(path[String]("gameUUID").example("949bde59-b220-48bc-98da-cd31431b56c2"))
-      .out(jsonBody[GameState])
+      .in(path[String]("playerUUID").example("949bde59-b220-48bc-98da-cd31431b56c2"))
+      .out(jsonBody[PlayerState])
       .errorOut(
         oneOf(
           oneOfVariant(NotAcceptable, jsonBody[GameIssue]),
@@ -130,14 +149,15 @@ object WebApiApp extends ZIOAppDefault {
 
   // -------------------------------------------------------------------------------------------------------------------
 
-  def gamePlay(gameUUID: String, givenWord: GameGivenWord): ZIO[GameEnv, GameIssue | GameInternalIssue, GameState] =
+  def gamePlay(playerUUID: String, givenWord: GameGivenWord): ZIO[GameEnv, GameIssue | GameInternalIssue, PlayerState] =
     for {
-      store    <- ZIO.service[GameStoreService]
-      uuid     <- ZIO.attempt(UUID.fromString(gameUUID)).mapError(th => GameInvalidUUID(gameUUID))
-      game     <- store.getGame(gameUUID = uuid).some.mapError(_ => GameNotFound(gameUUID))
-      nextGame <- game.play(givenWord.word)
-      state    <- store.saveGame(nextGame).mapError(th => GameStorageIssue(th))
-    } yield GameState.fromGame(nextGame)
+      store        <- ZIO.service[PlayerStoreService]
+      uuid         <- ZIO.attempt(UUID.fromString(playerUUID)).mapError(th => GameInvalidUUID(playerUUID))
+      player       <- store.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
+      nextGame     <- player.currentGame.play(givenWord.word)
+      updatedPlayer = player.copy(currentGame = nextGame)
+      state        <- store.upsertPlayer(updatedPlayer).mapError(th => GameStorageIssue(th))
+    } yield PlayerState.fromPlayer(updatedPlayer)
 
   val gamePlayEndPoint =
     endpoint
@@ -145,9 +165,9 @@ object WebApiApp extends ZIOAppDefault {
       .description("Play the next round of your game")
       .post
       .in("game")
-      .in(path[String]("gameUUID").example("949bde59-b220-48bc-98da-cd31431b56c2"))
+      .in(path[String]("playerUUID").example("949bde59-b220-48bc-98da-cd31431b56c2"))
       .in(jsonBody[GameGivenWord])
-      .out(jsonBody[GameState])
+      .out(jsonBody[PlayerState])
       .errorOut(
         oneOf(
           oneOfVariant(NotAcceptable, jsonBody[GameIssue]),
@@ -158,10 +178,8 @@ object WebApiApp extends ZIOAppDefault {
   val gamePlayRoute = gamePlayEndPoint.zServerLogic(gamePlay)
 
   // -------------------------------------------------------------------------------------------------------------------
-
-  // -------------------------------------------------------------------------------------------------------------------
   case class GameInfo(
-    gameStats: GameStats,
+    playersStats: PlayStats,
     wordStats: WordStats
   )
   object GameInfo {
@@ -170,7 +188,7 @@ object WebApiApp extends ZIOAppDefault {
 
   val infoGet: ZIO[GameEnv, Throwable, GameInfo] =
     for {
-      store     <- ZIO.service[GameStoreService]
+      store     <- ZIO.service[PlayerStoreService]
       gameStats <- store.stats
       wordgen   <- ZIO.service[WordGeneratorService]
       wordStats <- wordgen.stats
@@ -212,7 +230,7 @@ object WebApiApp extends ZIOAppDefault {
     zhttp.service.Server
       .start(8080, httpApp)
       .provide(
-        GameStoreService.live,
+        PlayerStoreService.live,
         DictionaryService.live,
         WordGeneratorService.live,
         Clock.live,

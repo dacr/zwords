@@ -182,10 +182,10 @@ case class Game(uuid: UUID, hiddenWord: String, board: Board, createdDate: Insta
     for
       wordGen       <- ZIO.service[WordGeneratorService]
       givenWord     <- wordGen.wordNormalize(roundWord).mapError(th => GameWordGeneratorIssue(th))
+      _             <- ZIO.cond(givenWord.size == hiddenWord.size, (), GamePlayInvalidSize(givenWord))
       wordInDic     <- wordGen.wordExists(givenWord).mapError(th => GameDictionaryIssue(th))
       _             <- ZIO.cond(wordInDic, (), GameWordNotInDictionary(givenWord))
       _             <- ZIO.cond(!board.isOver, (), GameIsOver())
-      _             <- ZIO.cond(givenWord.size == hiddenWord.size, (), GamePlayInvalidSize(givenWord))
       newPlayedRows  = GuessRow.buildRow(hiddenWord, givenWord) :: board.playedRows
       newPatternRow  = GuessRow.buildPatternRowPlayedRows(newPlayedRows)
       newBoard       = board.copy(patternRow = newPatternRow, playedRows = newPlayedRows)
@@ -195,6 +195,8 @@ case class Game(uuid: UUID, hiddenWord: String, board: Board, createdDate: Insta
     yield copy(board = newBoard, possibleWordsCount = possibleWords.size)
 
 object Game:
+  def makeDefaultWordMask(word:String):String =  (word.head +: word.tail.map(_ => "_")).mkString
+
   def init(maxAttemptsCount: Int): ZIO[WordGeneratorService & Random & Clock, GameIssue | GameInternalIssue, Game] =
     for {
       wordGenerator <- ZIO.service[WordGeneratorService]
@@ -203,8 +205,7 @@ object Game:
     } yield game
 
   def init(hiddenWord: String, maxAttemptsCount: Int): ZIO[WordGeneratorService & Random & Clock, GameIssue | GameInternalIssue, Game] =
-    val wordMask = hiddenWord.head +: hiddenWord.tail.map(_ => "_")
-    init(hiddenWord, wordMask.mkString, maxAttemptsCount)
+    init(hiddenWord, makeDefaultWordMask(hiddenWord), maxAttemptsCount)
 
   def init(hiddenWord: String, wordMask: String, maxAttemptsCount: Int): ZIO[WordGeneratorService & Random & Clock, GameIssue | GameInternalIssue, Game] =
     for {
