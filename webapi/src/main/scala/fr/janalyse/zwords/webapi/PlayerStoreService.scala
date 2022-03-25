@@ -4,6 +4,7 @@ import zio.*
 import zio.json.*
 import java.util.UUID
 import fr.janalyse.zwords.gamelogic.Game
+import java.time.Instant
 
 case class PlayStats(
   playedCount: Int = 0,
@@ -17,6 +18,8 @@ object PlayStats {
 
 case class Player(
   uuid: UUID,
+  pseudo: String,
+  createdOn: Instant,
   currentGame: Game,
   stats: PlayStats
 )
