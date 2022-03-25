@@ -66,8 +66,8 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
       .filterNot(_.isCompound)
       .map(_.word)
       .map(standardize)
-      .filter(_.size >= 4)
-      .filter(_.size <= 9)
+      .filter(_.size >= 5)
+      .filter(_.size <= 10)
 
   val selectedWords    = normalizeEntries(selectedEntries)
   val possibleWords    = normalizeEntries(possibleEntries)
