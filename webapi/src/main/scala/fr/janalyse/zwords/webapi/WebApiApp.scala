@@ -272,10 +272,10 @@ object WebApiApp extends ZIOAppDefault {
 
   val server = for {
     clientResources             <- System.env("ZWORDS_CLIENT_RESOURCES_PATH").some
-    clientSideEndPoint           = fileGetServerEndpoint("index.html")(s"$clientResources/index.html")
-    clientSideResourcesEndPoints = filesGetServerEndpoint("static")(s"$clientResources/static")
+    clientSideEndPoint           = fileGetServerEndpoint("index.html")(s"$clientResources/index.html").widen[GameEnv]
+    clientSideResourcesEndPoints = filesGetServerEndpoint("static")(s"$clientResources/static").widen[GameEnv]
     clientSideRoutes             = List(clientSideEndPoint, clientSideEndPoint)
-    httpApp                      = ZioHttpInterpreter().toHttp(gameRoutes ++ apiDocRoutes) //++ ZioHttpInterpreter[GameEnv]().toHttp(clientSideRoutes)
+    httpApp                      = ZioHttpInterpreter().toHttp(gameRoutes ++ apiDocRoutes ++ clientSideRoutes)
     zservice                    <- zhttp.service.Server.start(8080, httpApp)
   } yield zservice
 
