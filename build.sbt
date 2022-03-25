@@ -81,7 +81,9 @@ lazy val webapi =
     .dependsOn(gameLogic)
     .dependsOn(wordGenerator)
     .dependsOn(dictionary)
+    .enablePlugins(JavaServerAppPackaging)
     .settings(
+      Universal / packageName := "zwords",
       sharedSettings,
       libraryDependencies ++= Seq(
         "com.softwaremill.sttp.tapir" %% "tapir-zio"             % versions.tapir,

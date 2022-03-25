@@ -14,7 +14,8 @@ import zio.*
 import zio.json.*
 import zio.json.ast.*
 
-import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.temporal.ChronoField
 import java.util.UUID
 
 case class GameGivenWord(
@@ -97,7 +98,7 @@ object PlayerCreate {
 
 case class PlayerGet(
   pseudo: String,
-  createdOn: Instant,
+  createdOn: OffsetDateTime,
   stats: PlayStats
 )
 object PlayerGet    {
@@ -113,8 +114,8 @@ object WebApiApp extends ZIOAppDefault {
     for {
       store      <- ZIO.service[PlayerStoreService]
       game       <- Game.init(6)
-      created    <- Clock.instant
-      _          <- Random.setSeed(created.toEpochMilli)
+      created    <- Clock.currentDateTime
+      _          <- Random.setSeed(created.toInstant.toEpochMilli)
       playerUUID <- Random.nextUUID
       player      = Player(uuid = playerUUID, pseudo = playerCreate.pseudo, createdOn = created, currentGame = game, stats = PlayStats())
       state      <- store.upsertPlayer(player).mapError(th => GameStorageIssue(th))
@@ -168,12 +169,29 @@ object WebApiApp extends ZIOAppDefault {
 
   // -------------------------------------------------------------------------------------------------------------------
 
+  def sameDay(date1: OffsetDateTime, date2: OffsetDateTime): Boolean = {
+    val fields = List(
+      ChronoField.YEAR_OF_ERA,
+      ChronoField.MONTH_OF_YEAR,
+      ChronoField.DAY_OF_MONTH
+    )
+    fields.forall(field => date1.get(field) == date2.get(field))
+  }
+
   def gameGet(playerUUID: String): ZIO[GameEnv, GameIssue | GameInternalIssue, PlayerGameState] =
     for {
-      store  <- ZIO.service[PlayerStoreService]
-      uuid   <- ZIO.attempt(UUID.fromString(playerUUID)).mapError(th => GameInvalidUUID(playerUUID))
-      player <- store.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
-    } yield PlayerGameState.fromPlayer(player)
+      store        <- ZIO.service[PlayerStoreService]
+      uuid         <- ZIO.attempt(UUID.fromString(playerUUID)).mapError(th => GameInvalidUUID(playerUUID))
+      playerBefore <- store.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
+      today        <- Clock.currentDateTime
+      isSameDay    <- ZIO.attempt(sameDay(playerBefore.currentGame.createdDate, today)).mapError(th => GameStorageIssue(th))
+      playerAfter  <- if (isSameDay) ZIO.succeed(playerBefore)
+                      else
+                        for {
+                          newGame       <- Game.init(6)
+                          updatedPlayer <- store.upsertPlayer(playerBefore.copy(currentGame = newGame)).mapError(th => GameStorageIssue(th))
+                        } yield updatedPlayer
+    } yield PlayerGameState.fromPlayer(playerAfter)
 
   val gameGetEndPoint =
     endpoint
@@ -272,11 +290,10 @@ object WebApiApp extends ZIOAppDefault {
 
   val server = for {
     clientResources             <- System.env("ZWORDS_CLIENT_RESOURCES_PATH").some
-    clientSideEndPoint           = fileGetServerEndpoint("index.html")(s"$clientResources/index.html").widen[GameEnv]
-    clientSideResourcesEndPoints = filesGetServerEndpoint("static")(s"$clientResources/static").widen[GameEnv]
-    clientSideRoutes             = List(clientSideEndPoint, clientSideEndPoint)
+    clientSideResourcesEndPoints = filesGetServerEndpoint(emptyInput)(clientResources).widen[GameEnv]
+    clientSideRoutes             = List(clientSideResourcesEndPoints)
     httpApp                      = ZioHttpInterpreter().toHttp(gameRoutes ++ apiDocRoutes ++ clientSideRoutes)
-    zservice                    <- zhttp.service.Server.start(8080, httpApp)
+    zservice                    <- zhttp.service.Server.start(8090, httpApp)
   } yield zservice
 
   override def run =

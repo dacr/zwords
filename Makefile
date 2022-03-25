@@ -1,0 +1,3 @@
+all:
+	sbt universal:packageXzTarball
+

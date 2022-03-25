@@ -5,7 +5,7 @@ import fr.janalyse.zwords.wordgen.WordGeneratorService
 import zio.*
 import zio.json.*
 
-import java.time.Instant
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.collection.LazyZip2
 import scala.io.AnsiColor.*
@@ -170,7 +170,7 @@ object GameStorageIssue:
   given JsonCodec[GameStorageIssue]          = DeriveJsonCodec.gen
   def apply(th: Throwable): GameStorageIssue = GameStorageIssue(th.getMessage)
 
-case class Game(uuid: UUID, hiddenWord: String, board: Board, createdDate: Instant, possibleWordsCount: Int):
+case class Game(uuid: UUID, hiddenWord: String, board: Board, createdDate: OffsetDateTime, possibleWordsCount: Int):
 
   override def toString: String = board.toString + s" $YELLOW($possibleWordsCount)$RESET"
 
@@ -195,7 +195,7 @@ case class Game(uuid: UUID, hiddenWord: String, board: Board, createdDate: Insta
     yield copy(board = newBoard, possibleWordsCount = possibleWords.size)
 
 object Game:
-  def makeDefaultWordMask(word:String):String =  (word.head +: word.tail.map(_ => "_")).mkString
+  def makeDefaultWordMask(word: String): String = (word.head +: word.tail.map(_ => "_")).mkString
 
   def init(maxAttemptsCount: Int): ZIO[WordGeneratorService & Random & Clock, GameIssue | GameInternalIssue, Game] =
     for {
@@ -210,8 +210,8 @@ object Game:
   def init(hiddenWord: String, wordMask: String, maxAttemptsCount: Int): ZIO[WordGeneratorService & Random & Clock, GameIssue | GameInternalIssue, Game] =
     for {
       wordGen       <- ZIO.service[WordGeneratorService]
-      createdDate   <- Clock.instant
-      _             <- Random.setSeed(createdDate.toEpochMilli)
+      createdDate   <- Clock.currentDateTime
+      _             <- Random.setSeed(createdDate.toInstant.toEpochMilli)
       uuid          <- Random.nextUUID
       board          = Board(wordMask, maxAttemptsCount)
       possibleWords <- wordGen.matchingWords(wordMask, Map.empty, Map.empty).mapError(th => GameWordGeneratorIssue(th))

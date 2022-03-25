@@ -2,9 +2,11 @@ package fr.janalyse.zwords.webapi
 
 import zio.*
 import zio.json.*
+
 import java.util.UUID
 import fr.janalyse.zwords.gamelogic.Game
-import java.time.Instant
+
+import java.time.OffsetDateTime
 
 case class PlayStats(
   playedCount: Int = 0,
@@ -19,20 +21,20 @@ object PlayStats {
 case class Player(
   uuid: UUID,
   pseudo: String,
-  createdOn: Instant,
+  createdOn: OffsetDateTime,
   currentGame: Game,
   stats: PlayStats
 )
 
 trait PlayerStoreService {
   def getPlayer(playerUUID: UUID): Task[Option[Player]]
-  def upsertPlayer(player: Player): Task[Unit]
+  def upsertPlayer(player: Player): Task[Player]
   def stats: Task[PlayStats]
 }
 
 object PlayerStoreService {
   def getPlayer(playerUUID: UUID): RIO[PlayerStoreService, Option[Player]] = ZIO.serviceWithZIO(_.getPlayer(playerUUID))
-  def upsertPlayer(player: Player): RIO[PlayerStoreService, Unit]          = ZIO.serviceWithZIO(_.upsertPlayer(player))
+  def upsertPlayer(player: Player): RIO[PlayerStoreService, Player]        = ZIO.serviceWithZIO(_.upsertPlayer(player))
   def stats: RIO[PlayerStoreService, PlayStats]                            = ZIO.serviceWithZIO(_.stats)
 
   val live = (for {
@@ -47,10 +49,10 @@ case class PlayerStoreServiceLive(ref: Ref[Map[UUID, Player]]) extends PlayerSto
       mayBePlayer = players.get(playerUUID)
     } yield mayBePlayer
 
-  def upsertPlayer(player: Player): Task[Unit] =
+  def upsertPlayer(player: Player): Task[Player] =
     for {
       players <- ref.getAndUpdate(players => players + (player.uuid -> player))
-    } yield ()
+    } yield player
 
   def stats: Task[PlayStats] =
     for {
