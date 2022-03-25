@@ -10,7 +10,7 @@ val versions = new {
   val ziologging = "2.0.0-RC5"
   val logback    = "1.2.10"
   val zhttp      = "2.0.0-RC4"
-  val tapir      = "1.0.0-M3"
+  val tapir      = "1.0.0-M4"
 }
 
 val sharedSettings = Seq(
