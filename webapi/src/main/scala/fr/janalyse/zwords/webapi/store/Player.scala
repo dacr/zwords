@@ -10,6 +10,7 @@ case class Player(
   uuid: UUID,
   pseudo: String,
   createdOn: OffsetDateTime,
+  lastUpdated: OffsetDateTime,
   stats: Stats,
   game: Game
 )

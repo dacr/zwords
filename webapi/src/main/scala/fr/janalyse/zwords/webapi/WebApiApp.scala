@@ -36,10 +36,13 @@ object WebApiApp extends ZIOAppDefault {
                       uuid = playerUUID,
                       pseudo = playerCreate.pseudo,
                       createdOn = created,
+                      lastUpdated = created,
                       game = game,
                       stats = Stats(triedCount = 1)
                     )
-      state      <- store.upsertPlayer(player).mapError(th => GameStorageIssue(th))
+      state      <- store
+                      .upsertPlayer(player)
+                      .mapError(th => GameStorageIssue(th))
     } yield PlayerGameState.fromPlayer(player)
 
   val playerCreateEndPoint =
@@ -64,7 +67,10 @@ object WebApiApp extends ZIOAppDefault {
     for {
       store  <- ZIO.service[PlayerStoreService]
       uuid   <- ZIO.attempt(UUID.fromString(playerUUID)).mapError(th => GameInvalidUUID(playerUUID))
-      player <- store.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
+      player <- store
+                  .getPlayer(playerUUID = uuid)
+                  .some
+                  .mapError(_ => GameNotFound(playerUUID))
     } yield PlayerInfo(
       pseudo = player.pseudo,
       createdOn = player.createdOn,
@@ -111,7 +117,9 @@ object WebApiApp extends ZIOAppDefault {
                         for {
                           newGame       <- Game.init(6)
                           newStats       = playerBefore.stats.copy(triedCount = playerBefore.stats.triedCount + 1)
-                          updatedPlayer <- store.upsertPlayer(playerBefore.copy(game = newGame, stats = newStats)).mapError(th => GameStorageIssue(th))
+                          updatedPlayer <- store
+                                             .upsertPlayer(playerBefore.copy(game = newGame, stats = newStats, lastUpdated = today))
+                                             .mapError(th => GameStorageIssue(th))
                         } yield updatedPlayer
     } yield PlayerGameState.fromPlayer(playerAfter)
 
@@ -140,6 +148,7 @@ object WebApiApp extends ZIOAppDefault {
       uuid         <- ZIO.attempt(UUID.fromString(playerUUID)).mapError(th => GameInvalidUUID(playerUUID))
       player       <- store.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
       nextGame     <- player.game.play(givenWord.word)
+      now          <- Clock.currentDateTime
       stats         = player.stats
       updatedStats  = if (!player.game.isOver && nextGame.isOver)
                         stats.copy(
@@ -148,7 +157,7 @@ object WebApiApp extends ZIOAppDefault {
                           lostCount = stats.lostCount + (if (nextGame.isLost) 1 else 0)
                         )
                       else player.stats
-      updatedPlayer = player.copy(game = nextGame, stats = updatedStats)
+      updatedPlayer = player.copy(game = nextGame, stats = updatedStats, lastUpdated = now)
       state        <- store.upsertPlayer(updatedPlayer).mapError(th => GameStorageIssue(th))
     } yield PlayerGameState.fromPlayer(updatedPlayer)
 
