@@ -22,7 +22,7 @@ case class LMDBOperations(databasePath: File) {
   private val env: Env[ByteBuffer] = try {
     Env
       .create()
-      .setMapSize(500_000_000)
+      .setMapSize(10_000_000_000)
       .setMaxDbs(1)
       .open(databasePath)
   } catch {
