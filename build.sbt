@@ -14,7 +14,7 @@ val versions = new {
 }
 
 val sharedSettings = Seq(
-  scalaVersion := "3.1.1",
+  scalaVersion                                   := "3.1.1",
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   scalacOptions ++= Seq("-Xfatal-warnings"),
   excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13"
@@ -85,11 +85,13 @@ lazy val webapi =
       Universal / packageName := "zwords",
       sharedSettings,
       libraryDependencies ++= Seq(
-        "com.softwaremill.sttp.tapir" %% "tapir-zio"             % versions.tapir,
-        "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server" % versions.tapir,
-        "com.softwaremill.sttp.tapir" %% "tapir-json-zio"        % versions.tapir,
-        "com.softwaremill.sttp.tapir" %% "tapir-redoc-bundle"    % versions.tapir,
-        "dev.zio"                     %% "zio-json"              % versions.ziojson,
-        "dev.zio"                     %% "zio-test"              % versions.zio % Test
+        "com.softwaremill.sttp.tapir" %% "tapir-zio"                    % versions.tapir,
+        "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server"        % versions.tapir,
+        "com.softwaremill.sttp.tapir" %% "tapir-json-zio"               % versions.tapir,
+        "com.softwaremill.sttp.tapir" %% "tapir-redoc-bundle"           % versions.tapir,
+        "dev.zio"                     %% "zio-json"                     % versions.ziojson,
+        "dev.zio"                     %% "zio-test"                     % versions.zio % Test,
+        "com.sksamuel.elastic4s"       % "elastic4s-core_2.13"          % "7.17.2",
+        "com.sksamuel.elastic4s"       % "elastic4s-client-esjava_2.13" % "7.17.2"
       )
     )

@@ -195,6 +195,8 @@ case class Game(uuid: UUID, hiddenWord: String, board: Board, createdDate: Offse
     yield copy(board = newBoard, possibleWordsCount = possibleWords.size)
 
 object Game:
+  given JsonCodec[Game] = DeriveJsonCodec.gen
+
   def makeDefaultWordMask(word: String): String = (word.head +: word.tail.map(_ => "_")).mkString
 
   def init(maxAttemptsCount: Int): ZIO[WordGeneratorService & Random & Clock, GameIssue | GameInternalIssue, Game] =

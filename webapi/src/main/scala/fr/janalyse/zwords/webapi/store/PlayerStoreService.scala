@@ -26,7 +26,14 @@ object PlayerStoreService {
   def getPlayer(playerUUID: UUID): RIO[PlayerStoreService, Option[Player]] = ZIO.serviceWithZIO(_.getPlayer(playerUUID))
   def upsertPlayer(player: Player): RIO[PlayerStoreService, Player]        = ZIO.serviceWithZIO(_.upsertPlayer(player))
 
-  val live = (for {
+  val mem = (for {
     ref <- Ref.make(Map.empty[UUID, Player])
   } yield PlayerStoreServiceInMemory(ref)).toLayer
+
+  val live = (for {
+    elasticUrl       <- System.env("ZWORDS_ELASTIC_URL").someOrElse("http://127.0.0.1:9200")
+    elasticUsername  <- System.env("ZWORDS_ELASTIC_USERNAME")
+    elasticPassword  <- System.env("ZWORDS_ELASTIC_PASSWORD")
+    elasticOperations = ElasticOperations(elasticUrl, elasticUsername, elasticPassword)
+  } yield PlayerStoreServiceElastic(elasticOperations)).toLayer
 }
