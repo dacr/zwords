@@ -4,7 +4,7 @@ import zio.{Ref, Task}
 
 import java.util.UUID
 
-case class PlayerStoreServiceInMemory(ref: Ref[Map[UUID, Player]]) extends PlayerStoreService {
+case class PlayerStoreServiceMemory(ref: Ref[Map[UUID, Player]]) extends PlayerStoreService {
   def getPlayer(playerUUID: UUID): Task[Option[Player]] =
     for {
       players    <- ref.get

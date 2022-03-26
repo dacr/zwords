@@ -26,14 +26,21 @@ object PlayerStoreService {
   def getPlayer(playerUUID: UUID): RIO[PlayerStoreService, Option[Player]] = ZIO.serviceWithZIO(_.getPlayer(playerUUID))
   def upsertPlayer(player: Player): RIO[PlayerStoreService, Player]        = ZIO.serviceWithZIO(_.upsertPlayer(player))
 
-  val mem = (for {
+  lazy val mem = (for {
     ref <- Ref.make(Map.empty[UUID, Player])
-  } yield PlayerStoreServiceInMemory(ref)).toLayer
+  } yield PlayerStoreServiceMemory(ref)).toLayer
 
-  val live = (for {
+  lazy val elastic = (for {
     elasticUrl       <- System.env("ZWORDS_ELASTIC_URL").someOrElse("http://127.0.0.1:9200")
     elasticUsername  <- System.env("ZWORDS_ELASTIC_USERNAME")
     elasticPassword  <- System.env("ZWORDS_ELASTIC_PASSWORD")
     elasticOperations = ElasticOperations(elasticUrl, elasticUsername, elasticPassword)
   } yield PlayerStoreServiceElastic(elasticOperations)).toLayer
+
+  lazy val live = (for {
+    lmdbPath       <- System.env("ZWORDS_LMDB_PATH").some
+    lmdbPathFile    = java.io.File(lmdbPath)
+    _              <- ZIO.attemptBlocking(lmdbPathFile.mkdirs())
+    lmdbOperations <- ZIO.attemptBlocking(LMDBOperations(lmdbPathFile))
+  } yield PlayerStoreServiceLMBD(lmdbOperations)).toLayer
 }

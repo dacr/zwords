@@ -11,6 +11,8 @@ val versions = new {
   val logback    = "1.2.10"
   val zhttp      = "2.0.0-RC4"
   val tapir      = "1.0.0-M4"
+  val elastic4s  = "7.17.2"
+  val lmdb       = "0.8.2"
 }
 
 val sharedSettings = Seq(
@@ -83,6 +85,10 @@ lazy val webapi =
     .enablePlugins(JavaServerAppPackaging)
     .settings(
       Universal / packageName := "zwords",
+      Universal / javaOptions := Seq( // -- Required for LMDB with recent JVM
+        "--add-opens java.base/java.nio=ALL-UNNAMED",
+        "--add-opens java.base/sun.nio.ch=ALL-UNNAMED"
+      ),
       sharedSettings,
       libraryDependencies ++= Seq(
         "com.softwaremill.sttp.tapir" %% "tapir-zio"                    % versions.tapir,
@@ -91,7 +97,8 @@ lazy val webapi =
         "com.softwaremill.sttp.tapir" %% "tapir-redoc-bundle"           % versions.tapir,
         "dev.zio"                     %% "zio-json"                     % versions.ziojson,
         "dev.zio"                     %% "zio-test"                     % versions.zio % Test,
-        "com.sksamuel.elastic4s"       % "elastic4s-core_2.13"          % "7.17.2",
-        "com.sksamuel.elastic4s"       % "elastic4s-client-esjava_2.13" % "7.17.2"
+        "com.sksamuel.elastic4s"       % "elastic4s-core_2.13"          % versions.elastic4s,
+        "com.sksamuel.elastic4s"       % "elastic4s-client-esjava_2.13" % versions.elastic4s,
+        "org.lmdbjava"                 % "lmdbjava"                     % versions.lmdb
       )
     )
