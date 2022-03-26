@@ -42,7 +42,6 @@ lazy val wordGenerator =
       sharedSettings,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio"      % versions.zio,
-        "dev.zio" %% "zio-json"   % versions.ziojson,
         "dev.zio" %% "zio-test" % versions.zio % Test
       )
     )

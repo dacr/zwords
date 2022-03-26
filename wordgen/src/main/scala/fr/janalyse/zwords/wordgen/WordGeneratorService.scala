@@ -2,7 +2,6 @@ package fr.janalyse.zwords.wordgen
 
 import fr.janalyse.zwords.dictionary.{DictionaryService, HunspellEntry}
 import zio.*
-import zio.json.*
 
 case class WordStats(
   message: String,
@@ -12,8 +11,6 @@ case class WordStats(
   filteredSelectedWordsCount: Int,
   filteredAcceptableWordsCount: Int
 )
-object WordStats:
-  given JsonCodec[WordStats] = DeriveJsonCodec.gen
 
 trait WordGeneratorService:
   def todayWord: Task[String]
