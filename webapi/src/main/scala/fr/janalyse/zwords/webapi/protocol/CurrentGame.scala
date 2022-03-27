@@ -8,6 +8,7 @@ case class CurrentGame(
   gameUUID: String,
   rows: List[GameRow],
   currentMask: String,
+  possibleWordsCount: Int,
   state: String
 )
 object CurrentGame:
@@ -44,5 +45,6 @@ object CurrentGame:
       gameUUID = game.uuid.toString,
       rows = rows,
       currentMask = game.board.patternRow.pattern,
+      possibleWordsCount = game.possibleWordsCount,
       state = state
     )
