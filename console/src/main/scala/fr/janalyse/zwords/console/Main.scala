@@ -29,8 +29,7 @@ object Main extends ZIOAppDefault {
 
   val consoleBasedGame =
     for
-      wordgen    <- ZIO.service[WordGeneratorService]
-      randomWord <- wordgen.todayWord
+      randomWord <- WordGeneratorService.todayWord
       _          <- ZIO.log(s"(today's word is $randomWord)")
       game       <- Game.init(randomWord, 6)
       result     <- consoleBasedRound(game)
