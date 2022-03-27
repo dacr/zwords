@@ -17,6 +17,7 @@ trait WordGeneratorService:
   def wordExists(word: String): Task[Boolean]
   def wordNormalize(word: String): Task[String]
   def matchingWords(pattern: String, includedLetters: Map[Char, Set[Int]], excludedLetters: Map[Int, Set[Char]]): Task[List[String]]
+  def countMatchingWords(pattern: String): Task[Int]
   def stats: Task[WordStats]
 
 object WordGeneratorService:
@@ -31,6 +32,9 @@ object WordGeneratorService:
 
   def matchingWords(pattern: String, includedLetters: Map[Char, Set[Int]], excludedLetters: Map[Int, Set[Char]]): ZIO[WordGeneratorService, Throwable, List[String]] =
     ZIO.serviceWithZIO(_.matchingWords(pattern, includedLetters, excludedLetters))
+
+  def countMatchingWords(pattern: String): ZIO[WordGeneratorService, Throwable, Int] =
+    ZIO.serviceWithZIO(_.countMatchingWords(pattern))
 
   def stats: ZIO[WordGeneratorService, Throwable, WordStats] =
     ZIO.serviceWithZIO(_.stats)
@@ -57,7 +61,7 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
       .replaceAll("[ç]", "c")
       .toUpperCase
 
-  def normalizeEntries(entries: Chunk[HunspellEntry]): IndexedSeq[String] =
+  def normalizeEntries(entries: Chunk[HunspellEntry]): Chunk[String] =
     entries
       .filter(_.isCommun)
       .filterNot(_.isCompound)
@@ -99,25 +103,37 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
       )
     )
 
-  override def matchingWords(wordMask: String, includedLettersMap: Map[Char, Set[Int]], excludedLettersMap: Map[Int, Set[Char]]): Task[List[String]] =
+  def wordRegexpFromPattern(pattern: String) =
+    pattern.replaceAll("_", ".").r
 
-    val wordRE    = wordMask.replaceAll("_", ".").r
-    val excludeRE = 0
-      .until(wordMask.size)
-      .map { index =>
-        excludedLettersMap.get(index).map(_.mkString("[^", "", "]")).getOrElse(".")
-      }
-      .mkString
-      .r
+  override def countMatchingWords(pattern: String): Task[Int] =
+    val wordRE = wordRegexpFromPattern(pattern)
+    Task(
+      selectedWords.count(word => word.size == pattern.size && wordRE.matches(word))
+    )
+
+  override def matchingWords(pattern: String, includedLettersMap: Map[Char, Set[Int]], excludedLettersMap: Map[Int, Set[Char]]): Task[List[String]] =
+    val wordRE = wordRegexpFromPattern(pattern)
+
+    val excludeRE =
+      0
+        .until(pattern.size)
+        .map { index =>
+          excludedLettersMap.get(index).map(_.mkString("[^", "", "]")).getOrElse(".")
+        }
+        .mkString
+        .r
 
     def included(word: String): Boolean =
       includedLettersMap.forall((char, positions) => positions.flatMap(word.lift).contains(char))
 
     Task(
       selectedWords
-        .filter(_.size == wordMask.size)
-        .filter(wordRE.matches)
-        .filter(excludeRE.matches)
-        .filter(included)
+        .filter(word =>
+          word.size == pattern.size &&
+            wordRE.matches(word) &&
+            excludeRE.matches(word) &&
+            included(word)
+        )
         .toList
     )
