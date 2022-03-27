@@ -142,6 +142,34 @@ object WebApiApp extends ZIOAppDefault {
 
   // -------------------------------------------------------------------------------------------------------------------
 
+  def mayBeUpdatedStats(stats: Stats, previousGame: Game, nextGame: Game): Stats = {
+    if (!previousGame.isOver && nextGame.isOver)
+      import stats.*
+      val playedRows                 = nextGame.board.playedRows
+      val addedGoodPlaceLetterCount  = playedRows.map(_.state.count(_.isInstanceOf[GoodPlaceCell])).sum
+      val addedWrongPlaceLetterCount = playedRows.map(_.state.count(_.isInstanceOf[WrongPlaceCell])).sum
+      val addedUnusedLetterCount     = playedRows.map(_.state.count(_.isInstanceOf[NotUsedCell])).sum
+
+      val newWonIn =
+        if (nextGame.isLost) wonIn
+        else {
+          val attempt = nextGame.board.playedRows.size
+          val key     = s"tried$attempt"
+          wonIn + (key -> (wonIn.getOrElse(key, 0) + 1))
+        }
+
+      stats.copy(
+        playedCount = playedCount + 1,
+        wonCount = wonCount + (if (nextGame.isWin) 1 else 0),
+        lostCount = lostCount + (if (nextGame.isLost) 1 else 0),
+        wonIn = newWonIn,
+        goodPlaceLetterCount = goodPlaceLetterCount + addedGoodPlaceLetterCount,
+        wrongPlaceLetterCount = wrongPlaceLetterCount + addedWrongPlaceLetterCount,
+        unusedLetterCount = unusedLetterCount + addedUnusedLetterCount
+      )
+    else stats
+  }
+
   def gamePlay(playerUUID: String, givenWord: GameGivenWord): ZIO[GameEnv, GameIssue | GameInternalIssue, PlayerGameState] =
     for {
       store        <- ZIO.service[PlayerStoreService]
@@ -149,14 +177,7 @@ object WebApiApp extends ZIOAppDefault {
       player       <- store.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
       nextGame     <- player.game.play(givenWord.word)
       now          <- Clock.currentDateTime
-      stats         = player.stats
-      updatedStats  = if (!player.game.isOver && nextGame.isOver)
-                        stats.copy(
-                          playedCount = stats.playedCount + 1,
-                          wonCount = stats.wonCount + (if (nextGame.isWin) 1 else 0),
-                          lostCount = stats.lostCount + (if (nextGame.isLost) 1 else 0)
-                        )
-                      else player.stats
+      updatedStats  = mayBeUpdatedStats(stats = player.stats, previousGame = player.game, nextGame = nextGame)
       updatedPlayer = player.copy(game = nextGame, stats = updatedStats, lastUpdated = now)
       state        <- store.upsertPlayer(updatedPlayer).mapError(th => GameStorageIssue(th))
     } yield PlayerGameState.fromPlayer(updatedPlayer)
@@ -215,7 +236,7 @@ object WebApiApp extends ZIOAppDefault {
     RedocInterpreter()
       .fromServerEndpoints(
         gameRoutes,
-        Info(title = "Zwords Game API", version = "1.0", description = Some("A wordle like game as an API by @BriossantC and @crodav"))
+        Info(title = "ZWORDS Game API", version = "1.0", description = Some("A wordle like game as an API by @BriossantC and @crodav"))
       )
 
   val server = for {
