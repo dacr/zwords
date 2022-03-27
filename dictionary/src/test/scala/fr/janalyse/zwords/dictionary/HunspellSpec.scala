@@ -10,14 +10,17 @@ object HunspellSpec extends DefaultRunnableSpec {
     suite("dictionary")(
       test("words check")(
         for {
-          dico            <- ZIO.service[DictionaryService]
-          baseEntries     <- dico.entries(false)
-          expandedEntries <- dico.entries(true)
-          baseWords        = baseEntries.map(_.word).filter(_.startsWith("fatu"))
-          expandedWords    = expandedEntries.map(_.word).filter(_.startsWith("fatu"))
+          dico             <- ZIO.service[DictionaryService]
+          baseEntries      <- dico.entries(false)
+          expandedEntries  <- dico.entries(true)
+          fatuBaseWords     = baseEntries.map(_.word).filter(_.startsWith("fatu"))
+          fatuExpandedWords = expandedEntries.map(_.word).filter(_.startsWith("fatu"))
+          taiExpandedWords  = expandedEntries.map(_.word).filter(_.startsWith("tail"))
         } yield assertTrue(
-          baseWords.contains("fatum"),
-          expandedWords.contains("fatum")
+          fatuBaseWords.contains("fatum"),
+          fatuExpandedWords.contains("fatum"),
+          taiExpandedWords.contains("taillée"),
+          taiExpandedWords.contains("tailles"),
         )
       ),
       test("standard features with comique")(

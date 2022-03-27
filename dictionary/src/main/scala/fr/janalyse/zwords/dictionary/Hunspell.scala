@@ -45,8 +45,6 @@ object SfxRule:
         case "SFX" :: `ruleId` :: "0" :: s"$change/$flags" :: attrs     => SfxRuleReplace(None, Some(change), Some(flags), Map.empty)
         case "SFX" :: `ruleId` :: replace :: s"$change/$flags" :: attrs => SfxRuleReplace(Some(replace), Some(change), Some(flags), Map.empty)
       }
-    if (ruleId == "S.")
-      println(lines.tail.mkString("\n"))
     SfxRule(ruleId, replacements)
 
 case class AffixRules(specs: String):
@@ -68,19 +66,21 @@ case class AffixRules(specs: String):
       .toMap
 
   def decompose(entry: HunspellEntry): List[HunspellEntry] =
-    entry.flags
-      .flatMap { ruleId =>
-        val result = suffixes.get(ruleId.take(2)).map { rule =>
-          rule.alternatives.map { replacement =>
-            val regex         = replacement.replace.map(_ + "$").getOrElse("$")
-            val generatedWord = entry.word.replaceAll(regex, replacement.change.getOrElse(""))
-            entry.copy(word = generatedWord) // TODO concatenate additional flags and properties coming from the rule
+    val result =
+      entry.flags
+        .map { flags =>
+          val rulesToApply = flags.grouped(2).toList
+          rulesToApply.flatMap { ruleId =>
+            suffixes.get(ruleId.take(2)).map { rule =>
+              rule.alternatives.map { replacement =>
+                val regex         = replacement.replace.map(_ + "$").getOrElse("$")
+                val generatedWord = entry.word.replaceAll(regex, replacement.change.getOrElse(""))
+                entry.copy(word = generatedWord) // TODO concatenate additional flags and properties coming from the rule
+              }
+            }
           }
-
         }
-        result.map(expanded => (entry :: expanded).distinct)
-      }
-      .getOrElse(entry :: Nil)
+    result.map(expanded => entry :: expanded.flatten).getOrElse(entry :: Nil).distinct
 
 case class Hunspell(entries: Chunk[HunspellEntry], affixRules: AffixRules) {
   def generateWords(entry: HunspellEntry): List[HunspellEntry] = affixRules.decompose(entry)
