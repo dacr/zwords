@@ -8,7 +8,6 @@ val versions = new {
   val ziocli     = "0.2.2"
   val ziojson    = "0.3.0-RC3"
   val ziologging = "2.0.0-RC5"
-  val logback    = "1.2.10"
   val zhttp      = "2.0.0-RC4"
   val tapir      = "1.0.0-M4"
   val elastic4s  = "7.17.2"
@@ -91,6 +90,8 @@ lazy val webapi =
       ),
       sharedSettings,
       libraryDependencies ++= Seq(
+        //"dev.zio"                     %% "zio-logging"                  % versions.ziologging,
+        //"dev.zio"                     %% "zio-logging-slf4j"            % versions.ziologging,
         "com.softwaremill.sttp.tapir" %% "tapir-zio"                    % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server"        % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-json-zio"               % versions.tapir,
@@ -99,6 +100,6 @@ lazy val webapi =
         "dev.zio"                     %% "zio-test"                     % versions.zio % Test,
         "com.sksamuel.elastic4s"       % "elastic4s-core_2.13"          % versions.elastic4s,
         "com.sksamuel.elastic4s"       % "elastic4s-client-esjava_2.13" % versions.elastic4s,
-        "org.lmdbjava"                 % "lmdbjava"                     % versions.lmdb
+        "org.lmdbjava"                 % "lmdbjava"                     % versions.lmdb,
       )
     )

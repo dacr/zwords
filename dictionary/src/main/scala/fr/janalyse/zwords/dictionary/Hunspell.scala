@@ -101,12 +101,12 @@ object Hunspell {
       dicContent  <- charset.decodeString(dicBytes)
       dicLines     = dicContent.split("\n").toList
       count       <- ZIO.fromOption(dicLines.headOption.map(_.toInt))
-      _           <- Console.printLine(s"Expecting to find $count hunspell entries")
+      _           <- ZIO.log(s"Expecting to find $count hunspell entries")
       specs        = dicLines.tail
       entries      = specs.flatMap(HunspellEntry.fromLine)
-      _           <- Console.printLine(s"Found ${entries.size} hunspell entries")
+      _           <- ZIO.log(s"Found ${entries.size} hunspell entries")
       fullCount    = entries.map(entry => affixRules.decompose(entry).size).sum
-      _           <- Console.printLine(s"All hunspell generated words $fullCount")
+      _           <- ZIO.log(s"All hunspell generated words $fullCount")
       // hunspell <- ZIO.cond(entries.size == count, Hunspell(entries), Error("Didn't find the right number of words in dictionary"))
       hunspell     = Hunspell(Chunk.fromIterable(entries), affixRules) // No check as count input data looks invalid :(
     } yield hunspell

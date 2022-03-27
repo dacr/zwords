@@ -20,7 +20,7 @@ object HunspellSpec extends DefaultRunnableSpec {
           fatuBaseWords.contains("fatum"),
           fatuExpandedWords.contains("fatum"),
           taiExpandedWords.contains("taillée"),
-          taiExpandedWords.contains("tailles"),
+          taiExpandedWords.contains("tailles")
         )
       ),
       test("standard features with comique")(
@@ -41,7 +41,6 @@ object HunspellSpec extends DefaultRunnableSpec {
       )
     ).provideShared(
       DictionaryService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize dictionary service $err"))),
-      Console.live,
       System.live
     )
   }
