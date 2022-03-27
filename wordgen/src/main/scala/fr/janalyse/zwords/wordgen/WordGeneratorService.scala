@@ -78,7 +78,7 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
       _        <- random.setSeed(seed)
       index    <- random.nextIntBetween(0, count)
       word      = selectedWords(index)
-      _        <- ZIO.log(s"Choosing word $word at index $index/$count (seed = $seed)")
+      _        <- ZIO.log(s"Chosen word $word at index $index/$count (seed = $seed)")
     yield word
 
   override def wordExists(word: String): Task[Boolean] =
@@ -91,7 +91,7 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
     Task.succeed(
       WordStats(
         message = "Used dictionary information",
-        language = "français",
+        language = "french",
         dictionaryBaseSize = selectedEntries.size,
         dictionaryExpandedSize = possibleEntries.size,
         filteredSelectedWordsCount = selectedWords.size,
@@ -109,16 +109,6 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
       }
       .mkString
       .r
-
-    println("-------------- PATTERN ----------------")
-    println(wordMask)
-    println(wordRE.toString())
-    println("-------------- INCLUDED ----------------")
-    println(includedLettersMap.toList.sorted.mkString("\n"))
-    println("-------------- EXCLUDED ----------------")
-    println(excludedLettersMap.toList.sorted.mkString("\n"))
-    println(excludeRE.toString())
-    println("----------------------------------------")
 
     def included(word: String): Boolean =
       includedLettersMap.forall((char, positions) => positions.flatMap(word.lift).contains(char))
