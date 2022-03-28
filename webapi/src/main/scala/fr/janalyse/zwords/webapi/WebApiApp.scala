@@ -236,14 +236,15 @@ object WebApiApp extends ZIOAppDefault {
                             )
                           )
                           .tapError(err => ZIO.logError(s"Invalid word received : $err"))
-        _            <- ZIO.log(s"player $playerUUID played '$givenWord'")
         player       <- PlayerStoreService.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
         nextGame     <- player.game.play(givenWord.word)
         now          <- Clock.currentDateTime
         updatedStats  = mayBeUpdatedStats(stats = player.stats, previousGame = player.game, nextGame = nextGame)
         updatedPlayer = player.copy(game = nextGame, stats = updatedStats, lastUpdated = now)
-        state        <- PlayerStoreService.upsertPlayer(updatedPlayer).mapError(th => GameStorageIssue(th))
-      } yield PlayerGameState.fromPlayer(updatedPlayer)
+        _            <- PlayerStoreService.upsertPlayer(updatedPlayer).mapError(th => GameStorageIssue(th))
+        state         = PlayerGameState.fromPlayer(updatedPlayer)
+        _            <- ZIO.log(s"player $playerUUID ${state.game.state} ${state.game.rows.size}/6 with '$givenWord'")
+      } yield state
     }
 
   val gamePlayEndPoint =
