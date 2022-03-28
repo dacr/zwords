@@ -20,24 +20,6 @@ import java.util.{Base64, UUID}
 import fr.janalyse.zwords.webapi.protocol.*
 import fr.janalyse.zwords.webapi.store.*
 
-sealed trait PlayerIssue {
-  val message: String
-}
-object PlayerIssue:
-  given JsonCodec[PlayerIssue] = DeriveJsonCodec.gen
-
-case class PlayerInvalidPseudo(message: String, givenPseudoBase64: String) extends PlayerIssue
-object PlayerInvalidPseudo:
-  given JsonCodec[PlayerInvalidPseudo] = DeriveJsonCodec.gen
-
-case class PlayerInvalidGameWord(message: String, givenGameWordBase64: String) extends PlayerIssue
-object PlayerInvalidGameWord:
-  given JsonCodec[PlayerInvalidGameWord] = DeriveJsonCodec.gen
-
-case class PlayerInvalidUUID(message: String, givenUUIDBase64: String) extends PlayerIssue
-object PlayerInvalidUUID:
-  given JsonCodec[PlayerInvalidUUID] = DeriveJsonCodec.gen
-
 object WebApiApp extends ZIOAppDefault {
   type GameEnv = PlayerStoreService & DictionaryService & WordGeneratorService & Clock & Random & Console & System
 
@@ -98,8 +80,8 @@ object WebApiApp extends ZIOAppDefault {
       .errorOut(
         oneOf(
           oneOfVariant(NotAcceptable, jsonBody[GameIssue]),
-          oneOfVariant(InternalServerError, jsonBody[GameInternalIssue]),
-          oneOfVariant(InternalServerError, jsonBody[PlayerIssue])
+          oneOfVariant(ExpectationFailed, jsonBody[PlayerIssue]),
+          oneOfVariant(InternalServerError, jsonBody[GameInternalIssue])
         )
       )
 
@@ -134,8 +116,8 @@ object WebApiApp extends ZIOAppDefault {
       .errorOut(
         oneOf(
           oneOfVariant(NotAcceptable, jsonBody[GameIssue]),
-          oneOfVariant(InternalServerError, jsonBody[GameInternalIssue]),
-          oneOfVariant(InternalServerError, jsonBody[PlayerIssue])
+          oneOfVariant(ExpectationFailed, jsonBody[PlayerIssue]),
+          oneOfVariant(InternalServerError, jsonBody[GameInternalIssue])
         )
       )
 
@@ -185,8 +167,8 @@ object WebApiApp extends ZIOAppDefault {
       .errorOut(
         oneOf(
           oneOfVariant(NotAcceptable, jsonBody[GameIssue]),
-          oneOfVariant(InternalServerError, jsonBody[GameInternalIssue]),
-          oneOfVariant(InternalServerError, jsonBody[PlayerIssue])
+          oneOfVariant(ExpectationFailed, jsonBody[PlayerIssue]),
+          oneOfVariant(InternalServerError, jsonBody[GameInternalIssue])
         )
       )
 
@@ -237,6 +219,9 @@ object WebApiApp extends ZIOAppDefault {
                           )
                           .tapError(err => ZIO.logError(s"Invalid word received : $err"))
         player       <- PlayerStoreService.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
+        today        <- Clock.currentDateTime
+        isSameDay    <- ZIO.attempt(sameDay(player.game.createdDate, today)).mapError(th => GameStorageIssue(th))
+        _            <- ZIO.cond(isSameDay, (), PlayerGameHasExpired("Reload the game to reset and get latest game state"))
         nextGame     <- player.game.play(givenWord.word)
         now          <- Clock.currentDateTime
         updatedStats  = mayBeUpdatedStats(stats = player.stats, previousGame = player.game, nextGame = nextGame)
@@ -259,8 +244,8 @@ object WebApiApp extends ZIOAppDefault {
       .errorOut(
         oneOf(
           oneOfVariant(NotAcceptable, jsonBody[GameIssue]),
-          oneOfVariant(InternalServerError, jsonBody[GameInternalIssue]),
-          oneOfVariant(InternalServerError, jsonBody[PlayerIssue])
+          oneOfVariant(ExpectationFailed, jsonBody[PlayerIssue]),
+          oneOfVariant(InternalServerError, jsonBody[GameInternalIssue])
         )
       )
 

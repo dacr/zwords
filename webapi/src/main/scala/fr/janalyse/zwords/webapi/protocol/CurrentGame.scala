@@ -12,7 +12,8 @@ case class CurrentGame(
   rows: List[GameRow],
   currentMask: String,
   possibleWordsCount: Int,
-  state: String
+  state: String,
+  hiddenWord: Option[String]
 )
 object CurrentGame:
   given JsonCodec[CurrentGame] = DeriveJsonCodec.gen
@@ -55,5 +56,6 @@ object CurrentGame:
       rows = rows,
       currentMask = game.board.patternRow.pattern,
       possibleWordsCount = game.possibleWordsCount,
-      state = state
+      state = state,
+      hiddenWord = if (game.isOver) Some(game.hiddenWord) else None
     )

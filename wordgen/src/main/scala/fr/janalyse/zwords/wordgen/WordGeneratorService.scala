@@ -82,7 +82,6 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
       _        <- random.setSeed(seed)
       index    <- random.nextIntBetween(0, count)
       word      = selectedWords(index)
-      _        <- ZIO.log(s"Chosen word $word at index $index/$count (seed = $seed)")
     yield word
 
   override def wordExists(word: String): Task[Boolean] =
