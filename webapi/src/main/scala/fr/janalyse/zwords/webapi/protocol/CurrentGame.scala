@@ -45,7 +45,7 @@ object CurrentGame:
   def makeSexyId(game: Game): String =
     val fields = List(ChronoField.YEAR, ChronoField.DAY_OF_YEAR)
     val ts     = fields.map(field => game.createdDate.get(field)).mkString("-")
-    s"ZWORDS#$ts"
+    s"#ZWORDS $ts"
 
   def fromGame(game: Game): CurrentGame =
     val state = stateFromGame(game)
