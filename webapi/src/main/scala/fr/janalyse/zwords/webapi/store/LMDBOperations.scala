@@ -2,11 +2,11 @@ package fr.janalyse.zwords.webapi.store
 
 import zio.*
 import zio.json.*
-import java.io.File
-import org.lmdbjava.{Dbi, Env}
-import org.lmdbjava.DbiFlags
-import java.nio.charset.StandardCharsets
 
+import java.io.File
+import org.lmdbjava.{Dbi, DbiFlags, Env, EnvFlags}
+
+import java.nio.charset.StandardCharsets
 import java.nio.ByteBuffer
 import java.time.OffsetDateTime
 
@@ -24,12 +24,26 @@ case class LMDBOperations(databasePath: File) {
       .create()
       .setMapSize(10_000_000_000)
       .setMaxDbs(1)
-      .open(databasePath)
+      .open(
+        databasePath,
+        //EnvFlags.MDB_NOLOCK,
+        EnvFlags.MDB_NOSYNC, // Dangerous but quite faster !
+      )
   } catch {
     case ex:Throwable =>
       ex.printStackTrace()
       throw new RuntimeException(ex)
   }
+
+  java.lang.Runtime.getRuntime().addShutdownHook( new Thread {
+    override def run(): Unit = {
+      println("Syncing and shutting down LMDB zwords database")
+      env.sync(true)
+      env.close()
+    }
+  })
+
+
 
   private val db: Dbi[ByteBuffer] = env.openDbi(dbName, DbiFlags.MDB_CREATE)
 
