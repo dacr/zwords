@@ -127,7 +127,7 @@ object WebApiApp extends ZIOAppDefault {
 
   def sameDay(date1: OffsetDateTime, date2: OffsetDateTime): Boolean = {
     val fields = List(
-      ChronoField.YEAR_OF_ERA,
+      ChronoField.YEAR,
       ChronoField.MONTH_OF_YEAR,
       ChronoField.DAY_OF_MONTH
     )

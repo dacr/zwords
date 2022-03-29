@@ -3,6 +3,9 @@ package fr.janalyse.zwords.wordgen
 import fr.janalyse.zwords.dictionary.{DictionaryService, HunspellEntry}
 import zio.*
 
+import java.time.OffsetDateTime
+import java.time.temporal.ChronoField
+
 case class WordStats(
   message: String,
   language: String,
@@ -74,10 +77,16 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
   val possibleWords    = normalizeEntries(possibleEntries)
   val possibleWordsSet = possibleWords.toSet
 
+  def dateTimeToDailySeed(dateTime: OffsetDateTime): Int = {
+    dateTime.get(ChronoField.YEAR) * 10000 +
+      dateTime.get(ChronoField.MONTH_OF_YEAR) * 100 +
+      dateTime.get(ChronoField.DAY_OF_MONTH)
+  }
+
   override def todayWord: Task[String] =
     for
       dateTime <- clock.currentDateTime
-      seed      = dateTime.toEpochSecond / 3600 / 24
+      seed      = dateTimeToDailySeed(dateTime)
       count     = selectedWords.size
       _        <- random.setSeed(seed)
       index    <- random.nextIntBetween(0, count)
