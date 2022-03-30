@@ -80,7 +80,7 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
   def dateTimeToDailySeed(dateTime: OffsetDateTime): Int = {
     dateTime.get(ChronoField.YEAR) * 10000 +
       dateTime.get(ChronoField.MONTH_OF_YEAR) * 100 +
-      dateTime.get(ChronoField.DAY_OF_MONTH)
+      dateTime.get(ChronoField.DAY_OF_MONTH) + 1
   }
 
   override def todayWord: Task[String] =
