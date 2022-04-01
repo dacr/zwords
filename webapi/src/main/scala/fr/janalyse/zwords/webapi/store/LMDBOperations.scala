@@ -51,9 +51,10 @@ case class LMDBOperations(databasePath: File) {
 
 
   def delete(id:String):Task[Unit] = for {
-      key   <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(env.getMaxKeySize))
-      _     <- ZIO.attemptBlocking(key.put(id.getBytes(charset)).flip)
-      _     <- ZIO.attemptBlocking(db.delete(key))
+      key      <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(env.getMaxKeySize))
+      _        <- ZIO.attemptBlocking(key.put(id.getBytes(charset)).flip)
+      keyFound <- ZIO.attemptBlocking(db.delete(key))
+      _        <- ZIO.cond(keyFound, (), Exception(s"key $id Not found - delete impossible"))
     } yield ()
 
   def fetch[T](id: String)(using JsonDecoder[T]): Task[Option[T]] = {
@@ -77,12 +78,13 @@ case class LMDBOperations(databasePath: File) {
   }
 
   def upsert[T](id: String, document: T)(using JsonEncoder[T]): Task[Unit] = {
+    val keyBytes = id.getBytes(charset)
     val jsonDoc = document.toJson
     val jsonDocBytes = jsonDoc.getBytes(charset)
     for {
       key   <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(env.getMaxKeySize))
+      _     <- ZIO.attemptBlocking(key.put(keyBytes).flip)
       value <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(jsonDocBytes.size))
-      _     <- ZIO.attemptBlocking(key.put(id.getBytes(charset)).flip)
       _     <- ZIO.attemptBlocking(value.put(jsonDocBytes).flip)
       _     <- ZIO.attemptBlocking(db.put(key, value))
     } yield ()

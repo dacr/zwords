@@ -27,16 +27,17 @@ object LMDBOperationsSpec extends DefaultRunnableSpec {
         val value = Str(data)
         for {
           lmdb          <- ZIO.service[LMDBOperations]
-          _             <- lmdb.upsert[Str](key, value).tapError(err => ZIO.log(s"$key = $data"))
-          gotten        <- lmdb.fetch[Str](key).some.tapError(err => ZIO.log(s"$key = $data"))
-          _             <- lmdb.upsert(key, Str("updated")).tapError(err => ZIO.log(s"$key = $data"))
-          gottenUpdated <- lmdb.fetch[Str](key).some.tapError(err => ZIO.log(s"$key = $data"))
-          _             <- lmdb.delete(key).tapError(err => ZIO.log(s"$key = $data"))
-          isFailed      <- lmdb.fetch[Str](key).tapError(err => ZIO.log(s"$key = $data")).isFailure
+          _             <- lmdb.upsert[Str](key, value)
+          gotten        <- lmdb.fetch[Str](key).some
+          _             <- lmdb.upsert(key, Str("updated"))
+          gottenUpdated <- lmdb.fetch[Str](key).some
+          _             <- lmdb.delete(key)
+          isFailed      <- lmdb.fetch[Str](key).isFailure
         } yield assertTrue(
           gotten == value,
-          gottenUpdated.value == "updated"
-        )
+          gottenUpdated.value == "updated",
+          isFailed
+        ).map(_.label(s"for key $key"))
       }
     }
   ).provideSomeLayer(lmdbLayer.mapError(err => TestFailure.fail(err)))
