@@ -47,7 +47,7 @@ object LMDBOperationsSpec extends DefaultRunnableSpec {
       } yield assertTrue(isFailed).map(_.label(s"for key $key"))
     ),
     // -----------------------------------------------------------------------------
-    test("basic operations") {
+    test("basic CRUD operations") {
       check(
         stringBounded(1, 511)(asciiChar), // TODO take care string -> bytes can be more than *2 for unicode... !
         string
