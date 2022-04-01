@@ -3,7 +3,7 @@ package fr.janalyse.zwords.gamelogic
 import zio.json.{DeriveJsonCodec, JsonCodec}
 
 case class Board(patternRow: GuessRow, playedRows: List[GuessRow], maxRowsCount: Int):
-  def isWin: Boolean = patternRow.state.forall(_.isInstanceOf[GoodPlaceCell])
+  def isWin: Boolean = playedRows.headOption.map(_.state.forall(_.isInstanceOf[GoodPlaceCell])).getOrElse(false)
 
   def isOver: Boolean = isWin || playedRows.size >= maxRowsCount
 
