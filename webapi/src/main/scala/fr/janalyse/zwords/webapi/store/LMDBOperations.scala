@@ -37,15 +37,24 @@ case class LMDBOperations(databasePath: File) {
 
   java.lang.Runtime.getRuntime().addShutdownHook( new Thread {
     override def run(): Unit = {
-      println("Syncing and shutting down LMDB zwords database")
       env.sync(true)
       env.close()
     }
   })
 
-
-
   private val db: Dbi[ByteBuffer] = env.openDbi(dbName, DbiFlags.MDB_CREATE)
+
+  def close():Task[Unit] = for {
+    _ <- Task.attemptBlocking(env.sync(true))
+    _ <- Task.attemptBlocking(env.close())
+  } yield ()
+
+
+  def delete(id:String):Task[Unit] = for {
+      key   <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(env.getMaxKeySize))
+      _     <- ZIO.attemptBlocking(key.put(id.getBytes(charset)).flip)
+      _     <- ZIO.attemptBlocking(db.delete(key))
+    } yield ()
 
   def fetch[T](id: String)(using JsonDecoder[T]): Task[Option[T]] = {
     ZIO.acquireReleaseWith(
@@ -67,14 +76,14 @@ case class LMDBOperations(databasePath: File) {
     )
   }
 
-  def upsert[T](document: T, idExtractor: T => String)(using JsonEncoder[T]): Task[Unit] = {
-    val id      = idExtractor(document)
-    val jsondoc = document.toJson
+  def upsert[T](id: String, document: T)(using JsonEncoder[T]): Task[Unit] = {
+    val jsonDoc = document.toJson
+    val jsonDocBytes = jsonDoc.getBytes(charset)
     for {
       key   <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(env.getMaxKeySize))
-      value <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(jsondoc.length * 2 + 10))
+      value <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(jsonDocBytes.size))
       _     <- ZIO.attemptBlocking(key.put(id.getBytes(charset)).flip)
-      _     <- ZIO.attemptBlocking(value.put(jsondoc.getBytes(charset)).flip)
+      _     <- ZIO.attemptBlocking(value.put(jsonDocBytes).flip)
       _     <- ZIO.attemptBlocking(db.put(key, value))
     } yield ()
   }

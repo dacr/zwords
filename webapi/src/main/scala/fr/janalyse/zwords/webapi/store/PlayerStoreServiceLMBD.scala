@@ -9,7 +9,7 @@ case class PlayerStoreServiceLMBD(lmdbAPI: LMDBOperations) extends PlayerStoreSe
     lmdbAPI.fetch(playerUUID.toString)
 
   def upsertPlayer(player: Player): Task[Player] = for {
-    _ <- lmdbAPI.upsert[Player](player, _.uuid.toString)
+    _ <- lmdbAPI.upsert[Player](player.uuid.toString, player)
   } yield player
 
 }
