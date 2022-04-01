@@ -4,7 +4,7 @@ import zio.*
 import zio.json.*
 
 import java.io.File
-import org.lmdbjava.{Dbi, DbiFlags, Env, EnvFlags}
+import org.lmdbjava.{Dbi, DbiFlags, Env, EnvFlags, Txn}
 
 import java.nio.charset.StandardCharsets
 import java.nio.ByteBuffer
@@ -50,26 +50,33 @@ case class LMDBOperations(databasePath: File) {
   } yield ()
 
 
-  def delete(id:String):Task[Unit] = for {
+  def delete(id:String):Task[Unit] = {
+    val keyBytes = id.getBytes(charset)
+    for {
+      _        <- ZIO.cond(keyBytes.length <= env.getMaxKeySize, (), Exception(s"Key size is over limit ${env.getMaxKeySize}"))
       key      <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(env.getMaxKeySize))
       _        <- ZIO.attemptBlocking(key.put(id.getBytes(charset)).flip)
       keyFound <- ZIO.attemptBlocking(db.delete(key))
       _        <- ZIO.cond(keyFound, (), Exception(s"key $id Not found - delete impossible"))
     } yield ()
+  }
 
   def fetch[T](id: String)(using JsonDecoder[T]): Task[Option[T]] = {
+    val keyBytes = id.getBytes(charset)
     ZIO.acquireReleaseWith(
       ZIO.attemptBlocking(env.txnRead()),
       txn => URIO(txn.close()),
       txn => {
         for {
-          key      <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(env.getMaxKeySize))
+          _        <- ZIO.cond(keyBytes.length <= env.getMaxKeySize, (), Exception(s"Key size is over limit ${env.getMaxKeySize}"))
+          key      <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(keyBytes.length))
           _        <- ZIO.attemptBlocking(key.put(id.getBytes(charset)).flip)
           found    <- ZIO.attemptBlocking(Option(db.get(txn, key)).isDefined)
           document <- if (!found) ZIO.succeed(Option.empty)
                       else
                         for {
                           fetchedValue    <- ZIO.attemptBlocking(txn.`val`())
+                          _ <- ZIO.cond(fetchedValue != null, (), Exception(s"Key $key not found"))
                           decodedDocument <- ZIO.fromEither(charset.decode(fetchedValue).fromJson[T]).mapError(msg => Exception(msg))
                         } yield Some(decodedDocument)
         } yield document
@@ -82,7 +89,8 @@ case class LMDBOperations(databasePath: File) {
     val jsonDoc = document.toJson
     val jsonDocBytes = jsonDoc.getBytes(charset)
     for {
-      key   <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(env.getMaxKeySize))
+      _     <- ZIO.cond(keyBytes.length <= env.getMaxKeySize, (), Exception(s"Key size is over limit ${env.getMaxKeySize}"))
+      key   <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(keyBytes.size))
       _     <- ZIO.attemptBlocking(key.put(keyBytes).flip)
       value <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(jsonDocBytes.size))
       _     <- ZIO.attemptBlocking(value.put(jsonDocBytes).flip)
