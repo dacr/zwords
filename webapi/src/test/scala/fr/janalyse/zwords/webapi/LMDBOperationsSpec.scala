@@ -30,7 +30,7 @@ object LMDBOperationsSpec extends DefaultRunnableSpec {
         val value = Str(data)
         for {
           lmdb   <- ZIO.service[LMDBOperations]
-          _      <- lmdb.upsert[Str](id, value)
+          _      <- lmdb.upsertOverwrite[Str](id, value)
           gotten <- lmdb.fetch[Str](id).some
         } yield assertTrue(
           gotten == value
@@ -51,9 +51,9 @@ object LMDBOperationsSpec extends DefaultRunnableSpec {
         val value = Str(data)
         for {
           lmdb          <- ZIO.service[LMDBOperations]
-          _             <- lmdb.upsert[Str](id, value)
+          _             <- lmdb.upsertOverwrite[Str](id, value)
           gotten        <- lmdb.fetch[Str](id).some
-          _             <- lmdb.upsert(id, Str("updated"))
+          _             <- lmdb.upsertOverwrite(id, Str("updated"))
           gottenUpdated <- lmdb.fetch[Str](id).some
           _             <- lmdb.delete(id)
           isFailed      <- lmdb.fetch[Str](id).some.isFailure
@@ -65,12 +65,12 @@ object LMDBOperationsSpec extends DefaultRunnableSpec {
       }
     },
     // -----------------------------------------------------------------------------
-    test("many updates") {
+    test("many overwrite updates") {
       for {
         lmdb    <- ZIO.service[LMDBOperations]
         id       = UUID.randomUUID().toString
         maxValue = 100_000
-        _       <- ZIO.foreach(1.to(maxValue))(i => lmdb.upsert[Num](id, Num(i)))
+        _       <- ZIO.foreach(1.to(maxValue))(i => lmdb.upsertOverwrite[Num](id, Num(i)))
         num     <- lmdb.fetch[Num](id).some
       } yield assertTrue(
         num.value.intValue() == maxValue
@@ -78,12 +78,15 @@ object LMDBOperationsSpec extends DefaultRunnableSpec {
     },
     // -----------------------------------------------------------------------------
     test("safe update in place") {
+      def modifier(from: Option[Num]): Num = from match {
+        case None      => Num(1)
+        case Some(num) => Num(num.value.intValue() + 1)
+      }
       for {
         lmdb <- ZIO.service[LMDBOperations]
         id    = UUID.randomUUID().toString
         count = 100_000
-        _    <- lmdb.upsert(id, Num(0))
-        _    <- ZIO.foreachPar(1.to(count))(i => lmdb.update[Num](id, num => Num(num.value.intValue() + 1)))
+        _    <- ZIO.foreachPar(1.to(count))(i => lmdb.upsert[Num](id, modifier))
         num  <- lmdb.fetch[Num](id).some
       } yield assertTrue(
         num.value.intValue() == count

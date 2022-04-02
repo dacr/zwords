@@ -6,18 +6,27 @@ import zio.*
 import zio.json.*
 
 import java.time.OffsetDateTime
+import java.time.temporal.ChronoField
 import java.util.UUID
 import scala.io.AnsiColor.*
 
 // ==============================================================================
 
-case class Game(uuid: UUID, hiddenWord: String, board: Board, createdDate: OffsetDateTime, possibleWordsCount: Int):
+case class Game(
+  uuid: UUID,
+  hiddenWord: String,
+  board: Board,
+  createdDate: OffsetDateTime,
+  possibleWordsCount: Int
+):
 
   override def toString: String = board.toString + s" $YELLOW($possibleWordsCount)$RESET"
 
   def isWin  = board.isWin
   def isOver = board.isOver
   def isLost = board.isLost
+
+  def dailyGameId = Game.makeDailyGameId(createdDate)
 
   def play(roundWord: String): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
     for
@@ -39,6 +48,12 @@ case class Game(uuid: UUID, hiddenWord: String, board: Board, createdDate: Offse
 
 object Game:
   given JsonCodec[Game] = DeriveJsonCodec.gen
+
+  def makeDailyGameId(dateTime:OffsetDateTime) = {
+    val fields = List(ChronoField.YEAR, ChronoField.DAY_OF_YEAR)
+    val ts     = fields.map(field => dateTime.get(field)).mkString("-")
+    s"ZWORDS-$ts"
+  }
 
   def makeDefaultWordMask(word: String): String = (word.head +: word.tail.map(_ => "_")).mkString
 

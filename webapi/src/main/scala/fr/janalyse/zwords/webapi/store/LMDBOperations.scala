@@ -65,15 +65,12 @@ class LMDBOperations(
       txn => ZIO.attempt(txn.close()).tapError(err => ZIO.logError(err.toString)).ignore,
       txn => {
         for {
-          key      <- makeKeyByteBuffer(id)
-          found    <- ZIO.attemptBlocking(Option(db.get(txn, key)).isDefined)
-          document <- if (!found) ZIO.succeed(Option.empty)
-                      else
-                        for {
-                          fetchedValue    <- ZIO.attemptBlocking(txn.`val`())
-                          _ <- ZIO.cond(fetchedValue != null, (), Exception(s"Key $key not found"))
-                          decodedDocument <- ZIO.fromEither(charset.decode(fetchedValue).fromJson[T]).mapError(msg => Exception(msg))
-                        } yield Some(decodedDocument)
+          key           <- makeKeyByteBuffer(id)
+          found         <- ZIO.attemptBlocking(Option(db.get(txn, key)))
+          mayBeRawValue <- ZIO.foreach(found)(_ => ZIO.attemptBlocking(txn.`val`()))
+          document      <- ZIO.foreach(mayBeRawValue){rawValue =>
+                             ZIO.fromEither(charset.decode(rawValue).fromJson[T]).mapError(msg => Exception(msg))
+                           }
         } yield document
       }
     )
@@ -86,7 +83,7 @@ class LMDBOperations(
    * @tparam T
    * @return
    */
-  def upsert[T](id: String, document: T)(using JsonEncoder[T]): Task[Unit] = writeSemaphore.withPermit {
+  def upsertOverwrite[T](id: String, document: T)(using JsonEncoder[T]): Task[T] = writeSemaphore.withPermit {
     val jsonDoc = document.toJson
     val jsonDocBytes = jsonDoc.getBytes(charset)
     for {
@@ -94,34 +91,34 @@ class LMDBOperations(
       value <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(jsonDocBytes.size))
       _     <- ZIO.attemptBlocking(value.put(jsonDocBytes).flip)
       _     <- ZIO.attemptBlocking(db.put(key, value))
-    } yield ()
+    } yield document
   }
 
   /**
-   * atomic document update throw a lambda
+   * atomic document update/insert throw a lambda
    * @param id
    * @param modifier
    * @return
    */
-  def update[T](id:String, modifier: T => T)(using JsonEncoder[T], JsonDecoder[T]): Task[Option[T]] = writeSemaphore.withPermit {
+  def upsert[T](id:String, modifier: Option[T] => T)(using JsonEncoder[T], JsonDecoder[T]): Task[T] = writeSemaphore.withPermit {
     ZIO.acquireReleaseWith(
       ZIO.attemptBlocking(env.txnWrite()),
       txn => ZIO.attempt(txn.close()).tapError(err => ZIO.logError(err.toString)).ignore,
       txn =>
         for {
-          key          <- makeKeyByteBuffer(id)
-          found        <- ZIO.attemptBlocking(Option(db.get(txn, key)).isDefined)
-          _            <- ZIO.cond(found, (), Exception(s"Key $key not found"))
-          rawBefore    <- ZIO.attemptBlocking(txn.`val`())
-          _            <- ZIO.cond(rawBefore != null, (), Exception(s"Key $key not found"))
-          docBefore    <- ZIO.fromEither(charset.decode(rawBefore).fromJson[T]).mapError(msg => Exception("msg"))
-          docAfter      = modifier(docBefore)
+          key            <- makeKeyByteBuffer(id)
+          found          <- ZIO.attemptBlocking(Option(db.get(txn, key)))
+          mayBeRawValue  <- ZIO.foreach(found)(_ => ZIO.attemptBlocking(txn.`val`()))
+          mayBeDocBefore <- ZIO.foreach(mayBeRawValue){rawValue =>
+                             ZIO.fromEither(charset.decode(rawValue).fromJson[T]).mapError(msg => Exception(msg))
+                            }
+          docAfter      = modifier(mayBeDocBefore)
           jsonDocBytes  = docAfter.toJson.getBytes(charset)
           valueBuffer  <- ZIO.attemptBlocking(ByteBuffer.allocateDirect(jsonDocBytes.size))
           _            <- ZIO.attemptBlocking(valueBuffer.put(jsonDocBytes).flip)
           _            <- ZIO.attemptBlocking(db.put(txn, key, valueBuffer))
           _            <- ZIO.attemptBlocking(txn.commit())
-        } yield None
+        } yield docAfter
     )
   }
 

@@ -12,7 +12,8 @@ case class Player(
   createdOn: OffsetDateTime,
   lastUpdated: OffsetDateTime,
   stats: Stats,
-  game: Game
+  game: Game,
+  currentWinRank: Option[Int] // rank for the current game if game has been won
 )
 object Player:
   given JsonCodec[Player] = DeriveJsonCodec.gen

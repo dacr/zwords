@@ -21,7 +21,7 @@ import fr.janalyse.zwords.webapi.protocol.*
 import fr.janalyse.zwords.webapi.store.*
 
 object WebApiApp extends ZIOAppDefault {
-  type GameEnv = PlayerStoreService & DictionaryService & WordGeneratorService & Clock & Random & Console & System
+  type GameEnv = PersistenceService & DictionaryService & WordGeneratorService & Clock & Random & Console & System
 
   // -------------------------------------------------------------------------------------------------------------------
   def b64encode(input: String, charsetName: String = "UTF-8"): String    = {
@@ -35,21 +35,24 @@ object WebApiApp extends ZIOAppDefault {
       .tapError(err => ZIO.logError(s"Invalid Player UUID : $err"))
 
   // -------------------------------------------------------------------------------------------------------------------
+
+  def checkGivenPlayerInput(playerCreate: PlayerCreate) =
+    ZIO
+      .cond(
+        playerCreate.pseudo.matches(PlayerCreate.pseudoRegexPattern),
+        (),
+        PlayerInvalidPseudo(
+          s"player pseudo must match ${PlayerCreate.pseudoRegexPattern}",
+          b64encode(playerCreate.pseudo)
+        )
+      )
+      .tapError(err => ZIO.logError(s"Invalid pseudo received : $err"))
+
   def playerCreate(playerCreate: PlayerCreate): ZIO[GameEnv, GameIssue | GameInternalIssue | PlayerIssue, PlayerGameState] =
     ZIO.logSpan("playerCreate") {
       for {
-        _          <- ZIO
-                        .cond(
-                          playerCreate.pseudo.matches(PlayerCreate.pseudoRegexPattern),
-                          (),
-                          PlayerInvalidPseudo(
-                            s"player pseudo must match ${PlayerCreate.pseudoRegexPattern}",
-                            b64encode(playerCreate.pseudo)
-                          )
-                        )
-                        .tapError(err => ZIO.logError(s"Invalid pseudo received : $err"))
+        _          <- checkGivenPlayerInput(playerCreate)
         _          <- ZIO.log(playerCreate.toString)
-        store      <- ZIO.service[PlayerStoreService]
         game       <- Game.init(6)
         created    <- Clock.currentDateTime
         _          <- Random.setSeed(created.toInstant.toEpochMilli)
@@ -60,10 +63,17 @@ object WebApiApp extends ZIOAppDefault {
                         createdOn = created,
                         lastUpdated = created,
                         game = game,
-                        stats = Stats(triedCount = 1)
+                        stats = Stats(triedCount = 1),
+                        currentWinRank = None
                       )
-        state      <- store
+        _          <- PersistenceService
                         .upsertPlayer(player)
+                        .mapError(th => GameStorageIssue(th))
+        _          <- PersistenceService
+                        .upsertGlobalStats(globalStatsNewTry)
+                        .mapError(th => GameStorageIssue(th))
+        _          <- PersistenceService
+                        .upsertDailyStats(game.dailyGameId, dailyStatsNewTry(game))
                         .mapError(th => GameStorageIssue(th))
         _          <- ZIO.log(s"player $playerUUID added")
       } yield PlayerGameState.fromPlayer(player)
@@ -93,8 +103,7 @@ object WebApiApp extends ZIOAppDefault {
       for {
         uuid   <- extractPlayerUUID(playerUUID)
         _      <- ZIO.log(s"player $playerUUID")
-        store  <- ZIO.service[PlayerStoreService]
-        player <- store
+        player <- PersistenceService
                     .getPlayer(playerUUID = uuid)
                     .some
                     .mapError(_ => GameNotFound(playerUUID))
@@ -134,25 +143,49 @@ object WebApiApp extends ZIOAppDefault {
     fields.forall(field => date1.get(field) == date2.get(field))
   }
 
+  def globalStatsNewTry(before: Option[GlobalStats]): GlobalStats =
+    before match {
+      case None        => GlobalStats(triedCount = 1)
+      case Some(stats) => stats.copy(triedCount = stats.triedCount + 1)
+    }
+
+  def dailyStatsNewTry(game: Game)(before: Option[DailyStats]): DailyStats =
+    before match {
+      case None        =>
+        DailyStats(
+          dateTime = game.createdDate,
+          dailyGameId = game.dailyGameId,
+          hiddenWord = game.hiddenWord,
+          triedCount = 1
+        )
+      case Some(stats) => stats.copy(triedCount = stats.triedCount + 1)
+    }
+
+  def renewPlayerGame(playerUUID: UUID, playerBefore: Player, today: OffsetDateTime): ZIO[GameEnv, GameIssue | GameInternalIssue | PlayerIssue, Player] =
+    for {
+      newGame       <- Game.init(6)
+      _             <- ZIO.log(s"player $playerUUID game renewed")
+      newStats       = playerBefore.stats.copy(triedCount = playerBefore.stats.triedCount + 1)
+      updatedPlayer <- PersistenceService
+                         .upsertPlayer(playerBefore.copy(game = newGame, stats = newStats, lastUpdated = today, currentWinRank = None))
+                         .mapError(th => GameStorageIssue(th))
+      _             <- PersistenceService
+                         .upsertGlobalStats(globalStatsNewTry)
+                         .mapError(th => GameStorageIssue(th))
+      _             <- PersistenceService
+                         .upsertDailyStats(newGame.dailyGameId, dailyStatsNewTry(newGame))
+                         .mapError(th => GameStorageIssue(th))
+    } yield updatedPlayer
+
   def gameGet(playerUUID: String): ZIO[GameEnv, GameIssue | GameInternalIssue | PlayerIssue, PlayerGameState] =
     ZIO.logSpan("gameGet") {
       for {
         uuid         <- extractPlayerUUID(playerUUID)
         _            <- ZIO.log(s"player $playerUUID")
-        store        <- ZIO.service[PlayerStoreService]
-        playerBefore <- store.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
+        playerBefore <- PersistenceService.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
         today        <- Clock.currentDateTime
         isSameDay    <- ZIO.attempt(sameDay(playerBefore.game.createdDate, today)).mapError(th => GameStorageIssue(th))
-        playerAfter  <- if (isSameDay) ZIO.succeed(playerBefore)
-                        else
-                          for {
-                            newGame       <- Game.init(6)
-                            _             <- ZIO.log(s"player $playerUUID game renewed")
-                            newStats       = playerBefore.stats.copy(triedCount = playerBefore.stats.triedCount + 1)
-                            updatedPlayer <- store
-                                               .upsertPlayer(playerBefore.copy(game = newGame, stats = newStats, lastUpdated = today))
-                                               .mapError(th => GameStorageIssue(th))
-                          } yield updatedPlayer
+        playerAfter  <- if (isSameDay) ZIO.succeed(playerBefore) else renewPlayerGame(uuid, playerBefore, today)
       } yield PlayerGameState.fromPlayer(playerAfter)
     }
 
@@ -176,6 +209,14 @@ object WebApiApp extends ZIOAppDefault {
 
   // -------------------------------------------------------------------------------------------------------------------
 
+  def updatedWonIn(game: Game, wonIn: Map[String, Int]): Map[String, Int] =
+    if (!game.isWin) wonIn
+    else {
+      val attempt = game.board.playedRows.size
+      val key     = s"tried$attempt"
+      wonIn + (key -> (wonIn.getOrElse(key, 0) + 1))
+    }
+
   def mayBeUpdatedStats(stats: Stats, previousGame: Game, nextGame: Game): Stats = {
     if (!previousGame.isOver && nextGame.isOver)
       import stats.*
@@ -184,13 +225,7 @@ object WebApiApp extends ZIOAppDefault {
       val addedWrongPlaceLetterCount = playedRows.map(_.state.count(_.isInstanceOf[WrongPlaceCell])).sum
       val addedUnusedLetterCount     = playedRows.map(_.state.count(_.isInstanceOf[NotUsedCell])).sum
 
-      val newWonIn =
-        if (nextGame.isLost) wonIn
-        else {
-          val attempt = nextGame.board.playedRows.size
-          val key     = s"tried$attempt"
-          wonIn + (key -> (wonIn.getOrElse(key, 0) + 1))
-        }
+      val newWonIn = updatedWonIn(nextGame, stats.wonIn)
 
       stats.copy(
         playedCount = playedCount + 1,
@@ -204,31 +239,102 @@ object WebApiApp extends ZIOAppDefault {
     else stats
   }
 
+  def dailyStatsUpdater(game: Game, nextGame: Game)(mayBeStats: Option[DailyStats]): DailyStats =
+    val justOver = !game.isOver && nextGame.isOver
+    mayBeStats match {
+      case None if justOver =>
+        DailyStats(
+          dateTime = game.createdDate,
+          dailyGameId = game.dailyGameId,
+          hiddenWord = game.hiddenWord,
+          playedCount = 1,
+          wonCount = if (nextGame.isWin) 1 else 0,
+          lostCount = if (nextGame.isLost) 1 else 0,
+          triedCount = 1,
+          wonIn = updatedWonIn(nextGame, Map.empty)
+        )
+
+      case None =>
+        DailyStats(
+          dateTime = game.createdDate,
+          dailyGameId = game.dailyGameId,
+          hiddenWord = game.hiddenWord,
+          triedCount = 1
+        )
+
+      case Some(stats) if justOver =>
+        stats.copy(
+          playedCount = stats.playedCount + 1,
+          wonCount = stats.wonCount + (if (nextGame.isWin) 1 else 0),
+          lostCount = stats.lostCount + (if (nextGame.isLost) 1 else 0),
+          wonIn = updatedWonIn(nextGame, stats.wonIn)
+        )
+
+      case Some(stats) => stats
+    }
+
+  def globalStatsUpdater(game: Game, nextGame: Game)(mayBeStats: Option[GlobalStats]): GlobalStats =
+    val justOver = !game.isOver && nextGame.isOver
+    mayBeStats match {
+      case None if justOver =>
+        GlobalStats(
+          playedCount = 1,
+          wonCount = if (nextGame.isWin) 1 else 0,
+          lostCount = if (nextGame.isLost) 1 else 0,
+          triedCount = 1,
+          wonIn = updatedWonIn(nextGame, Map.empty)
+        )
+
+      case None =>
+        GlobalStats(
+          triedCount = 1
+        )
+
+      case Some(stats) if justOver =>
+        stats.copy(
+          playedCount = stats.playedCount + 1,
+          wonCount = stats.wonCount + (if (nextGame.isWin) 1 else 0),
+          lostCount = stats.lostCount + (if (nextGame.isLost) 1 else 0),
+          wonIn = updatedWonIn(nextGame, stats.wonIn)
+        )
+
+      case Some(stats) => stats
+    }
+
+  def checkGivenWordInput(givenWord: GameGivenWord) =
+    ZIO
+      .cond(
+        givenWord.word.matches("[a-zA-Z]{3,42}"),
+        (),
+        PlayerInvalidGameWord("player has submitted an invalid word", b64encode(givenWord.word))
+      )
+      .tapError(err => ZIO.logError(s"Invalid word received : $err"))
+
   def gamePlay(playerUUID: String, givenWord: GameGivenWord): ZIO[GameEnv, GameIssue | GameInternalIssue | PlayerIssue, PlayerGameState] =
     ZIO.logSpan("gamePlay") {
       for {
-        uuid         <- extractPlayerUUID(playerUUID)
-        _            <- ZIO
-                          .cond(
-                            givenWord.word.matches("[a-zA-Z]{3,42}"),
-                            (),
-                            PlayerInvalidGameWord(
-                              "player has submitted an invalid word",
-                              b64encode(givenWord.word)
-                            )
-                          )
-                          .tapError(err => ZIO.logError(s"Invalid word received : $err"))
-        player       <- PlayerStoreService.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
-        today        <- Clock.currentDateTime
-        isSameDay    <- ZIO.attempt(sameDay(player.game.createdDate, today)).mapError(th => GameStorageIssue(th))
-        _            <- ZIO.cond(isSameDay, (), PlayerGameHasExpired("Reload the game to reset and get latest game state"))
-        nextGame     <- player.game.play(givenWord.word)
-        now          <- Clock.currentDateTime
-        updatedStats  = mayBeUpdatedStats(stats = player.stats, previousGame = player.game, nextGame = nextGame)
-        updatedPlayer = player.copy(game = nextGame, stats = updatedStats, lastUpdated = now)
-        _            <- PlayerStoreService.upsertPlayer(updatedPlayer).mapError(th => GameStorageIssue(th))
-        state         = PlayerGameState.fromPlayer(updatedPlayer)
-        _            <- ZIO.log(s"player $playerUUID ${state.game.state} ${state.game.rows.size}/6 with '$givenWord'")
+        uuid          <- extractPlayerUUID(playerUUID)
+        _             <- checkGivenWordInput(givenWord)
+        player        <- PersistenceService.getPlayer(playerUUID = uuid).some.mapError(_ => GameNotFound(playerUUID))
+        today         <- Clock.currentDateTime
+        isSameDay     <- ZIO.attempt(sameDay(player.game.createdDate, today)).mapError(th => GameStorageIssue(th))
+        _             <- ZIO.cond(isSameDay, (), PlayerGameHasExpired("Reload the game to reset and get latest game state"))
+        nextGame      <- player.game.play(givenWord.word)
+        now           <- Clock.currentDateTime
+        updatedStats   = mayBeUpdatedStats(stats = player.stats, previousGame = player.game, nextGame = nextGame)
+        dailyStats    <- PersistenceService
+                           .upsertDailyStats(player.game.dailyGameId, dailyStatsUpdater(player.game, nextGame))
+                           .mapError(th => GameStorageIssue(th))
+        _             <- PersistenceService
+                           .upsertGlobalStats(globalStatsUpdater(player.game, nextGame))
+                           .mapError(th => GameStorageIssue(th))
+        currentWinRank = if (!player.game.isOver && nextGame.isWin) Some(dailyStats.wonCount) else None
+        updatedPlayer  = player.copy(game = nextGame, stats = updatedStats, lastUpdated = now, currentWinRank = currentWinRank)
+        _             <- PersistenceService
+                           .upsertPlayer(updatedPlayer)
+                           .mapError(th => GameStorageIssue(th))
+        state          = PlayerGameState.fromPlayer(updatedPlayer)
+        _             <- ZIO.log(s"player $playerUUID ${state.game.state} ${state.game.rows.size}/6 with '$givenWord'")
       } yield state
     }
 
@@ -256,10 +362,13 @@ object WebApiApp extends ZIOAppDefault {
   val infoGet: ZIO[GameEnv, Throwable, GameInfo] =
     ZIO.logSpan("infoGet") {
       for {
-        wordgen   <- ZIO.service[WordGeneratorService]
-        wordStats <- wordgen.stats
-        info       = GameInfo.from(wordStats)
-        _         <- ZIO.log("info to client")
+        wordStats   <- WordGeneratorService.stats
+        globalStats <- PersistenceService.getGlobalStats
+        today       <- Clock.currentDateTime
+        dailyGameId  = Game.makeDailyGameId(today)
+        dailyStats  <- PersistenceService.getDailyStats(dailyGameId)
+        info         = GameInfo.from(wordStats, globalStats, dailyStats)
+        _           <- ZIO.log("info to client")
       } yield info
     }
 
@@ -305,7 +414,7 @@ object WebApiApp extends ZIOAppDefault {
   override def run =
     server
       .provide(
-        PlayerStoreService.live,
+        PersistenceService.live,
         DictionaryService.live,
         WordGeneratorService.live,
         Clock.live,

@@ -13,6 +13,6 @@ object PlayerGameState:
   def fromPlayer(player: Player): PlayerGameState = {
     PlayerGameState(
       playerUUID = player.uuid.toString,
-      game = CurrentGame.fromGame(player.game)
+      game = CurrentGame.from(player.game, player.currentWinRank)
     )
   }
