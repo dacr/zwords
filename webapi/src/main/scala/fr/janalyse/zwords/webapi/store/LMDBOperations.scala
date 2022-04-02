@@ -98,7 +98,7 @@ class LMDBOperations(
   }
 
   /**
-   * safer document update throw a lambda
+   * atomic document update throw a lambda
    * @param id
    * @param modifier
    * @return
@@ -138,8 +138,8 @@ object LMDBOperations {
           .setMaxReaders(8)
           .open(
             databasePath,
-            EnvFlags.MDB_NOLOCK,
-            EnvFlags.MDB_NOSYNC, // Dangerous but quite faster !
+            EnvFlags.MDB_NOLOCK, // Locks managed using ZIO Semaphore
+            EnvFlags.MDB_NOSYNC, // Acceptable, in particular because EXT4 is used
           )
       )
       db <- Task.attempt(
