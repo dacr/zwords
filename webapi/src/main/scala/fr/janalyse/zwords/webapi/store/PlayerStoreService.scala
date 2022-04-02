@@ -38,9 +38,9 @@ object PlayerStoreService {
   } yield PlayerStoreServiceElastic(elasticOperations)).toLayer
 
   lazy val live = (for {
-    lmdbPath       <- System.env("ZWORDS_LMDB_PATH").some
-    lmdbPathFile    = java.io.File(lmdbPath)
-    _              <- ZIO.attemptBlocking(lmdbPathFile.mkdirs())
-    lmdbOperations <- ZIO.attemptBlocking(LMDBOperations(lmdbPathFile))
-  } yield PlayerStoreServiceLMBD(lmdbOperations)).toLayer
+    lmdbPath    <- System.env("ZWORDS_LMDB_PATH").some
+    lmdbPathFile = java.io.File(lmdbPath)
+    _           <- ZIO.attemptBlocking(lmdbPathFile.mkdirs())
+    lmdb        <- LMDBOperations.setup(lmdbPathFile, "zwords-db")
+  } yield PlayerStoreServiceLMBD(lmdb)).toLayer
 }
