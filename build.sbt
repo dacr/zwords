@@ -15,10 +15,15 @@ val versions = new {
 }
 
 val sharedSettings = Seq(
-  scalaVersion                                   := "3.1.1",
+  scalaVersion                                   := "3.1.2",
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   scalacOptions ++= Seq("-Xfatal-warnings"),
-  excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13"
+  excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13",
+  libraryDependencies ++= Seq(
+    "dev.zio" %% "zio"          % versions.zio,
+    "dev.zio" %% "zio-test"     % versions.zio % Test,
+    "dev.zio" %% "zio-test-sbt" % versions.zio % Test
+  )
 )
 
 lazy val dictionary =
@@ -27,11 +32,8 @@ lazy val dictionary =
     .settings(
       sharedSettings,
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio"          % versions.zio,
-        "dev.zio" %% "zio-config"   % versions.zioconfig,
-        "dev.zio" %% "zio-nio"      % versions.zionio,
-        "dev.zio" %% "zio-test"     % versions.zio % Test,
-        "dev.zio" %% "zio-test-sbt" % versions.zio % Test
+        "dev.zio" %% "zio-config" % versions.zioconfig,
+        "dev.zio" %% "zio-nio"    % versions.zionio
       )
     )
 
@@ -40,11 +42,7 @@ lazy val wordGenerator =
     .in(file("wordgen"))
     .dependsOn(dictionary)
     .settings(
-      sharedSettings,
-      libraryDependencies ++= Seq(
-        "dev.zio" %% "zio"      % versions.zio,
-        "dev.zio" %% "zio-test" % versions.zio % Test
-      )
+      sharedSettings
     )
 
 lazy val gameLogic =
@@ -54,10 +52,8 @@ lazy val gameLogic =
     .settings(
       sharedSettings,
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio"        % versions.zio,
         "dev.zio" %% "zio-json"   % versions.ziojson,
-        "dev.zio" %% "zio-config" % versions.zioconfig,
-        "dev.zio" %% "zio-test"   % versions.zio % Test
+        "dev.zio" %% "zio-config" % versions.zioconfig
       )
     )
 
@@ -68,11 +64,7 @@ lazy val consoleUI =
     .dependsOn(wordGenerator)
     .dependsOn(dictionary)
     .settings(
-      sharedSettings,
-      libraryDependencies ++= Seq(
-        "dev.zio" %% "zio-cli"  % versions.ziocli,
-        "dev.zio" %% "zio-test" % versions.zio % Test
-      )
+      sharedSettings
     )
 
 lazy val webapi =
@@ -88,18 +80,21 @@ lazy val webapi =
         "--add-opens java.base/java.nio=ALL-UNNAMED",
         "--add-opens java.base/sun.nio.ch=ALL-UNNAMED"
       ),
+      Test / javaOptions      := Seq(
+        "--add-opens java.base/java.nio=ALL-UNNAMED",
+        "--add-opens java.base/sun.nio.ch=ALL-UNNAMED"
+      ),
       sharedSettings,
       libraryDependencies ++= Seq(
-        //"dev.zio"                     %% "zio-logging"                  % versions.ziologging,
-        //"dev.zio"                     %% "zio-logging-slf4j"            % versions.ziologging,
+        // "dev.zio"                     %% "zio-logging"                  % versions.ziologging,
+        // "dev.zio"                     %% "zio-logging-slf4j"            % versions.ziologging,
         "com.softwaremill.sttp.tapir" %% "tapir-zio"                    % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server"        % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-json-zio"               % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-redoc-bundle"           % versions.tapir,
         "dev.zio"                     %% "zio-json"                     % versions.ziojson,
-        "dev.zio"                     %% "zio-test"                     % versions.zio % Test,
         "com.sksamuel.elastic4s"       % "elastic4s-core_2.13"          % versions.elastic4s,
         "com.sksamuel.elastic4s"       % "elastic4s-client-esjava_2.13" % versions.elastic4s,
-        "org.lmdbjava"                 % "lmdbjava"                     % versions.lmdb,
+        "org.lmdbjava"                 % "lmdbjava"                     % versions.lmdb
       )
     )
