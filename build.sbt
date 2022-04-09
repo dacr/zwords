@@ -9,7 +9,7 @@ val versions = new {
   val ziojson    = "0.3.0-RC3"
   val ziologging = "2.0.0-RC5"
   val zhttp      = "2.0.0-RC4"
-  val tapir      = "1.0.0-M4"
+  val tapir      = "1.0.0-M6"
   val elastic4s  = "7.17.2"
   val lmdb       = "0.8.2"
 }
