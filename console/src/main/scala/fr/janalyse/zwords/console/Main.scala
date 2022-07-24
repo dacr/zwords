@@ -10,15 +10,15 @@ import java.io.IOException
 
 object Main extends ZIOAppDefault {
 
-  def playLogic(game: Game): ZIO[Console & WordGeneratorService, GameIssue | GameInternalIssue | IOException, Game] =
+  def playLogic(game: Game): ZIO[WordGeneratorService, GameIssue | GameInternalIssue | IOException, Game] =
     for
-      pattern   <- Task.succeed(game.board.patternRow.pattern)
+      pattern   <- ZIO.succeed(game.board.patternRow.pattern)
       _         <- Console.printLine(s"$game")
       word      <- Console.readLine
       nextGame  <- game.play(word)
     yield nextGame
 
-  def consoleBasedRound(game: Game): ZIO[Console & WordGeneratorService, Object, Game] =
+  def consoleBasedRound(game: Game): ZIO[WordGeneratorService, Object, Game] =
     for
       _        <- Console.printLine("--------------------")
       nextGame <- playLogic(game)
@@ -39,11 +39,7 @@ object Main extends ZIOAppDefault {
 
   override def run = consoleBasedGame.provide(
     DictionaryService.live,
-    WordGeneratorService.live,
-    Clock.live,
-    Random.live,
-    Console.live,
-    System.live
+    WordGeneratorService.live
   )
 
 }

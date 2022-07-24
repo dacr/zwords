@@ -57,17 +57,15 @@ object WordGeneratorService:
   def stats: ZIO[WordGeneratorService, Throwable, WordStats] =
     ZIO.serviceWithZIO(_.stats)
 
-  val live = (
+  val live = ZLayer.fromZIO(
     for
-      clock           <- ZIO.service[Clock]
-      random          <- ZIO.service[Random]
       dictionary      <- ZIO.service[DictionaryService]
       selectedEntries <- dictionary.entries(false)
       possibleEntries <- dictionary.entries(true)
-    yield WordGeneratorServiceImpl(clock, random, selectedEntries, possibleEntries)
-  ).toLayer
+    yield WordGeneratorServiceImpl(selectedEntries, possibleEntries)
+  )
 
-class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Chunk[HunspellEntry], possibleEntries: Chunk[HunspellEntry]) extends WordGeneratorService:
+class WordGeneratorServiceImpl(selectedEntries: Chunk[HunspellEntry], possibleEntries: Chunk[HunspellEntry]) extends WordGeneratorService:
 
   def standardize(word: String): String =
     word.trim.toLowerCase
@@ -100,22 +98,22 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
 
   override def todayWord: Task[String] =
     for
-      dateTime <- clock.currentDateTime
+      dateTime <- Clock.currentDateTime
       seed      = dateTimeToDailySeed(dateTime)
       count     = selectedWords.size
-      _        <- random.setSeed(seed)
-      index    <- random.nextIntBetween(0, count)
+      _        <- Random.setSeed(seed)
+      index    <- Random.nextIntBetween(0, count)
       word      = selectedWords(index)
     yield word
 
   override def wordExists(word: String): Task[Boolean] =
-    Task.succeed(possibleWordsSet.contains(standardize(word)))
+    ZIO.succeed(possibleWordsSet.contains(standardize(word)))
 
   override def wordNormalize(word: String): Task[String] =
-    Task.attempt(standardize(word))
+    ZIO.attempt(standardize(word))
 
   override def stats: Task[WordStats] =
-    Task.succeed(
+    ZIO.succeed(
       WordStats(
         message = "Used dictionary information",
         language = "french",
@@ -131,7 +129,7 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
 
   override def countMatchingWords(pattern: String): Task[Int] =
     val wordRE = wordRegexpFromPattern(pattern)
-    Task(
+    ZIO.succeed(
       selectedWords.count(word => word.size == pattern.size && wordRE.matches(word))
     )
 
@@ -150,7 +148,7 @@ class WordGeneratorServiceImpl(clock: Clock, random: Random, selectedEntries: Ch
     def included(word: String): Boolean =
       includedLettersMap.forall((char, positions) => positions.flatMap(word.lift).contains(char))
 
-    Task(
+    ZIO.succeed(
       selectedWords
         .filter(word =>
           word.size == pattern.size &&

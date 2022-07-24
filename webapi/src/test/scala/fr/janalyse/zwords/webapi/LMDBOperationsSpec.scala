@@ -25,16 +25,18 @@ import zio.test.TestAspect.{ignore, sequential}
 
 import java.util.UUID
 
-object LMDBOperationsSpec extends DefaultRunnableSpec {
+object LMDBOperationsSpec extends ZIOSpecDefault {
 
-  val lmdbLayer =
-    nio.file.Files
-      .createTempDirectoryManaged(
-        prefix = Some("lmdb"),
-        fileAttributes = Nil
-      )
-      .use(somewhere => LMDBOperations.setup(somewhere.toFile, "testdb"))
-      .toLayer
+  val lmdbLayer = ZLayer.fromZIO(
+    for {
+      somewhere <- nio.file.Files
+                     .createTempDirectoryScoped(
+                       prefix = Some("lmdb"),
+                       fileAttributes = Nil
+                     )
+      lmdb      <- LMDBOperations.setup(somewhere.toFile, "testdb")
+    } yield lmdb
+  )
 
   val keygen = stringBounded(1, 511)(asciiChar)
 
@@ -49,7 +51,7 @@ object LMDBOperationsSpec extends DefaultRunnableSpec {
           gotten <- lmdb.fetch[Str](id).some
         } yield assertTrue(
           gotten == value
-        ).map(_.label(s"for key $id"))
+        ).label(s"for key $id")
       }
     ),
     // -----------------------------------------------------------------------------
@@ -58,7 +60,7 @@ object LMDBOperationsSpec extends DefaultRunnableSpec {
         lmdb     <- ZIO.service[LMDBOperations]
         id        = UUID.randomUUID().toString
         isFailed <- lmdb.fetch[Str](id).some.isFailure
-      } yield assertTrue(isFailed).map(_.label(s"for key $id"))
+      } yield assertTrue(isFailed).label(s"for key $id")
     ),
     // -----------------------------------------------------------------------------
     test("basic CRUD operations") {
@@ -76,7 +78,7 @@ object LMDBOperationsSpec extends DefaultRunnableSpec {
           gotten == value,
           gottenUpdated.value == "updated",
           isFailed
-        ).map(_.label(s"for key $id"))
+        ).label(s"for key $id")
       }
     },
     // -----------------------------------------------------------------------------

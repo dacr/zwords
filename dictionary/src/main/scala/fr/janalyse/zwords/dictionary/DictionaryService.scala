@@ -36,24 +36,24 @@ object DictionaryService:
   def generateWords(entry: HunspellEntry): ZIO[DictionaryService, Throwable, List[HunspellEntry]] =
     ZIO.serviceWithZIO(_.generateWords(entry))
 
-  val live = (
+  val live = ZLayer.fromZIO(
     for dictionary <- Hunspell.loadHunspellDictionary
     yield DictionaryServiceLive(dictionary)
-  ).toLayer
+  )
 
 
 case class DictionaryServiceLive(dictionary: Hunspell) extends DictionaryService:
 
-  override def count = Task(dictionary.entries.size)
+  override def count = ZIO.succeed(dictionary.entries.size)
 
   override def entries(all:Boolean): Task[Chunk[HunspellEntry]] =
-    if (all) Task(dictionary.entries.flatMap(entry => dictionary.generateWords(entry)))
-    else Task(dictionary.entries)
+    if (all) ZIO.succeed(dictionary.entries.flatMap(entry => dictionary.generateWords(entry)))
+    else ZIO.succeed(dictionary.entries)
 
   override def find(word: String):Task[Option[HunspellEntry]] =
-    Task(dictionary.entries.find(_.word == word))
+    ZIO.succeed(dictionary.entries.find(_.word == word))
 
   override def generateWords(entry: HunspellEntry): Task[List[HunspellEntry]] =
-    Task(
+    ZIO.succeed(
       dictionary.generateWords(entry)
     )

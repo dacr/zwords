@@ -39,23 +39,29 @@ object PersistenceService {
   def getDailyStats(dailyId: String): RIO[PersistenceService, Option[DailyStats]]                                        = ZIO.serviceWithZIO(_.getDailyStats(dailyId))
   def upsertDailyStats(dailyId: String, modifier: Option[DailyStats] => DailyStats): RIO[PersistenceService, DailyStats] = ZIO.serviceWithZIO(_.upsertDailyStats(dailyId, modifier))
 
-  lazy val mem = (for {
-    playersRef     <- Ref.make(Map.empty[UUID, Player])
-    dailyStatsRef  <- Ref.make(Map.empty[String, DailyStats])
-    globalStatsRef <- Ref.make(Option.empty[GlobalStats])
-  } yield PersistenceServiceMemory(playersRef, dailyStatsRef, globalStatsRef)).toLayer
+  lazy val mem = ZLayer.fromZIO(
+    for {
+      playersRef     <- Ref.make(Map.empty[UUID, Player])
+      dailyStatsRef  <- Ref.make(Map.empty[String, DailyStats])
+      globalStatsRef <- Ref.make(Option.empty[GlobalStats])
+    } yield PersistenceServiceMemory(playersRef, dailyStatsRef, globalStatsRef)
+  )
 
-  lazy val elastic = (for {
-    elasticUrl       <- System.env("ZWORDS_ELASTIC_URL").someOrElse("http://127.0.0.1:9200")
-    elasticUsername  <- System.env("ZWORDS_ELASTIC_USERNAME")
-    elasticPassword  <- System.env("ZWORDS_ELASTIC_PASSWORD")
-    elasticOperations = ElasticOperations(elasticUrl, elasticUsername, elasticPassword)
-  } yield PersistenceServiceElastic(elasticOperations)).toLayer
+  lazy val elastic = ZLayer.fromZIO(
+    for {
+      elasticUrl       <- System.env("ZWORDS_ELASTIC_URL").someOrElse("http://127.0.0.1:9200")
+      elasticUsername  <- System.env("ZWORDS_ELASTIC_USERNAME")
+      elasticPassword  <- System.env("ZWORDS_ELASTIC_PASSWORD")
+      elasticOperations = ElasticOperations(elasticUrl, elasticUsername, elasticPassword)
+    } yield PersistenceServiceElastic(elasticOperations)
+  )
 
-  lazy val live = (for {
-    lmdbPath    <- System.env("ZWORDS_LMDB_PATH").some
-    lmdbPathFile = java.io.File(lmdbPath)
-    _           <- ZIO.attemptBlocking(lmdbPathFile.mkdirs())
-    lmdb        <- LMDBOperations.setup(lmdbPathFile, "zwords-db")
-  } yield PersistenceServiceLMBD(lmdb)).toLayer
+  lazy val live = ZLayer.fromZIO(
+    for {
+      lmdbPath    <- System.env("ZWORDS_LMDB_PATH").some
+      lmdbPathFile = java.io.File(lmdbPath)
+      _           <- ZIO.attemptBlocking(lmdbPathFile.mkdirs())
+      lmdb        <- LMDBOperations.setup(lmdbPathFile, "zwords-db")
+    } yield PersistenceServiceLMBD(lmdb)
+  )
 }

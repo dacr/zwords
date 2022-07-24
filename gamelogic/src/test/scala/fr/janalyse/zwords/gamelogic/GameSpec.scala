@@ -23,7 +23,7 @@ import zio.test.*
 import zio.test.Assertion.*
 import zio.test.TestAspect.*
 
-object GameSpec extends DefaultRunnableSpec {
+object GameSpec extends ZIOSpecDefault {
 
   override def spec = {
     suite("game logic spec")(
@@ -65,11 +65,7 @@ object GameSpec extends DefaultRunnableSpec {
       }
     ) @@ sequential
   }.provideShared(
-    DictionaryService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize dictionary service $err"))),
-    WordGeneratorService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize word generator service $err"))),
-    Clock.live,
-    Random.live,
-    Console.live,
-    System.live
-  )
+    DictionaryService.live,
+    WordGeneratorService.live
+  )  @@ withLiveSystem
 }

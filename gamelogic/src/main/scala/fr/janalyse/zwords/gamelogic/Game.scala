@@ -72,16 +72,16 @@ object Game:
 
   def makeDefaultWordMask(word: String): String = (word.head +: word.tail.map(_ => "_")).mkString
 
-  def init(maxAttemptsCount: Int): ZIO[WordGeneratorService & Random & Clock, GameIssue | GameInternalIssue, Game] =
+  def init(maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
     for {
       todayWord <- WordGeneratorService.todayWord.mapError(th => GameWordGeneratorIssue(th))
       game      <- init(todayWord, maxAttemptsCount)
     } yield game
 
-  def init(hiddenWord: String, maxAttemptsCount: Int): ZIO[WordGeneratorService & Random & Clock, GameIssue | GameInternalIssue, Game] =
+  def init(hiddenWord: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
     init(hiddenWord, makeDefaultWordMask(hiddenWord), maxAttemptsCount)
 
-  def init(hiddenWord: String, wordMask: String, maxAttemptsCount: Int): ZIO[WordGeneratorService & Random & Clock, GameIssue | GameInternalIssue, Game] =
+  def init(hiddenWord: String, wordMask: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
     for {
       createdDate   <- Clock.currentDateTime
       _             <- Random.setSeed(createdDate.toInstant.toEpochMilli)

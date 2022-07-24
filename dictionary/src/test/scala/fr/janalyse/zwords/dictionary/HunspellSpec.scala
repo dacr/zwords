@@ -18,8 +18,9 @@ package fr.janalyse.zwords.dictionary
 import zio.*
 import zio.test.*
 import zio.test.Assertion.*
+import zio.test.TestAspect.*
 
-object HunspellSpec extends DefaultRunnableSpec {
+object HunspellSpec extends ZIOSpecDefault {
 
   override def spec = {
     suite("dictionary")(
@@ -55,8 +56,7 @@ object HunspellSpec extends DefaultRunnableSpec {
           assert(words.map(_.word))(hasSubset(List("restaurer", "restaure", "restaurant")))
       )
     ).provideShared(
-      DictionaryService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize dictionary service $err"))),
-      System.live
+      DictionaryService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize dictionary service $err")))
     )
-  }
+  } @@ withLiveSystem
 }

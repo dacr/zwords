@@ -2,22 +2,22 @@ name        := "zwords"
 description := "Guess a word everyday game"
 
 val versions = new {
-  val zio        = "2.0.0-RC2"
-  val zionio     = "2.0.0-RC2"
-  val zioconfig  = "3.0.0-RC2"
+  val zio        = "2.0.0"
+  val zionio     = "2.0.0"
+  val zioconfig  = "3.0.1"
   val ziocli     = "0.2.2"
-  val ziojson    = "0.3.0-RC3"
-  val ziologging = "2.0.0-RC5"
-  val zhttp      = "2.0.0-RC4"
-  val tapir      = "1.0.0-M6"
-  val elastic4s  = "7.17.2"
+  val ziojson    = "0.3.0-RC10"
+  val ziologging = "2.0.1"
+  val tapir      = "1.0.2"
+  val elastic4s  = "8.2.2"
   val lmdb       = "0.8.2"
 }
 
 val sharedSettings = Seq(
-  scalaVersion                                   := "3.1.2",
+  scalaVersion := "3.1.3",
+  Test / fork  := true,
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
-  scalacOptions ++= Seq("-Xfatal-warnings"),
+  scalacOptions ++= Seq("-deprecation"), // "-Xfatal-warnings",
   excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13",
   libraryDependencies ++= Seq(
     "dev.zio" %% "zio"          % versions.zio,
@@ -77,12 +77,12 @@ lazy val webapi =
     .settings(
       Universal / packageName := "zwords",
       Universal / javaOptions := Seq( // -- Required for LMDB with recent JVM
-        "--add-opens java.base/java.nio=ALL-UNNAMED",
-        "--add-opens java.base/sun.nio.ch=ALL-UNNAMED"
+        "--add-opens", "java.base/java.nio=ALL-UNNAMED",
+        "--add-opens", "java.base/sun.nio.ch=ALL-UNNAMED"
       ),
       Test / javaOptions      := Seq(
-        "--add-opens java.base/java.nio=ALL-UNNAMED",
-        "--add-opens java.base/sun.nio.ch=ALL-UNNAMED"
+        "--add-opens", "java.base/java.nio=ALL-UNNAMED",
+        "--add-opens", "java.base/sun.nio.ch=ALL-UNNAMED"
       ),
       sharedSettings,
       libraryDependencies ++= Seq(

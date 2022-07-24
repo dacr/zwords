@@ -23,7 +23,7 @@ import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.redoc.bundle.RedocInterpreter
 import sttp.tapir.json.zio.*
 import sttp.tapir.generic.auto.*
-import sttp.tapir.openapi.Info
+import sttp.apispec.openapi.Info
 import sttp.model.StatusCode.*
 import zio.*
 import zio.json.*
@@ -36,7 +36,7 @@ import fr.janalyse.zwords.webapi.protocol.*
 import fr.janalyse.zwords.webapi.store.*
 
 object WebApiApp extends ZIOAppDefault {
-  type GameEnv = PersistenceService & DictionaryService & WordGeneratorService & Clock & Random & Console & System
+  type GameEnv = PersistenceService & DictionaryService & WordGeneratorService
 
   // -------------------------------------------------------------------------------------------------------------------
   def b64encode(input: String, charsetName: String = "UTF-8"): String    = {
@@ -431,11 +431,7 @@ object WebApiApp extends ZIOAppDefault {
       .provide(
         PersistenceService.live,
         DictionaryService.live,
-        WordGeneratorService.live,
-        Clock.live,
-        Random.live,
-        Console.live,
-        System.live
+        WordGeneratorService.live
       )
 
 }

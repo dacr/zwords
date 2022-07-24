@@ -52,8 +52,8 @@ class LMDBOperations(
    * @return
    */
   def close():Task[Unit] = for {
-    _ <- Task.attemptBlocking(env.sync(true))
-    _ <- Task.attemptBlocking(env.close())
+    _ <- ZIO.attemptBlocking(env.sync(true))
+    _ <- ZIO.attemptBlocking(env.close())
   } yield ()
 
   /**
@@ -76,9 +76,10 @@ class LMDBOperations(
    */
   def fetch[T](id: String)(using JsonDecoder[T]): Task[Option[T]] = {
     ZIO.acquireReleaseWith(
-      ZIO.attemptBlocking(env.txnRead()),
-      txn => ZIO.attempt(txn.close()).tapError(err => ZIO.logError(err.toString)).ignore,
-      txn => {
+      ZIO.attemptBlocking(env.txnRead())
+    )(txn =>
+      ZIO.attempt(txn.close()).tapError(err => ZIO.logError(err.toString)).ignore
+    )(txn =>
         for {
           key           <- makeKeyByteBuffer(id)
           found         <- ZIO.attemptBlocking(Option(db.get(txn, key)))
@@ -87,7 +88,6 @@ class LMDBOperations(
                              ZIO.fromEither(charset.decode(rawValue).fromJson[T]).mapError(msg => Exception(msg))
                            }
         } yield document
-      }
     )
   }
 
@@ -117,9 +117,10 @@ class LMDBOperations(
    */
   def upsert[T](id:String, modifier: Option[T] => T)(using JsonEncoder[T], JsonDecoder[T]): Task[T] = writeSemaphore.withPermit {
     ZIO.acquireReleaseWith(
-      ZIO.attemptBlocking(env.txnWrite()),
-      txn => ZIO.attempt(txn.close()).tapError(err => ZIO.logError(err.toString)).ignore,
-      txn =>
+      ZIO.attemptBlocking(env.txnWrite())
+    )(txn =>
+      ZIO.attempt(txn.close()).tapError(err => ZIO.logError(err.toString)).ignore
+    )(txn =>
         for {
           key            <- makeKeyByteBuffer(id)
           found          <- ZIO.attemptBlocking(Option(db.get(txn, key)))
@@ -142,7 +143,7 @@ class LMDBOperations(
 object LMDBOperations {
   def setup(databasePath: File, databaseName: String) : Task[LMDBOperations] = {
     for {
-      env <- Task.attempt(
+      env <- ZIO.attempt(
         Env
           .create()
           .setMapSize(10_000_000_000)
@@ -154,7 +155,7 @@ object LMDBOperations {
             EnvFlags.MDB_NOSYNC, // Acceptable, in particular because EXT4 is used
           )
       )
-      db <- Task.attempt(
+      db <- ZIO.attempt(
         env.openDbi(databaseName, DbiFlags.MDB_CREATE)
       )
       writeSemaphore <- Semaphore.make(1) // To achieve single writer semantic for LMDB

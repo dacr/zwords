@@ -102,20 +102,21 @@ case class Hunspell(entries: Chunk[HunspellEntry], affixRules: AffixRules) {
 }
 
 object Hunspell {
-  val loadHunspellDictionary = {
-    val charset = Charset.Standard.utf8
-    for {
-      affFilename <- System.env("ZWORDS_AFF_FILEPATH").some
+  val loadHunspellDictionary: ZIO[Any, DicFatalIssue, Hunspell] = for {
+      affFilename <- System.env("ZWORDS_AFF_FILEPATH").some.orElseFail(DicFatalIssue("ZWORDS_AFF_FILEPATH not set"))
+      _           <- ZIO.log(s"Using aff file $affFilename")
+      charset      = Charset.Standard.utf8
       affFile      = Path(affFilename)
-      affBytes    <- Files.readAllBytes(affFile)
+      affBytes    <- Files.readAllBytes(affFile).orElseFail(DicFatalIssue(s"Couldn't read aff file content $affFile"))
       affContent  <- charset.decodeString(affBytes)
       affixRules   = AffixRules(affContent)
-      dicFilename <- System.env("ZWORDS_DIC_FILEPATH").some
+      dicFilename <- System.env("ZWORDS_DIC_FILEPATH").some.orElseFail(DicFatalIssue("ZWORDS_DIC_FILEPATH not set"))
+      _           <- ZIO.log(s"Using doc file $dicFilename")
       dicFile      = Path(dicFilename)
-      dicBytes    <- Files.readAllBytes(dicFile)
+      dicBytes    <- Files.readAllBytes(dicFile).orElseFail(DicFatalIssue(s"Couldn't read dic file content $affFile"))
       dicContent  <- charset.decodeString(dicBytes)
       dicLines     = dicContent.split("\n").toList
-      count       <- ZIO.fromOption(dicLines.headOption.map(_.toInt))
+      count       <- ZIO.attempt(dicLines.headOption.map(_.toInt).getOrElse(0)).orElseFail(DicFatalIssue("Couldn't extract words count"))
       _           <- ZIO.log(s"Expecting to find $count hunspell entries")
       specs        = dicLines.tail
       entries      = specs.flatMap(HunspellEntry.fromLine)
@@ -125,5 +126,4 @@ object Hunspell {
       // hunspell <- ZIO.cond(entries.size == count, Hunspell(entries), Error("Didn't find the right number of words in dictionary"))
       hunspell     = Hunspell(Chunk.fromIterable(entries), affixRules) // No check as count input data looks invalid :(
     } yield hunspell
-  }
 }
