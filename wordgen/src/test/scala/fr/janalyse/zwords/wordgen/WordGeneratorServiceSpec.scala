@@ -53,17 +53,17 @@ object WordGeneratorServiceSpec extends ZIOSpecDefault {
           _      <- TestClock.setTime(makeDate(2022, 4, 7))
           word9  <- WordGeneratorService.todayWord(lang)
         } yield assertTrue(
-          word1A == "COCCOLITE",
-          word1B == "COCCOLITE",
-          word1C == "COCCOLITE",
-          word2 == "RECALCULER",
-          word3 == "BUGUER",
-          word4 == "SEQUOIA",
-          word5 == "GIVRE",
-          word6 == "CANON",
-          word7 == "ABSURDE",
-          word8 == "PLANCHISTE",
-          word9 == "DOLEANCE",
+          word1A == "FROMAGERIE",
+          word1B == "FROMAGERIE",
+          word1C == "FROMAGERIE",
+          word2 == "ADJUVANT",
+          word3 == "HUILE",
+          word4 == "CLOUTIER",
+          word5 == "REMEUBLER",
+          word6 == "ISOPET",
+          word7 == "ERYTHREEN",
+          word8 == "AUTOGRAPHE",
+          word9 == "PANACHAGE",
         )
       )
     ).provideCustomShared(

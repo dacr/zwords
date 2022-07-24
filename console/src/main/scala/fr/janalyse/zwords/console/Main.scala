@@ -30,9 +30,11 @@ object Main extends ZIOAppDefault {
 
   val consoleBasedGame =
     for
-      randomWord <- WordGeneratorService.todayWord
+      languages  <- WordGeneratorService.languages
+      language   <- Console.readLine(s"Language (${languages.mkString("|")}) ?")
+      randomWord <- WordGeneratorService.todayWord(language)
       _          <- ZIO.log(s"(today's word is $randomWord)")
-      game       <- Game.init(randomWord, 6)
+      game       <- Game.init(language, randomWord, 6)
       result     <- consoleBasedRound(game)
       _          <- Console.printLine(result.board)
       _          <- Console.printLine(if result.board.isWin then "YOU WIN" else "YOU LOOSE")

@@ -29,6 +29,7 @@ import scala.io.AnsiColor.*
 
 case class Game(
   uuid: UUID,
+  language: String,
   hiddenWord: String,
   board: Board,
   createdDate: OffsetDateTime,
@@ -45,9 +46,9 @@ case class Game(
 
   def play(roundWord: String): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
     for
-      givenWord          <- WordGeneratorService.wordNormalize(roundWord).mapError(th => GameWordGeneratorIssue(th))
+      givenWord          <- WordGeneratorService.wordNormalize(language, roundWord).mapError(th => GameWordGeneratorIssue(th))
       _                  <- ZIO.cond(givenWord.size == hiddenWord.size, (), GamePlayInvalidSize(givenWord))
-      wordInDic          <- WordGeneratorService.wordExists(givenWord).mapError(th => GameDictionaryIssue(th))
+      wordInDic          <- WordGeneratorService.wordExists(language, givenWord).mapError(th => GameDictionaryIssue(th))
       _                  <- ZIO.cond(wordInDic, (), GameWordNotInDictionary(givenWord))
       _                  <- ZIO.cond(!board.isOver, (), GameIsOver())
       newPlayedRows       = GuessRow.buildRow(hiddenWord, givenWord) :: board.playedRows
@@ -57,7 +58,7 @@ case class Game(
       // excluded       = GameSolver.impossiblePlaces(newPlayedRows)
       // possibleWords <- WordGeneratorService.matchingWords(newBoard.patternRow.pattern, included, excluded).mapError(th => GameWordGeneratorIssue(th))
       // possibleWords <- WordGeneratorService.matchingWords(newBoard.patternRow.pattern, Map.empty, Map.empty).mapError(th => GameWordGeneratorIssue(th))
-      possibleWordsCount <- WordGeneratorService.countMatchingWords(newBoard.patternRow.pattern).mapError(th => GameWordGeneratorIssue(th))
+      possibleWordsCount <- WordGeneratorService.countMatchingWords(language, newBoard.patternRow.pattern).mapError(th => GameWordGeneratorIssue(th))
     // possibleWordsCount = -1 // Disabled waiting for a faster implementation
     yield copy(board = newBoard, possibleWordsCount = possibleWordsCount)
 
@@ -72,20 +73,20 @@ object Game:
 
   def makeDefaultWordMask(word: String): String = (word.head +: word.tail.map(_ => "_")).mkString
 
-  def init(maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
+  def init(language: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
     for {
-      todayWord <- WordGeneratorService.todayWord.mapError(th => GameWordGeneratorIssue(th))
-      game      <- init(todayWord, maxAttemptsCount)
+      todayWord <- WordGeneratorService.todayWord(language).mapError(th => GameWordGeneratorIssue(th))
+      game      <- init(language, todayWord, maxAttemptsCount)
     } yield game
 
-  def init(hiddenWord: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
-    init(hiddenWord, makeDefaultWordMask(hiddenWord), maxAttemptsCount)
+  def init(language: String, hiddenWord: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
+    init(language, hiddenWord, makeDefaultWordMask(hiddenWord), maxAttemptsCount)
 
-  def init(hiddenWord: String, wordMask: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
+  def init(language: String, hiddenWord: String, wordMask: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
     for {
       createdDate   <- Clock.currentDateTime
       _             <- Random.setSeed(createdDate.toInstant.toEpochMilli)
       uuid          <- Random.nextUUID
       board          = Board(wordMask, maxAttemptsCount)
-      possibleWords <- WordGeneratorService.matchingWords(wordMask, Map.empty, Map.empty).mapError(th => GameWordGeneratorIssue(th))
-    } yield Game(uuid, hiddenWord, board, createdDate, possibleWords.size)
+      possibleWords <- WordGeneratorService.matchingWords(language, wordMask, Map.empty, Map.empty).mapError(th => GameWordGeneratorIssue(th))
+    } yield Game(uuid, language, hiddenWord, board, createdDate, possibleWords.size)

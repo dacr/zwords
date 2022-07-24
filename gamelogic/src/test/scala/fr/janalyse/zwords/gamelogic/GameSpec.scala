@@ -15,7 +15,7 @@
  */
 package fr.janalyse.zwords.gamelogic
 
-import fr.janalyse.zwords.dictionary.DictionaryService
+import fr.janalyse.zwords.dictionary.{DictionaryConfig, DictionaryService}
 import fr.janalyse.zwords.wordgen.WordGeneratorService
 import zio.*
 import zio.json.*
@@ -24,19 +24,19 @@ import zio.test.Assertion.*
 import zio.test.TestAspect.*
 
 object GameSpec extends ZIOSpecDefault {
-
+  val lang = "fr"
   override def spec = {
     suite("game logic spec")(
       test("game example 1") {
         for {
-          round0 <- Game.init("FOLIE", 6)
+          round0 <- Game.init(lang,"FOLIE", 6)
           round1 <- round0.play("FANER")
           round2 <- round1.play("FETES")
           round3 <- round2.play("FOINS")
           _      <- Console.printLine(round3)
           round4 <- round3.play("FOLIE")
         } yield assertTrue(
-          round0.possibleWordsCount == 184,
+          round0.possibleWordsCount == 185,
           List(round0, round1, round2, round3).forall(_.isWin == false),
           List(round0, round1, round2, round3).forall(_.isLost == false),
           List(round0, round1, round2, round3).forall(_.isOver == false),
@@ -47,14 +47,14 @@ object GameSpec extends ZIOSpecDefault {
       },
       test("game example 2") {
         for {
-          round0 <- Game.init("RIGOLOTE", 6)
+          round0 <- Game.init(lang,"RIGOLOTE", 6)
           round1 <- round0.play("RESTAURE")
           round2 <- round1.play("RONFLEUR")
           round3 <- round2.play("RIPOSTES")
           _      <- Console.printLine(round3)
           round4 <- round3.play("RIGOLOTE")
         } yield assertTrue(
-          round0.possibleWordsCount == 577,
+          round0.possibleWordsCount == 578,
           List(round0, round1, round2, round3).forall(_.isWin == false),
           List(round0, round1, round2, round3).forall(_.isLost == false),
           List(round0, round1, round2, round3).forall(_.isOver == false),
@@ -66,6 +66,7 @@ object GameSpec extends ZIOSpecDefault {
     ) @@ sequential
   }.provideShared(
     DictionaryService.live,
-    WordGeneratorService.live
+    WordGeneratorService.live,
+    DictionaryConfig.layer
   )  @@ withLiveSystem
 }
