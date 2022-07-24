@@ -20,15 +20,15 @@ import zio.test.*
 import zio.test.Assertion.*
 import zio.test.TestAspect.*
 
-object HunspellSpec extends ZIOSpecDefault {
-
+object HunspellFrenchSpec extends ZIOSpecDefault {
+  val lang = "fr"
   override def spec = {
     suite("dictionary")(
       test("words check")(
         for {
           dico             <- ZIO.service[DictionaryService]
-          baseEntries      <- dico.entries(false)
-          expandedEntries  <- dico.entries(true)
+          baseEntries      <- dico.entries(lang, false)
+          expandedEntries  <- dico.entries(lang, true)
           fatuBaseWords     = baseEntries.map(_.word).filter(_.startsWith("fatu"))
           fatuExpandedWords = expandedEntries.map(_.word).filter(_.startsWith("fatu"))
           taiExpandedWords  = expandedEntries.map(_.word).filter(_.startsWith("tail"))
@@ -42,21 +42,22 @@ object HunspellSpec extends ZIOSpecDefault {
       test("standard features with comique")(
         for {
           dico  <- ZIO.service[DictionaryService]
-          entry <- dico.find("comique").some
-          words <- dico.generateWords(entry)
+          entry <- dico.find(lang, "comique").some
+          words <- dico.generateWords(lang, entry)
         } yield assertTrue(entry.word == "comique") &&
           assert(words.map(_.word))(hasSameElements(List("comique", "comiques")))
       ),
       test("standard features with restaure")(
         for {
           dico  <- ZIO.service[DictionaryService]
-          entry <- dico.find("restaurer").some
-          words <- dico.generateWords(entry)
+          entry <- dico.find(lang, "restaurer").some
+          words <- dico.generateWords(lang, entry)
         } yield assertTrue(entry.word == "restaurer") &&
           assert(words.map(_.word))(hasSubset(List("restaurer", "restaure", "restaurant")))
       )
     ).provideShared(
-      DictionaryService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize dictionary service $err")))
+      DictionaryService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize dictionary service $err"))),
+      DictionaryConfig.layer
     )
   } @@ withLiveSystem
 }

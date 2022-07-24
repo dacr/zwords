@@ -32,8 +32,10 @@ lazy val dictionary =
     .settings(
       sharedSettings,
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio-config" % versions.zioconfig,
-        "dev.zio" %% "zio-nio"    % versions.zionio
+        "dev.zio" %% "zio-config"          % versions.zioconfig,
+        "dev.zio" %% "zio-config-typesafe" % versions.zioconfig,
+        "dev.zio" %% "zio-config-magnolia" % versions.zioconfig,
+        "dev.zio" %% "zio-nio"             % versions.zionio
       )
     )
 
@@ -77,12 +79,16 @@ lazy val webapi =
     .settings(
       Universal / packageName := "zwords",
       Universal / javaOptions := Seq( // -- Required for LMDB with recent JVM
-        "--add-opens", "java.base/java.nio=ALL-UNNAMED",
-        "--add-opens", "java.base/sun.nio.ch=ALL-UNNAMED"
+        "--add-opens",
+        "java.base/java.nio=ALL-UNNAMED",
+        "--add-opens",
+        "java.base/sun.nio.ch=ALL-UNNAMED"
       ),
       Test / javaOptions      := Seq(
-        "--add-opens", "java.base/java.nio=ALL-UNNAMED",
-        "--add-opens", "java.base/sun.nio.ch=ALL-UNNAMED"
+        "--add-opens",
+        "java.base/java.nio=ALL-UNNAMED",
+        "--add-opens",
+        "java.base/sun.nio.ch=ALL-UNNAMED"
       ),
       sharedSettings,
       libraryDependencies ++= Seq(

@@ -16,44 +16,62 @@
 package fr.janalyse.zwords.dictionary
 
 import zio.*
+import zio.ZIOAspect.*
 
 trait DictionaryService:
-  def count: Task[Int]
-  def entries(all:Boolean): Task[Chunk[HunspellEntry]]
-  def find(word:String): Task[Option[HunspellEntry]]
-  def generateWords(entry: HunspellEntry): Task[List[HunspellEntry]]
+  def languages: Task[Iterable[String]]
+  def count(language: String): Task[Int]
+  def entries(language: String, all: Boolean): Task[Chunk[HunspellEntry]]
+  def find(language: String, word: String): Task[Option[HunspellEntry]]
+  def generateWords(language: String, entry: HunspellEntry): Task[List[HunspellEntry]]
 
 object DictionaryService:
-  def count: ZIO[DictionaryService, Throwable, Int] =
-    ZIO.serviceWithZIO(_.count)
+  def languages: RIO[DictionaryService, Iterable[String]] =
+    ZIO.serviceWithZIO(_.languages)
 
-  def entries(all:Boolean): ZIO[DictionaryService, Throwable, Chunk[HunspellEntry]] =
-    ZIO.serviceWithZIO(_.entries(all))
+  def count(language: String): RIO[DictionaryService, Int] =
+    ZIO.serviceWithZIO(_.count(language))
 
-  def find(word:String): ZIO[DictionaryService, Throwable, Option[HunspellEntry]] =
-    ZIO.serviceWithZIO(_.find(word))
+  def entries(language: String, all: Boolean): RIO[DictionaryService, Chunk[HunspellEntry]] =
+    ZIO.serviceWithZIO(_.entries(language, all))
 
-  def generateWords(entry: HunspellEntry): ZIO[DictionaryService, Throwable, List[HunspellEntry]] =
-    ZIO.serviceWithZIO(_.generateWords(entry))
+  def find(language: String, word: String): RIO[DictionaryService, Option[HunspellEntry]] =
+    ZIO.serviceWithZIO(_.find(language, word))
+
+  def generateWords(language: String, entry: HunspellEntry): RIO[DictionaryService, List[HunspellEntry]] =
+    ZIO.serviceWithZIO(_.generateWords(language, entry))
 
   val live = ZLayer.fromZIO(
-    for dictionary <- Hunspell.loadHunspellDictionary
-    yield DictionaryServiceLive(dictionary)
+    for {
+      dictionaryConfig <- ZIO.service[DictionariesConfig]
+      dictionaries     <- ZIO.foreach(dictionaryConfig.dictionaries) { (key, dict) =>
+                            Hunspell.loadHunspellDictionary(dict).map(d => key -> d) @@ annotated("language" -> key)
+                          }
+      dictionary       <- ZIO.from(dictionaries)
+    } yield DictionaryServiceLive(dictionary)
   )
 
+case class DictionaryServiceLive(dictionaries: Map[String, Hunspell]) extends DictionaryService {
 
-case class DictionaryServiceLive(dictionary: Hunspell) extends DictionaryService:
+  override def languages = ZIO.succeed(dictionaries.keys)
 
-  override def count = ZIO.succeed(dictionary.entries.size)
+  private def getDictionary(language: String) =
+    ZIO.from(dictionaries.get(language)).orElseFail(DictionaryFatalIssue(s"language $language not supported"))
 
-  override def entries(all:Boolean): Task[Chunk[HunspellEntry]] =
-    if (all) ZIO.succeed(dictionary.entries.flatMap(entry => dictionary.generateWords(entry)))
-    else ZIO.succeed(dictionary.entries)
+  override def count(language: String): Task[Int] = for {
+    dictionary <- getDictionary(language)
+  } yield dictionary.entries.size
 
-  override def find(word: String):Task[Option[HunspellEntry]] =
-    ZIO.succeed(dictionary.entries.find(_.word == word))
+  override def entries(language: String, all: Boolean): Task[Chunk[HunspellEntry]] = for {
+    dictionary <- getDictionary(language)
+    entries    <- if (all) ZIO.succeed(dictionary.entries.flatMap(entry => dictionary.generateWords(entry))) else ZIO.succeed(dictionary.entries)
+  } yield entries
 
-  override def generateWords(entry: HunspellEntry): Task[List[HunspellEntry]] =
-    ZIO.succeed(
-      dictionary.generateWords(entry)
-    )
+  override def find(language: String, word: String): Task[Option[HunspellEntry]] = for {
+    dictionary <- getDictionary(language)
+  } yield dictionary.entries.find(_.word == word)
+
+  override def generateWords(language: String, entry: HunspellEntry): Task[List[HunspellEntry]] = for {
+    dictionary <- getDictionary(language)
+  } yield dictionary.generateWords(entry)
+}

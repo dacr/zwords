@@ -2,6 +2,7 @@ package fr.janalyse.zwords.console
 
 import fr.janalyse.zwords.gamelogic.{Game, GameInternalIssue, GameIssue, GoodPlaceCell}
 import fr.janalyse.zwords.dictionary.DictionaryService
+import fr.janalyse.zwords.dictionary.DictionaryConfig
 import fr.janalyse.zwords.wordgen.WordGeneratorService
 import zio.*
 
@@ -39,7 +40,8 @@ object Main extends ZIOAppDefault {
 
   override def run = consoleBasedGame.provide(
     DictionaryService.live,
-    WordGeneratorService.live
+    WordGeneratorService.live,
+    DictionaryConfig.layer
   )
 
 }

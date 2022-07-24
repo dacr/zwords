@@ -15,7 +15,7 @@
  */
 package fr.janalyse.zwords.wordgen
 
-import fr.janalyse.zwords.dictionary.DictionaryService
+import fr.janalyse.zwords.dictionary.{DictionaryConfig, DictionaryService}
 import zio.*
 import zio.test.*
 import zio.test.Assertion.*
@@ -24,7 +24,7 @@ import zio.test.TestAspect.*
 import java.time.{OffsetDateTime, ZoneOffset}
 
 object WordGeneratorServiceSpec extends ZIOSpecDefault {
-
+  val lang = "fr"
   def makeDate(year: Int, month: Int, day: Int) =
     OffsetDateTime.of(year, month, day, 12, 12, 12, 0, ZoneOffset.UTC).toInstant
 
@@ -33,25 +33,25 @@ object WordGeneratorServiceSpec extends ZIOSpecDefault {
       test("words check")(
         for {
           _      <- TestClock.setTime(makeDate(2022, 3, 30))
-          word1A <- WordGeneratorService.todayWord
-          word1B <- WordGeneratorService.todayWord
-          word1C <- WordGeneratorService.todayWord
+          word1A <- WordGeneratorService.todayWord(lang)
+          word1B <- WordGeneratorService.todayWord(lang)
+          word1C <- WordGeneratorService.todayWord(lang)
           _      <- TestClock.setTime(makeDate(2022, 3, 31))
-          word2  <- WordGeneratorService.todayWord
+          word2  <- WordGeneratorService.todayWord(lang)
           _      <- TestClock.setTime(makeDate(2022, 4, 1))
-          word3  <- WordGeneratorService.todayWord
+          word3  <- WordGeneratorService.todayWord(lang)
           _      <- TestClock.setTime(makeDate(2022, 4, 2))
-          word4  <- WordGeneratorService.todayWord
+          word4  <- WordGeneratorService.todayWord(lang)
           _      <- TestClock.setTime(makeDate(2022, 4, 3))
-          word5  <- WordGeneratorService.todayWord
+          word5  <- WordGeneratorService.todayWord(lang)
           _      <- TestClock.setTime(makeDate(2022, 4, 4))
-          word6  <- WordGeneratorService.todayWord
+          word6  <- WordGeneratorService.todayWord(lang)
           _      <- TestClock.setTime(makeDate(2022, 4, 5))
-          word7  <- WordGeneratorService.todayWord
+          word7  <- WordGeneratorService.todayWord(lang)
           _      <- TestClock.setTime(makeDate(2022, 4, 6))
-          word8  <- WordGeneratorService.todayWord
+          word8  <- WordGeneratorService.todayWord(lang)
           _      <- TestClock.setTime(makeDate(2022, 4, 7))
-          word9  <- WordGeneratorService.todayWord
+          word9  <- WordGeneratorService.todayWord(lang)
         } yield assertTrue(
           word1A == "COCCOLITE",
           word1B == "COCCOLITE",
@@ -68,7 +68,8 @@ object WordGeneratorServiceSpec extends ZIOSpecDefault {
       )
     ).provideCustomShared(
       DictionaryService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize dictionary service $err"))),
-      WordGeneratorService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize word generator service $err")))
+      WordGeneratorService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize word generator service $err"))),
+      DictionaryConfig.layer
     ) @@ withLiveSystem
   }
 }
