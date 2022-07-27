@@ -31,41 +31,46 @@ case class WordStats(
 )
 
 trait WordGeneratorService {
-  def languages: Task[List[String]]
+  def languages: UIO[List[String]]
 
-  def todayWord(language: String): Task[String]
+  def todayWord(language: String): IO[WordGeneratorLanguageNotSupported, String]
 
-  def wordExists(language: String, word: String): Task[Boolean]
+  def wordExists(language: String, word: String): IO[WordGeneratorLanguageNotSupported, Boolean]
 
-  def wordNormalize(language: String, word: String): Task[String]
+  def wordNormalize(language: String, word: String): IO[WordGeneratorLanguageNotSupported, String]
 
-  def matchingWords(language: String, pattern: String, includedLetters: Map[Char, Set[Int]], excludedLetters: Map[Int, Set[Char]]): Task[List[String]]
+  def matchingWords(language: String, pattern: String, includedLetters: Map[Char, Set[Int]], excludedLetters: Map[Int, Set[Char]]): IO[WordGeneratorLanguageNotSupported, List[String]]
 
-  def countMatchingWords(language: String, pattern: String): Task[Int]
+  def countMatchingWords(language: String, pattern: String): IO[WordGeneratorLanguageNotSupported, Int]
 
-  def stats(language: String): Task[WordStats]
+  def stats(language: String): IO[WordGeneratorLanguageNotSupported, WordStats]
 }
 
 object WordGeneratorService {
-  def languages: RIO[WordGeneratorService, List[String]] =
+  def languages: URIO[WordGeneratorService, List[String]] =
     ZIO.serviceWithZIO(_.languages)
 
-  def todayWord(language: String): RIO[WordGeneratorService, String] =
+  def todayWord(language: String): ZIO[WordGeneratorService, WordGeneratorLanguageNotSupported, String] =
     ZIO.serviceWithZIO(_.todayWord(language))
 
-  def wordExists(language: String, word: String): RIO[WordGeneratorService, Boolean] =
+  def wordExists(language: String, word: String): ZIO[WordGeneratorService, WordGeneratorLanguageNotSupported, Boolean] =
     ZIO.serviceWithZIO(_.wordExists(language, word))
 
-  def wordNormalize(language: String, word: String): RIO[WordGeneratorService, String] =
+  def wordNormalize(language: String, word: String): ZIO[WordGeneratorService, WordGeneratorLanguageNotSupported, String] =
     ZIO.serviceWithZIO(_.wordNormalize(language, word))
 
-  def matchingWords(language: String, pattern: String, includedLetters: Map[Char, Set[Int]], excludedLetters: Map[Int, Set[Char]]): RIO[WordGeneratorService, List[String]] =
+  def matchingWords(
+    language: String,
+    pattern: String,
+    includedLetters: Map[Char, Set[Int]],
+    excludedLetters: Map[Int, Set[Char]]
+  ): ZIO[WordGeneratorService, WordGeneratorLanguageNotSupported, List[String]] =
     ZIO.serviceWithZIO(_.matchingWords(language, pattern, includedLetters, excludedLetters))
 
-  def countMatchingWords(language: String, pattern: String): RIO[WordGeneratorService, Int] =
+  def countMatchingWords(language: String, pattern: String): ZIO[WordGeneratorService, WordGeneratorLanguageNotSupported, Int] =
     ZIO.serviceWithZIO(_.countMatchingWords(language, pattern))
 
-  def stats(language: String): RIO[WordGeneratorService, WordStats] =
+  def stats(language: String): ZIO[WordGeneratorService, WordGeneratorLanguageNotSupported, WordStats] =
     ZIO.serviceWithZIO(_.stats(language))
 
   val live = ZLayer.fromZIO(
@@ -77,7 +82,8 @@ object WordGeneratorService {
     } yield WordGeneratorServiceImpl(languages.toList, selectedEntries.toMap, possibleEntries.toMap)
   )
 }
-class WordGeneratorServiceImpl(langs: List[String], selectedEntries: Map[String, Chunk[HunspellEntry]], possibleEntries: Map[String, Chunk[HunspellEntry]]) extends WordGeneratorService:
+
+class WordGeneratorServiceImpl(langs: List[String], selectedEntries: Map[String, List[HunspellEntry]], possibleEntries: Map[String, List[HunspellEntry]]) extends WordGeneratorService {
 
   def standardize(word: String): String =
     word.trim.toLowerCase
@@ -89,7 +95,7 @@ class WordGeneratorServiceImpl(langs: List[String], selectedEntries: Map[String,
       .replaceAll("[ç]", "c")
       .toUpperCase
 
-  def normalizeEntries(entries: Chunk[HunspellEntry]): Chunk[String] =
+  def normalizeEntries(entries: List[HunspellEntry]): List[String] =
     entries
       .filter(_.isCommonWord)
       .filterNot(_.isCompound)
@@ -98,8 +104,8 @@ class WordGeneratorServiceImpl(langs: List[String], selectedEntries: Map[String,
       .filter(_.size >= 5)
       .filter(_.size <= 10)
 
-  val selectedWords: Map[String, Chunk[String]]  = selectedEntries.view.mapValues(normalizeEntries).toMap
-  val possibleWords: Map[String, Chunk[String]]  = possibleEntries.view.mapValues(normalizeEntries).toMap
+  val selectedWords: Map[String, List[String]] = selectedEntries.view.mapValues(normalizeEntries).toMap
+  val possibleWords: Map[String, List[String]] = possibleEntries.view.mapValues(normalizeEntries).toMap
   val possibleWordsSet: Map[String, Set[String]] = possibleWords.map((key, words) => key -> words.toSet)
 
   def dateTimeToDailySeed(dateTime: OffsetDateTime): Int = {
@@ -108,31 +114,33 @@ class WordGeneratorServiceImpl(langs: List[String], selectedEntries: Map[String,
       dateTime.get(ChronoField.DAY_OF_MONTH) + 1
   }
 
-  override def languages: Task[List[String]] = ZIO.succeed(langs)
+  // -----------------------------------------------------------------------------------------------------
 
-  override def todayWord(language: String): Task[String] =
+  override def languages: UIO[List[String]] = ZIO.succeed(langs)
+
+  private def getSelectedWords(language: String) =
+    ZIO.from(selectedWords.get(language)).orElseFail(WordGeneratorLanguageNotSupported(language))
+
+  private def getPossibleWords(language: String) =
+    ZIO.from(possibleWords.get(language)).orElseFail(WordGeneratorLanguageNotSupported(language))
+
+  override def todayWord(language: String): IO[WordGeneratorLanguageNotSupported, String] =
     for {
       dateTime <- Clock.currentDateTime
-      seed      = dateTimeToDailySeed(dateTime)
-      count    <- ZIO
-                    .from(selectedWords.get(language).map(_.size))
-                    .orElseFail(Exception(s"Language $language not supported")) // TODO
-      _        <- Random.setSeed(seed)
-      index    <- Random.nextIntBetween(0, count)
-      word     <- ZIO
-                    .from(selectedWords.get(language).flatMap(words => words.lift(index)))
-                    .orElseFail(Exception(s"Internal issue $language")) // TODO
-    } yield word
+      seed = dateTimeToDailySeed(dateTime)
+      words <- getSelectedWords(language)
+      count = words.size
+      _ <- Random.setSeed(seed)
+      index <- Random.nextIntBetween(minInclusive = 0, maxExclusive = count)
+    } yield words(index) // So can not fail !
 
-  override def wordExists(language: String, word: String): Task[Boolean] =
-    ZIO
-      .from(possibleWordsSet.get(language).map(_.contains(standardize(word))))
-      .orElseFail(Exception(s"Language $language not supported")) // TODO
+  override def wordExists(language: String, word: String): IO[WordGeneratorLanguageNotSupported, Boolean] =
+    getPossibleWords(language).map(_.contains(standardize(word)))
 
-  override def wordNormalize(language: String, word: String): Task[String] =
-    ZIO.attempt(standardize(word))
+  override def wordNormalize(language: String, word: String): IO[WordGeneratorLanguageNotSupported, String] =
+    ZIO.succeed(standardize(word))
 
-  override def stats(language: String): Task[WordStats] =
+  override def stats(language: String): IO[WordGeneratorLanguageNotSupported, WordStats] =
     ZIO.succeed(
       WordStats(
         message = "Used dictionary information",
@@ -147,17 +155,11 @@ class WordGeneratorServiceImpl(langs: List[String], selectedEntries: Map[String,
   def wordRegexpFromPattern(pattern: String) =
     pattern.replaceAll("_", ".").r
 
-  override def countMatchingWords(language: String, pattern: String): Task[Int] =
+  override def countMatchingWords(language: String, pattern: String): IO[WordGeneratorLanguageNotSupported, Int] =
     val wordRE = wordRegexpFromPattern(pattern)
-    ZIO
-      .from(
-        selectedWords
-          .get(language)
-          .map(_.count(word => word.size == pattern.size && wordRE.matches(word)))
-      )
-      .orElseFail(Exception(s"Language $language not supported")) // TODO
+    getSelectedWords(language).map(_.count(word => word.size == pattern.size && wordRE.matches(word)))
 
-  override def matchingWords(language: String, pattern: String, includedLettersMap: Map[Char, Set[Int]], excludedLettersMap: Map[Int, Set[Char]]): Task[List[String]] =
+  override def matchingWords(language: String, pattern: String, includedLettersMap: Map[Char, Set[Int]], excludedLettersMap: Map[Int, Set[Char]]): IO[WordGeneratorLanguageNotSupported, List[String]] =
     val wordRE = wordRegexpFromPattern(pattern)
 
     val excludeRE =
@@ -171,17 +173,13 @@ class WordGeneratorServiceImpl(langs: List[String], selectedEntries: Map[String,
     def included(word: String): Boolean =
       includedLettersMap.forall((char, positions) => positions.flatMap(word.lift).contains(char))
 
-    ZIO
-      .from(
-        selectedWords
-          .get(language)
-          .map(
-            _.filter(word =>
-              word.size == pattern.size &&
-                wordRE.matches(word) &&
-                excludeRE.matches(word) &&
-                included(word)
-            ).toList
-          )
-      )
-      .orElseFail(Exception(s"Language $language not supported")) // TODO
+    getSelectedWords(language).map(words =>
+      words
+        .filter(word =>
+          word.size == pattern.size &&
+            wordRE.matches(word) &&
+            excludeRE.matches(word) &&
+            included(word)
+        )
+    )
+}

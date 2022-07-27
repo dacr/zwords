@@ -18,27 +18,32 @@ package fr.janalyse.zwords.dictionary
 import zio.*
 import zio.ZIOAspect.*
 
-trait DictionaryService:
-  def languages: Task[Iterable[String]]
-  def count(language: String): Task[Int]
-  def entries(language: String, all: Boolean): Task[Chunk[HunspellEntry]]
-  def find(language: String, word: String): Task[Option[HunspellEntry]]
-  def generateWords(language: String, entry: HunspellEntry): Task[List[HunspellEntry]]
+trait DictionaryService {
+  def languages: UIO[List[String]]
 
-object DictionaryService:
-  def languages: RIO[DictionaryService, Iterable[String]] =
+  def count(language: String): IO[DictionaryLanguageNotSupported, Int]
+
+  def entries(language: String, all: Boolean): IO[DictionaryLanguageNotSupported, List[HunspellEntry]]
+
+  def find(language: String, word: String): IO[DictionaryLanguageNotSupported, Option[HunspellEntry]]
+
+  def generateWords(language: String, entry: HunspellEntry): IO[DictionaryLanguageNotSupported, List[HunspellEntry]]
+}
+
+object DictionaryService {
+  def languages: URIO[DictionaryService, Iterable[String]] =
     ZIO.serviceWithZIO(_.languages)
 
-  def count(language: String): RIO[DictionaryService, Int] =
+  def count(language: String): ZIO[DictionaryService, DictionaryLanguageNotSupported, Int] =
     ZIO.serviceWithZIO(_.count(language))
 
-  def entries(language: String, all: Boolean): RIO[DictionaryService, Chunk[HunspellEntry]] =
+  def entries(language: String, all: Boolean): ZIO[DictionaryService, DictionaryLanguageNotSupported, List[HunspellEntry]] =
     ZIO.serviceWithZIO(_.entries(language, all))
 
-  def find(language: String, word: String): RIO[DictionaryService, Option[HunspellEntry]] =
+  def find(language: String, word: String): ZIO[DictionaryService, DictionaryLanguageNotSupported, Option[HunspellEntry]] =
     ZIO.serviceWithZIO(_.find(language, word))
 
-  def generateWords(language: String, entry: HunspellEntry): RIO[DictionaryService, List[HunspellEntry]] =
+  def generateWords(language: String, entry: HunspellEntry): ZIO[DictionaryService, DictionaryLanguageNotSupported, List[HunspellEntry]] =
     ZIO.serviceWithZIO(_.generateWords(language, entry))
 
   val live = ZLayer.fromZIO(
@@ -50,28 +55,27 @@ object DictionaryService:
       dictionary       <- ZIO.from(dictionaries)
     } yield DictionaryServiceLive(dictionary)
   )
+}
 
 case class DictionaryServiceLive(dictionaries: Map[String, Hunspell]) extends DictionaryService {
 
-  override def languages = ZIO.succeed(dictionaries.keys)
-
   private def getDictionary(language: String) =
-    ZIO.from(dictionaries.get(language)).orElseFail(DictionaryFatalIssue(s"language $language not supported"))
+    ZIO.from(dictionaries.get(language)).orElseFail(DictionaryLanguageNotSupported(language))
 
-  override def count(language: String): Task[Int] = for {
-    dictionary <- getDictionary(language)
-  } yield dictionary.entries.size
+  override val languages: UIO[List[String]] = ZIO.succeed(dictionaries.keys.toList)
 
-  override def entries(language: String, all: Boolean): Task[Chunk[HunspellEntry]] = for {
+  override def count(language: String): IO[DictionaryLanguageNotSupported, Int] = getDictionary(language).map(_.entries.size)
+
+  override def entries(language: String, all: Boolean): IO[DictionaryLanguageNotSupported, List[HunspellEntry]] = for {
     dictionary <- getDictionary(language)
     entries    <- if (all) ZIO.succeed(dictionary.entries.flatMap(entry => dictionary.generateWords(entry))) else ZIO.succeed(dictionary.entries)
   } yield entries
 
-  override def find(language: String, word: String): Task[Option[HunspellEntry]] = for {
+  override def find(language: String, word: String): IO[DictionaryLanguageNotSupported, Option[HunspellEntry]] = for {
     dictionary <- getDictionary(language)
   } yield dictionary.entries.find(_.word == word)
 
-  override def generateWords(language: String, entry: HunspellEntry): Task[List[HunspellEntry]] = for {
+  override def generateWords(language: String, entry: HunspellEntry): IO[DictionaryLanguageNotSupported, List[HunspellEntry]] = for {
     dictionary <- getDictionary(language)
   } yield dictionary.generateWords(entry)
 }

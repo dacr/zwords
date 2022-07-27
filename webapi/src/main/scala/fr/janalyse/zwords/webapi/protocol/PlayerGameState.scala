@@ -7,7 +7,7 @@ case class PlayerGameState(
   playerUUID: String,
   game: CurrentGame
 )
-object PlayerGameState:
+object PlayerGameState {
   given JsonCodec[PlayerGameState] = DeriveJsonCodec.gen
 
   def fromPlayer(player: Player): PlayerGameState = {
@@ -16,3 +16,4 @@ object PlayerGameState:
       game = CurrentGame.from(player.game, player.currentWinRank)
     )
   }
+}

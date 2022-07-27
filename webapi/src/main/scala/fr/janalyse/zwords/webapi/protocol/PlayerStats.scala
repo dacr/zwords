@@ -13,7 +13,7 @@ case class PlayerStats(
   wrongPlaceLetterCount: Int,
   unusedLetterCount: Int
 )
-object PlayerStats:
+object PlayerStats {
   given JsonCodec[PlayerStats] = DeriveJsonCodec.gen
 
   def fromStats(stats: Stats): PlayerStats =
@@ -27,3 +27,4 @@ object PlayerStats:
       wrongPlaceLetterCount = stats.wrongPlaceLetterCount,
       unusedLetterCount = stats.unusedLetterCount
     )
+}

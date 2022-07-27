@@ -16,7 +16,7 @@
 package fr.janalyse.zwords.gamelogic
 
 import fr.janalyse.zwords.*
-import fr.janalyse.zwords.wordgen.WordGeneratorService
+import fr.janalyse.zwords.wordgen.{WordGeneratorLanguageNotSupported, WordGeneratorService}
 import zio.*
 import zio.json.*
 
@@ -34,21 +34,23 @@ case class Game(
   board: Board,
   createdDate: OffsetDateTime,
   possibleWordsCount: Int
-):
+) {
 
   override def toString: String = board.toString + s" $YELLOW($possibleWordsCount)$RESET"
 
-  def isWin  = board.isWin
+  def isWin = board.isWin
+
   def isOver = board.isOver
+
   def isLost = board.isLost
 
   def dailyGameId = Game.makeDailyGameId(createdDate)
 
-  def play(roundWord: String): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
+  def play(roundWord: String): ZIO[WordGeneratorService, GameIssue | WordGeneratorLanguageNotSupported, Game] =
     for
-      givenWord          <- WordGeneratorService.wordNormalize(language, roundWord).mapError(th => GameWordGeneratorIssue(th))
+      givenWord          <- WordGeneratorService.wordNormalize(language, roundWord)
       _                  <- ZIO.cond(givenWord.size == hiddenWord.size, (), GamePlayInvalidSize(givenWord))
-      wordInDic          <- WordGeneratorService.wordExists(language, givenWord).mapError(th => GameDictionaryIssue(th))
+      wordInDic          <- WordGeneratorService.wordExists(language, givenWord)
       _                  <- ZIO.cond(wordInDic, (), GameWordNotInDictionary(givenWord))
       _                  <- ZIO.cond(!board.isOver, (), GameIsOver())
       newPlayedRows       = GuessRow.buildRow(hiddenWord, givenWord) :: board.playedRows
@@ -56,16 +58,17 @@ case class Game(
       newBoard            = board.copy(patternRow = newPatternRow, playedRows = newPlayedRows)
       // included       = GameSolver.possiblePlaces(newPlayedRows)
       // excluded       = GameSolver.impossiblePlaces(newPlayedRows)
-      // possibleWords <- WordGeneratorService.matchingWords(newBoard.patternRow.pattern, included, excluded).mapError(th => GameWordGeneratorIssue(th))
-      // possibleWords <- WordGeneratorService.matchingWords(newBoard.patternRow.pattern, Map.empty, Map.empty).mapError(th => GameWordGeneratorIssue(th))
-      possibleWordsCount <- WordGeneratorService.countMatchingWords(language, newBoard.patternRow.pattern).mapError(th => GameWordGeneratorIssue(th))
+      // possibleWords <- WordGeneratorService.matchingWords(newBoard.patternRow.pattern, included, excluded)
+      // possibleWords <- WordGeneratorService.matchingWords(newBoard.patternRow.pattern, Map.empty, Map.empty)
+      possibleWordsCount <- WordGeneratorService.countMatchingWords(language, newBoard.patternRow.pattern)
     // possibleWordsCount = -1 // Disabled waiting for a faster implementation
     yield copy(board = newBoard, possibleWordsCount = possibleWordsCount)
+}
 
-object Game:
+object Game {
   given JsonCodec[Game] = DeriveJsonCodec.gen
 
-  def makeDailyGameId(dateTime:OffsetDateTime) = {
+  def makeDailyGameId(dateTime: OffsetDateTime) = {
     val fields = List(ChronoField.YEAR, ChronoField.DAY_OF_YEAR)
     val ts     = fields.map(field => dateTime.get(field)).mkString("-")
     s"ZWORDS-$ts"
@@ -73,20 +76,21 @@ object Game:
 
   def makeDefaultWordMask(word: String): String = (word.head +: word.tail.map(_ => "_")).mkString
 
-  def init(language: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
+  def init(language: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | WordGeneratorLanguageNotSupported, Game] =
     for {
-      todayWord <- WordGeneratorService.todayWord(language).mapError(th => GameWordGeneratorIssue(th))
+      todayWord <- WordGeneratorService.todayWord(language)
       game      <- init(language, todayWord, maxAttemptsCount)
     } yield game
 
-  def init(language: String, hiddenWord: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
+  def init(language: String, hiddenWord: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | WordGeneratorLanguageNotSupported, Game] =
     init(language, hiddenWord, makeDefaultWordMask(hiddenWord), maxAttemptsCount)
 
-  def init(language: String, hiddenWord: String, wordMask: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | GameInternalIssue, Game] =
+  def init(language: String, hiddenWord: String, wordMask: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | WordGeneratorLanguageNotSupported, Game] =
     for {
       createdDate   <- Clock.currentDateTime
       _             <- Random.setSeed(createdDate.toInstant.toEpochMilli)
       uuid          <- Random.nextUUID
       board          = Board(wordMask, maxAttemptsCount)
-      possibleWords <- WordGeneratorService.matchingWords(language, wordMask, Map.empty, Map.empty).mapError(th => GameWordGeneratorIssue(th))
+      possibleWords <- WordGeneratorService.matchingWords(language, wordMask, Map.empty, Map.empty)
     } yield Game(uuid, language, hiddenWord, board, createdDate, possibleWords.size)
+}

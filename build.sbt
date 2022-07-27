@@ -44,7 +44,10 @@ lazy val wordGenerator =
     .in(file("wordgen"))
     .dependsOn(dictionary)
     .settings(
-      sharedSettings
+      sharedSettings,
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-json" % versions.ziojson
+      )
     )
 
 lazy val gameLogic =
@@ -52,11 +55,7 @@ lazy val gameLogic =
     .in(file("gamelogic"))
     .dependsOn(wordGenerator)
     .settings(
-      sharedSettings,
-      libraryDependencies ++= Seq(
-        "dev.zio" %% "zio-json"   % versions.ziojson,
-        "dev.zio" %% "zio-config" % versions.zioconfig
-      )
+      sharedSettings
     )
 
 lazy val consoleUI =
@@ -84,7 +83,7 @@ lazy val webapi =
         "--add-opens",
         "java.base/sun.nio.ch=ALL-UNNAMED"
       ),
-      Test / javaOptions      := Seq(
+      Test / javaOptions      := Seq( // -- Required for LMDB with recent JVM
         "--add-opens",
         "java.base/java.nio=ALL-UNNAMED",
         "--add-opens",
@@ -98,7 +97,6 @@ lazy val webapi =
         "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server"        % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-json-zio"               % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-redoc-bundle"           % versions.tapir,
-        "dev.zio"                     %% "zio-json"                     % versions.ziojson,
         "com.sksamuel.elastic4s"       % "elastic4s-core_2.13"          % versions.elastic4s,
         "com.sksamuel.elastic4s"       % "elastic4s-client-esjava_2.13" % versions.elastic4s,
         "org.lmdbjava"                 % "lmdbjava"                     % versions.lmdb

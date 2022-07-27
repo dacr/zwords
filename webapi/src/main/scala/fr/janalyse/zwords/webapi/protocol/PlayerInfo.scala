@@ -10,5 +10,6 @@ case class PlayerInfo(
   stats: PlayerStats
 )
 
-object PlayerInfo:
+object PlayerInfo {
   given JsonCodec[PlayerInfo] = DeriveJsonCodec.gen
+}

@@ -14,7 +14,7 @@ case class GameInfo(
   playedGamesStats: Option[GlobalStats],
   todayStats: Option[TodayStats]
 )
-object GameInfo:
+object GameInfo {
   given JsonCodec[GameInfo] = DeriveJsonCodec.gen
 
   def from(wordStats: WordStats, playedGamesStats: Option[GlobalStats], mayBeDailyStats: Option[DailyStats]): GameInfo =
@@ -37,3 +37,4 @@ object GameInfo:
         )
       )
     )
+}

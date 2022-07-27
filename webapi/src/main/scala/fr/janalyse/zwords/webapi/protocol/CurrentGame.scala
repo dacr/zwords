@@ -17,7 +17,8 @@ case class CurrentGame(
   hiddenWord: Option[String],
   winRank: Option[Int]
 )
-object CurrentGame:
+
+object CurrentGame {
   given JsonCodec[CurrentGame] = DeriveJsonCodec.gen
 
   def stateFromGame(game: Game): String =
@@ -49,7 +50,7 @@ object CurrentGame:
     val ts     = fields.map(field => game.createdDate.get(field)).mkString("-")
     s"#ZWORDS $ts"
 
-  def from(game: Game, winRank:Option[Int]): CurrentGame =
+  def from(game: Game, winRank: Option[Int]): CurrentGame =
     val state = stateFromGame(game)
     val rows  = rowsFromGame(game)
     CurrentGame(
@@ -62,3 +63,4 @@ object CurrentGame:
       hiddenWord = if (game.isOver) Some(game.hiddenWord) else None,
       winRank = winRank
     )
+}

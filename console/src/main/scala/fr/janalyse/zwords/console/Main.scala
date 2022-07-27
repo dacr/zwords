@@ -3,7 +3,7 @@ package fr.janalyse.zwords.console
 import fr.janalyse.zwords.gamelogic.{Game, GameInternalIssue, GameIssue, GoodPlaceCell}
 import fr.janalyse.zwords.dictionary.DictionaryService
 import fr.janalyse.zwords.dictionary.DictionaryConfig
-import fr.janalyse.zwords.wordgen.WordGeneratorService
+import fr.janalyse.zwords.wordgen.{WordGeneratorLanguageNotSupported, WordGeneratorService}
 import zio.*
 
 import scala.Console.{RED, RESET, YELLOW}
@@ -11,15 +11,15 @@ import java.io.IOException
 
 object Main extends ZIOAppDefault {
 
-  def playLogic(game: Game): ZIO[WordGeneratorService, GameIssue | GameInternalIssue | IOException, Game] =
+  def playLogic(game: Game): ZIO[WordGeneratorService, GameIssue | WordGeneratorLanguageNotSupported | IOException, Game] =
     for
-      pattern   <- ZIO.succeed(game.board.patternRow.pattern)
-      _         <- Console.printLine(s"$game")
-      word      <- Console.readLine
-      nextGame  <- game.play(word)
+      pattern  <- ZIO.succeed(game.board.patternRow.pattern)
+      _        <- Console.printLine(s"$game")
+      word     <- Console.readLine
+      nextGame <- game.play(word)
     yield nextGame
 
-  def consoleBasedRound(game: Game): ZIO[WordGeneratorService, Object, Game] =
+  def consoleBasedRound(game: Game): ZIO[WordGeneratorService, GameIssue | WordGeneratorLanguageNotSupported | IOException, Game] =
     for
       _        <- Console.printLine("--------------------")
       nextGame <- playLogic(game)

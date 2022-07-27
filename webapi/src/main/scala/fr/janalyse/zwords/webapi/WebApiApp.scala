@@ -15,9 +15,9 @@
  */
 package fr.janalyse.zwords.webapi
 
-import fr.janalyse.zwords.dictionary.DictionaryService
-import fr.janalyse.zwords.gamelogic.{Board, Game, GameInternalIssue, GameInvalidUUID, GameIssue, GameNotFound, GameStorageIssue, GoodPlaceCell, NotUsedCell, WrongPlaceCell}
-import fr.janalyse.zwords.wordgen.{WordGeneratorService, WordStats}
+import fr.janalyse.zwords.dictionary.{DictionariesConfig, DictionaryConfig, DictionaryService}
+import fr.janalyse.zwords.gamelogic.{Board, Game, GameDictionaryIssue, GameInternalIssue, GameInvalidUUID, GameIssue, GameNotFound, GameStorageIssue, GoodPlaceCell, NotUsedCell, WrongPlaceCell}
+import fr.janalyse.zwords.wordgen.{WordGeneratorLanguageNotSupported, WordGeneratorService, WordStats}
 import sttp.tapir.ztapir.{oneOfVariant, *}
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.redoc.bundle.RedocInterpreter
@@ -51,6 +51,20 @@ object WebApiApp extends ZIOAppDefault {
 
   // -------------------------------------------------------------------------------------------------------------------
 
+  val languages: URIO[GameEnv, Languages] = WordGeneratorService.languages.map(Languages.apply)
+
+  val languagesEndPoint =
+    endpoint
+      .name("available languages")
+      .description("Returns the supported dictionary languages")
+      .get
+      .in("languages")
+      .out(jsonBody[Languages])
+
+  val languagesRoute = languagesEndPoint.zServerLogic(_ => languages)
+
+  // -------------------------------------------------------------------------------------------------------------------
+
   def checkGivenPlayerInput(playerCreate: PlayerCreate) =
     ZIO
       .cond(
@@ -63,12 +77,12 @@ object WebApiApp extends ZIOAppDefault {
       )
       .tapError(err => ZIO.logError(s"Invalid pseudo received : $err"))
 
-  def playerCreate(playerCreate: PlayerCreate): ZIO[GameEnv, GameIssue | GameInternalIssue | PlayerIssue, PlayerGameState] =
+  def playerCreate(playerCreate: PlayerCreate): ZIO[GameEnv, GameIssue | GameInternalIssue | PlayerIssue | WordGeneratorLanguageNotSupported, PlayerGameState] =
     ZIO.logSpan("playerCreate") {
       for {
         _          <- checkGivenPlayerInput(playerCreate)
         _          <- ZIO.log(playerCreate.toString)
-        game       <- Game.init(6)
+        game       <- Game.init("fr", 6)
         created    <- Clock.currentDateTime
         _          <- Random.setSeed(created.toInstant.toEpochMilli)
         playerUUID <- Random.nextUUID
@@ -176,9 +190,9 @@ object WebApiApp extends ZIOAppDefault {
       case Some(stats) => stats.copy(triedCount = stats.triedCount + 1)
     }
 
-  def renewPlayerGame(playerUUID: UUID, playerBefore: Player, today: OffsetDateTime): ZIO[GameEnv, GameIssue | GameInternalIssue | PlayerIssue, Player] =
+  def renewPlayerGame(playerUUID: UUID, playerBefore: Player, today: OffsetDateTime): ZIO[GameEnv, GameIssue | GameInternalIssue | PlayerIssue | WordGeneratorLanguageNotSupported, Player] =
     for {
-      newGame       <- Game.init(6)
+      newGame       <- Game.init("fr", 6)
       _             <- ZIO.log(s"player $playerUUID game renewed")
       newStats       = playerBefore.stats.copy(triedCount = playerBefore.stats.triedCount + 1)
       updatedPlayer <- PersistenceService
@@ -192,7 +206,7 @@ object WebApiApp extends ZIOAppDefault {
                          .mapError(th => GameStorageIssue(th))
     } yield updatedPlayer
 
-  def gameGet(playerUUID: String): ZIO[GameEnv, GameIssue | GameInternalIssue | PlayerIssue, PlayerGameState] =
+  def gameGet(playerUUID: String): ZIO[GameEnv, GameIssue | GameInternalIssue | PlayerIssue | WordGeneratorLanguageNotSupported, PlayerGameState] =
     ZIO.logSpan("gameGet") {
       for {
         uuid         <- extractPlayerUUID(playerUUID)
@@ -325,7 +339,7 @@ object WebApiApp extends ZIOAppDefault {
       )
       .tapError(err => ZIO.logError(s"Invalid word received : $err"))
 
-  def gamePlay(playerUUID: String, givenWord: GameGivenWord): ZIO[GameEnv, GameIssue | GameInternalIssue | PlayerIssue, PlayerGameState] =
+  def gamePlay(playerUUID: String, givenWord: GameGivenWord): ZIO[GameEnv, GameIssue | GameInternalIssue | PlayerIssue | WordGeneratorLanguageNotSupported, PlayerGameState] =
     ZIO.logSpan("gamePlay") {
       for {
         uuid          <- extractPlayerUUID(playerUUID)
@@ -374,10 +388,10 @@ object WebApiApp extends ZIOAppDefault {
 
   // -------------------------------------------------------------------------------------------------------------------
 
-  val infoGet: ZIO[GameEnv, Throwable, GameInfo] =
+  val infoGet: ZIO[GameEnv, Throwable | WordGeneratorLanguageNotSupported, GameInfo] =
     ZIO.logSpan("infoGet") {
       for {
-        wordStats   <- WordGeneratorService.stats
+        wordStats   <- WordGeneratorService.stats("fr")
         globalStats <- PersistenceService.getGlobalStats
         today       <- Clock.currentDateTime
         dailyGameId  = Game.makeDailyGameId(today)
@@ -396,7 +410,8 @@ object WebApiApp extends ZIOAppDefault {
       .out(jsonBody[GameInfo])
       .errorOut(
         oneOf(
-          oneOfVariant(InternalServerError, stringBody.map(Throwable(_))(_.getMessage))
+          oneOfVariant(InternalServerError, stringBody.map(Throwable(_))(_.getMessage)),
+          oneOfVariant(BadRequest, jsonBody[WordGeneratorLanguageNotSupported])
         )
       )
 
@@ -404,6 +419,7 @@ object WebApiApp extends ZIOAppDefault {
 
   // -------------------------------------------------------------------------------------------------------------------
   val gameRoutes = List(
+    languagesRoute,
     infoGetRoute,
     playerCreateRoute,
     playerGetRoute,
@@ -431,7 +447,8 @@ object WebApiApp extends ZIOAppDefault {
       .provide(
         PersistenceService.live,
         DictionaryService.live,
-        WordGeneratorService.live
+        WordGeneratorService.live,
+        DictionaryConfig.layer
       )
 
 }

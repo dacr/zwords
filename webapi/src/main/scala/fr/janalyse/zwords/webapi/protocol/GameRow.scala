@@ -9,5 +9,6 @@ case class GameRow(
   notUsedPlacesMask: String
 )
 
-object GameRow:
+object GameRow {
   given JsonCodec[GameRow] = DeriveJsonCodec.gen
+}

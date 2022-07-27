@@ -32,8 +32,8 @@ object HunspellEnglishSpec extends ZIOSpecDefault {
           captiveBaseWords     = baseEntries.map(_.word).filter(_.startsWith("captive")).sorted
           captiveExpandedWords = expandedEntries.map(_.word).filter(_.startsWith("captive")).sorted
         } yield assertTrue(
-          captiveBaseWords == Chunk("captive"),
-          captiveExpandedWords == Chunk("captive", "captive's", "captives"),
+          captiveBaseWords == List("captive"),
+          captiveExpandedWords == List("captive", "captive's", "captives"),
         )
       ),
       test("standard features with comic")(

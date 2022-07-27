@@ -13,5 +13,6 @@ case class TodayStats(
   wonIn: Map[String, Int] = Map.empty
 )
 
-object TodayStats:
+object TodayStats {
   given JsonCodec[TodayStats] = DeriveJsonCodec.gen
+}

@@ -6,5 +6,6 @@ case class GameGivenWord(
   word: String
 )
 
-object GameGivenWord:
+object GameGivenWord {
   given JsonCodec[GameGivenWord] = DeriveJsonCodec.gen
+}
