@@ -112,33 +112,51 @@ case class Hunspell(entries: List[HunspellEntry], affixRules: AffixRules) {
 }
 
 object Hunspell {
-  def loadHunspellDictionary(dictionaryConfig: DictionaryConfig): ZIO[Any, DictionaryInternalIssue, Hunspell] =
+  def loadAff(filename: String): IO[DictionaryInternalIssue, AffixRules] = for {
+    file    <- ZIO.attempt(Path(filename)).orElseFail(DictionaryInternalIssue(s"Filename '$filename' is invalid"))
+    bytes   <- Files.readAllBytes(file).orElseFail(DictionaryInternalIssue(s"Couldn't read aff file content $file"))
+    charset  = Charset.Standard.utf8
+    content <- charset.decodeString(bytes)
+  } yield AffixRules(content)
+
+  def loadDic(filename: String): IO[DictionaryInternalIssue, List[HunspellEntry]] = for {
+    file    <- ZIO.attempt(Path(filename)).orElseFail(DictionaryInternalIssue(s"Filename '$filename' is invalid"))
+    bytes   <- Files.readAllBytes(file).orElseFail(DictionaryInternalIssue(s"Couldn't file content $file"))
+    charset  = Charset.Standard.utf8
+    content <- charset.decodeString(bytes)
+    lines    = content.split("\n").toList
+    count   <- ZIO.attempt(lines.headOption.map(_.toInt).getOrElse(0)).orElseFail(DictionaryInternalIssue("Couldn't extract words count"))
+    _       <- ZIO.log(s"Expecting to find $count hunspell entries")
+    specs    = lines.tail
+  } yield specs.flatMap(HunspellEntry.fromLine)
+
+  def loadSubsetWords(filename: String): IO[DictionaryInternalIssue, Set[String]] = for {
+    file       <- ZIO.attempt(Path(filename)).orElseFail(DictionaryInternalIssue(s"Filename '$filename' is invalid"))
+    dicBytes   <- Files.readAllBytes(file).orElseFail(DictionaryInternalIssue(s"Couldn't read file content $file"))
+    charset     = Charset.Standard.utf8
+    dicContent <- charset.decodeString(dicBytes)
+  } yield dicContent.split("\n").map(_.trim).toSet
+
+  def loadHunspellDictionary(dictionaryConfig: DictionaryConfig): IO[DictionaryInternalIssue, Hunspell] =
     ZIO.logSpan("Hunspell dictionary") {
       for {
-        _           <- ZIO.log("loading")
-        charset      = Charset.Standard.utf8
+        _                   <- ZIO.log("loading")
         // ---------------------------------------------
-        affFilename <- ZIO.from(dictionaryConfig.affFilename).orElseFail(DictionaryInternalIssue("Aff filename not provided"))
-        affFile      = Path(affFilename)
-        affBytes    <- Files.readAllBytes(affFile).orElseFail(DictionaryInternalIssue(s"Couldn't read aff file content $affFile"))
-        affContent  <- charset.decodeString(affBytes)
-        affixRules   = AffixRules(affContent)
+        affFilename         <- ZIO.from(dictionaryConfig.affFilename).orElseFail(DictionaryInternalIssue("Aff filename not provided"))
+        affixRules          <- loadAff(affFilename)
         // ---------------------------------------------
-        dicFilename <- ZIO.from(dictionaryConfig.dicFilename).orElseFail(DictionaryInternalIssue("Dic filename not provided"))
-        dicFile      = Path(dicFilename)
-        dicBytes    <- Files.readAllBytes(dicFile).orElseFail(DictionaryInternalIssue(s"Couldn't read dic file content $affFile"))
-        dicContent  <- charset.decodeString(dicBytes)
-        dicLines     = dicContent.split("\n").toList
+        dicFilename         <- ZIO.from(dictionaryConfig.dicFilename).orElseFail(DictionaryInternalIssue("Dic filename not provided"))
+        entries             <- loadDic(dicFilename)
         // ---------------------------------------------
-        count       <- ZIO.attempt(dicLines.headOption.map(_.toInt).getOrElse(0)).orElseFail(DictionaryInternalIssue("Couldn't extract words count"))
-        _           <- ZIO.log(s"Expecting to find $count hunspell entries")
-        specs        = dicLines.tail
-        entries      = specs.flatMap(HunspellEntry.fromLine)
-        _           <- ZIO.log(s"Found ${entries.size} hunspell entries")
-        all          = entries.flatMap(entry => affixRules.decompose(entry))
-        _           <- ZIO.log(s"All hunspell generated words ${all.size} (${all.map(_.word).distinct.size} distinct)")
+        mayBeSubsetFilename  = dictionaryConfig.subsetFilename
+        mayBeSubsetWords    <- ZIO.when(mayBeSubsetFilename.isDefined)(loadSubsetWords(mayBeSubsetFilename.get))
+        filteredEntries      = mayBeSubsetWords.map(subsetWords => entries.filter(entry => subsetWords.contains(entry.word))).getOrElse(entries)
+        // ---------------------------------------------
+        _                   <- ZIO.log(s"Found ${entries.size} hunspell entries")
+        all                  = filteredEntries.flatMap(entry => affixRules.decompose(entry))
+        _                   <- ZIO.log(s"All hunspell generated words ${all.size} (${all.map(_.word).distinct.size} distinct)")
         // hunspell    <- ZIO.cond(entries.size == count, Hunspell(entries, affixRules), DicFatalIssue("Didn't find the right number of words in dictionary"))
-        hunspell     = Hunspell(entries, affixRules) // No check as count input data looks invalid :(
+        hunspell             = Hunspell(entries, affixRules) // No check as count input data looks invalid :(
       } yield hunspell
     }
 }

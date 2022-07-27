@@ -6,7 +6,7 @@ import zio.config.typesafe.*
 import zio.config.magnolia.*
 import zio.config.ConfigDescriptor.*
 
-case class DictionaryConfig(name: String, affFilename: Option[String], dicFilename: Option[String])
+case class DictionaryConfig(name: String, affFilename: Option[String], dicFilename: Option[String], subsetFilename: Option[String])
 
 case class DictionariesConfig(dictionaries: Map[String, DictionaryConfig])
 
