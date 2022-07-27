@@ -91,12 +91,13 @@ lazy val webapi =
       ),
       sharedSettings,
       libraryDependencies ++= Seq(
-        // "dev.zio"                     %% "zio-logging"                  % versions.ziologging,
-        // "dev.zio"                     %% "zio-logging-slf4j"            % versions.ziologging,
+        "dev.zio"                     %% "zio-logging"                  % versions.ziologging,
+        "dev.zio"                     %% "zio-logging-slf4j"            % versions.ziologging,
         "com.softwaremill.sttp.tapir" %% "tapir-zio"                    % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server"        % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-json-zio"               % versions.tapir,
-        "com.softwaremill.sttp.tapir" %% "tapir-redoc-bundle"           % versions.tapir,
+        // "com.softwaremill.sttp.tapir" %% "tapir-redoc-bundle"           % versions.tapir,
+        "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle"      % versions.tapir,
         "com.sksamuel.elastic4s"       % "elastic4s-core_2.13"          % versions.elastic4s,
         "com.sksamuel.elastic4s"       % "elastic4s-client-esjava_2.13" % versions.elastic4s,
         "org.lmdbjava"                 % "lmdbjava"                     % versions.lmdb

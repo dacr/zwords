@@ -20,7 +20,7 @@ import fr.janalyse.zwords.gamelogic.{Board, Game, GameDictionaryIssue, GameInter
 import fr.janalyse.zwords.wordgen.{WordGeneratorLanguageNotSupported, WordGeneratorService, WordStats}
 import sttp.tapir.ztapir.{oneOfVariant, *}
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
-import sttp.tapir.redoc.bundle.RedocInterpreter
+import sttp.tapir.swagger.bundle.SwaggerInterpreter
 import sttp.tapir.json.zio.*
 import sttp.tapir.generic.auto.*
 import sttp.apispec.openapi.Info
@@ -428,10 +428,10 @@ object WebApiApp extends ZIOAppDefault {
   )
 
   val apiDocRoutes =
-    RedocInterpreter()
+    SwaggerInterpreter()
       .fromServerEndpoints(
         gameRoutes,
-        Info(title = "ZWORDS Game API", version = "1.0", description = Some("A wordle like game as an API by @BriossantC and @crodav"))
+        Info(title = "ZWORDS Game API", version = "2.0", description = Some("A wordle like game as an API by @BriossantC and @crodav"))
       )
 
   val server = for {
