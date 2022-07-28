@@ -3,15 +3,15 @@ package fr.janalyse.zwords.webapi.protocol
 import fr.janalyse.zwords.webapi.store.Player
 import zio.json.{DeriveJsonCodec, JsonCodec}
 
-case class PlayerGameState(
+case class GameState(
   playerUUID: String,
   game: CurrentGame
 )
-object PlayerGameState {
-  given JsonCodec[PlayerGameState] = DeriveJsonCodec.gen
+object GameState {
+  given JsonCodec[GameState] = DeriveJsonCodec.gen
 
-  def fromPlayer(player: Player): PlayerGameState = {
-    PlayerGameState(
+  def fromPlayer(player: Player): GameState = {
+    GameState(
       playerUUID = player.uuid.toString,
       game = CurrentGame.from(player.game, player.currentWinRank)
     )

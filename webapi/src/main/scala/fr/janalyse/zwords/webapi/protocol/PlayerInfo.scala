@@ -7,7 +7,7 @@ import java.time.OffsetDateTime
 case class PlayerInfo(
   pseudo: String,
   createdOn: OffsetDateTime,
-  stats: PlayerStats
+  stats: PlayerSessionStatistics
 )
 
 object PlayerInfo {
