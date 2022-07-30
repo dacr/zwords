@@ -17,13 +17,15 @@ package fr.janalyse.zwords.gamelogic
 
 import fr.janalyse.zwords.dictionary.DictionaryService
 import fr.janalyse.zwords.wordgen.WordGeneratorService
+import org.junit.runner.RunWith
 import zio.*
 import zio.json.*
 import zio.test.*
 import zio.test.Assertion.*
 import zio.test.TestAspect.*
 
-object GameSolverSpec extends ZIOSpecDefault {
+@RunWith(classOf[zio.test.junit.ZTestJUnitRunner])
+class GameSolverSpec extends ZIOSpecDefault {
 
   override def spec = {
     suite("Game solver spec")(

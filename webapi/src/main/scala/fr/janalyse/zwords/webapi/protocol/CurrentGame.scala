@@ -3,7 +3,7 @@ package fr.janalyse.zwords.webapi.protocol
 import zio.json.{DeriveJsonCodec, JsonCodec}
 import fr.janalyse.zwords.gamelogic.{GoodPlaceCell, NotUsedCell, WrongPlaceCell}
 import fr.janalyse.zwords.gamelogic.Game
-import fr.janalyse.zwords.webapi.store.DailyStats
+import fr.janalyse.zwords.webapi.store.model.{DailyStats, StoredCurrentGame}
 
 import java.time.temporal.ChronoField
 
@@ -50,7 +50,8 @@ object CurrentGame {
     val ts     = fields.map(field => game.createdDate.get(field)).mkString("-")
     s"#ZWORDS $ts"
 
-  def from(game: Game, winRank: Option[Int]): CurrentGame =
+  def from(storedGame: StoredCurrentGame): CurrentGame =
+    val game  = storedGame.game
     val state = stateFromGame(game)
     val rows  = rowsFromGame(game)
     CurrentGame(
@@ -61,6 +62,6 @@ object CurrentGame {
       possibleWordsCount = game.possibleWordsCount,
       state = state,
       hiddenWord = if (game.isOver) Some(game.hiddenWord) else None,
-      winRank = winRank
+      winRank = storedGame.winRank
     )
 }

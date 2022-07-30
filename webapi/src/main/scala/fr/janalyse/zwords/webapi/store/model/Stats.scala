@@ -13,22 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fr.janalyse.zwords.webapi.store
+package fr.janalyse.zwords.webapi.store.model
 
-import fr.janalyse.zwords.gamelogic.Game
-
+import fr.janalyse.zwords.webapi.store.model.Stats
 import zio.json.*
-import java.time.OffsetDateTime
-import java.util.UUID
 
-case class Player(
-  uuid: UUID,
-  pseudo: String,
-  createdOn: OffsetDateTime,
-  lastUpdated: OffsetDateTime,
-  stats: Stats,
-  game: Game,
-  currentWinRank: Option[Int] // rank for the current game if game has been won
+case class Stats(
+  playedCount: Int = 0,
+  wonCount: Int = 0,
+  lostCount: Int = 0,
+  triedCount: Int = 0,
+  wonIn: Map[String, Int] = Map.empty,
+  goodPlaceLetterCount: Int = 0,
+  wrongPlaceLetterCount: Int = 0,
+  unusedLetterCount: Int = 0
 )
-object Player:
-  given JsonCodec[Player] = DeriveJsonCodec.gen
+
+object Stats:
+  given JsonCodec[Stats] = DeriveJsonCodec.gen

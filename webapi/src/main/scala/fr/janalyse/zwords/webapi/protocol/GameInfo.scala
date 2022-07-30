@@ -1,6 +1,6 @@
 package fr.janalyse.zwords.webapi.protocol
 
-import fr.janalyse.zwords.webapi.store.{DailyStats, GlobalStats}
+import fr.janalyse.zwords.webapi.store.model.{DailyStats, GlobalStats}
 import fr.janalyse.zwords.wordgen.WordStats
 import zio.json.*
 

@@ -1,7 +1,7 @@
 package fr.janalyse.zwords.webapi.protocol
 
+import fr.janalyse.zwords.webapi.store.model.Stats
 import zio.json.{DeriveJsonCodec, JsonCodec}
-import fr.janalyse.zwords.webapi.store.Stats
 
 case class PlayerSessionStatistics(
   playedCount: Int,

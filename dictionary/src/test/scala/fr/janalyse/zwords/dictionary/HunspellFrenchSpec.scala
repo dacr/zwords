@@ -15,12 +15,14 @@
  */
 package fr.janalyse.zwords.dictionary
 
+import org.junit.runner.RunWith
 import zio.*
 import zio.test.*
 import zio.test.Assertion.*
 import zio.test.TestAspect.*
 
-object HunspellFrenchSpec extends ZIOSpecDefault {
+@RunWith(classOf[zio.test.junit.ZTestJUnitRunner])
+class HunspellFrenchSpec extends ZIOSpecDefault {
   val lang = "fr"
   override def spec = {
     suite("dictionary")(

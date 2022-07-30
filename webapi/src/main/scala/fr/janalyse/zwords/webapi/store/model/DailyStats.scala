@@ -13,17 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fr.janalyse.zwords.webapi.store
+package fr.janalyse.zwords.webapi.store.model
 
 import zio.json.*
+import java.time.OffsetDateTime
 
-case class GlobalStats(
+case class DailyStats(
+  dateTime: OffsetDateTime,
+  dailyGameId: String,  // daily game descriptor : ZWORDS-2022-92
+  hiddenWord: String,
   playedCount: Int = 0, // number of finished game either win or lost
   wonCount: Int = 0,
   lostCount: Int = 0,
-  triedCount: Int = 0,  // players count who try at least to play once
+  triedCount: Int = 0,  // players count who try at least to play once on this day
   wonIn: Map[String, Int] = Map.empty
 )
 
-object GlobalStats:
-  given JsonCodec[GlobalStats] = DeriveJsonCodec.gen
+object DailyStats:
+  given JsonCodec[DailyStats] = DeriveJsonCodec.gen

@@ -22,7 +22,8 @@ val sharedSettings = Seq(
   libraryDependencies ++= Seq(
     "dev.zio" %% "zio"          % versions.zio,
     "dev.zio" %% "zio-test"     % versions.zio % Test,
-    "dev.zio" %% "zio-test-sbt" % versions.zio % Test
+    "dev.zio" %% "zio-test-sbt" % versions.zio % Test,
+    "dev.zio" %% "zio-test-junit" % versions.zio % Test
   )
 )
 
@@ -96,10 +97,7 @@ lazy val webapi =
         "com.softwaremill.sttp.tapir" %% "tapir-zio"                    % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server"        % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-json-zio"               % versions.tapir,
-        // "com.softwaremill.sttp.tapir" %% "tapir-redoc-bundle"           % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle"      % versions.tapir,
-        "com.sksamuel.elastic4s"       % "elastic4s-core_2.13"          % versions.elastic4s,
-        "com.sksamuel.elastic4s"       % "elastic4s-client-esjava_2.13" % versions.elastic4s,
         "org.lmdbjava"                 % "lmdbjava"                     % versions.lmdb
       )
     )

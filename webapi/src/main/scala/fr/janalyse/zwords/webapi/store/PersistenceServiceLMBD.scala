@@ -14,30 +14,64 @@
  * limitations under the License.
  */
 package fr.janalyse.zwords.webapi.store
-
-import zio.{Ref, Task}
-
+import zio.*
+import fr.janalyse.zwords.webapi.store.model.*
 import java.util.UUID
 
-case class PersistenceServiceLMBD(lmdbAPI: LMDBOperations) extends PersistenceService {
-  val globalStatsKey = "global-stats"
+case class PersistenceServiceLMBD(lmdb: LMDBOperations) extends PersistenceService {
+  import PersistenceServiceLMBD.*
 
-  def getPlayer(playerUUID: UUID): Task[Option[Player]] =
-    lmdbAPI.fetch(playerUUID.toString)
+  override def getPlayerSession(sessionId: UUID): Task[Option[StoredPlayerSession]] =
+    lmdb.fetch(dbNameSessions, sessionId.toString)
 
-  def upsertPlayer(player: Player): Task[Player] =
-    lmdbAPI.upsertOverwrite[Player](player.uuid.toString, player)
+  override def upsertPlayerSession(session: StoredPlayerSession): Task[StoredPlayerSession] =
+    lmdb.upsertOverwrite[StoredPlayerSession](dbNameSessions, session.sessionId.toString, session)
 
-  def getGlobalStats: Task[Option[GlobalStats]] =
-    lmdbAPI.fetch(globalStatsKey)
+  override def deletePlayerSession(sessionId: UUID): Task[Boolean] =
+    lmdb.delete(dbNameSessions, sessionId.toString)
 
-  def upsertGlobalStats(modifier: Option[GlobalStats] => GlobalStats): Task[GlobalStats] =
-    lmdbAPI.upsert(globalStatsKey, modifier)
+  private def makeCurrentGameStoreId(sessionId: UUID, languageKey: String): String =
+    s"$sessionId-$languageKey"
 
-  def getDailyStats(dailyId: String): Task[Option[DailyStats]] =
-    lmdbAPI.fetch(dailyId)
+  override def getCurrentGame(sessionId: UUID, languageKey: String): Task[Option[StoredCurrentGame]] =
+    lmdb.fetch(dbNameCurrentGames, makeCurrentGameStoreId(sessionId, languageKey))
 
-  def upsertDailyStats(dailyId: String, modifier: Option[DailyStats] => DailyStats): Task[DailyStats] =
-    lmdbAPI.upsert(dailyId, modifier)
+  override def upsertCurrentGame(sessionId: UUID, languageKey: String, game: StoredCurrentGame): Task[StoredCurrentGame] =
+    lmdb.upsertOverwrite[StoredCurrentGame](dbNameCurrentGames, makeCurrentGameStoreId(sessionId, languageKey), game)
 
+  override def deleteCurrentGame(sessionId: UUID, languageKey: String): Task[Boolean] =
+    lmdb.delete(dbNameCurrentGames, makeCurrentGameStoreId(sessionId, languageKey))
+
+  override def getGlobalStats(languageKey: String): Task[Option[GlobalStats]] =
+    lmdb.fetch(dbNameGlobalStats, languageKey)
+
+  override def upsertGlobalStats(languageKey: String, modifier: Option[GlobalStats] => GlobalStats): Task[GlobalStats] =
+    lmdb.upsert(dbNameGlobalStats, languageKey, modifier)
+
+  private def makeDailyStatsStoreId(dailyId: String, languageKey: String): String =
+    s"$dailyId-$languageKey"
+
+  override def getDailyStats(dailyId: String, languageKey: String): Task[Option[DailyStats]] =
+    lmdb.fetch(dbNameDailyStats, makeDailyStatsStoreId(dailyId, languageKey))
+
+  override def upsertDailyStats(dailyId: String, languageKey: String, modifier: Option[DailyStats] => DailyStats): Task[DailyStats] =
+    lmdb.upsert(dbNameDailyStats, makeDailyStatsStoreId(dailyId, languageKey), modifier)
+}
+
+object PersistenceServiceLMBD {
+  val dbNameSessions     = "sessions"
+  val dbNameCurrentGames = "current-games"
+  val dbNameDailyStats   = "daily-stats"
+  val dbNameGlobalStats  = "global-stats"
+
+  val autoCreateCollections = List(
+    dbNameSessions,
+    dbNameCurrentGames,
+    dbNameDailyStats,
+    dbNameGlobalStats
+  )
+
+  def setup(lmdb: LMDBOperations) = {
+    ZIO.foreach(autoCreateCollections)(collection => lmdb.databaseCreate(collection)) *> ZIO.succeed(PersistenceServiceLMBD(lmdb))
+  }
 }

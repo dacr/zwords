@@ -15,19 +15,21 @@
  */
 package fr.janalyse.zwords.webapi.store
 
+import fr.janalyse.zwords.gamelogic.Game
+import fr.janalyse.zwords.webapi.store.model.Stats
 import zio.json.*
+
 import java.time.OffsetDateTime
+import java.util.UUID
 
-case class DailyStats(
-  dateTime: OffsetDateTime,
-  dailyGameId: String,  // daily game descriptor : ZWORDS-2022-92
-  hiddenWord: String,
-  playedCount: Int = 0, // number of finished game either win or lost
-  wonCount: Int = 0,
-  lostCount: Int = 0,
-  triedCount: Int = 0,  // players count who try at least to play once on this day
-  wonIn: Map[String, Int] = Map.empty
+case class StoredPlayerSession(
+  uuid: UUID,
+  pseudo: String,
+  createdOn: OffsetDateTime,
+  lastUpdated: OffsetDateTime,
+  stats: Stats,
+  game: Game,
+  currentWinRank: Option[Int] // rank for the current game if game has been won
 )
-
-object DailyStats:
-  given JsonCodec[DailyStats] = DeriveJsonCodec.gen
+object StoredPlayerSession:
+  given JsonCodec[StoredPlayerSession] = DeriveJsonCodec.gen

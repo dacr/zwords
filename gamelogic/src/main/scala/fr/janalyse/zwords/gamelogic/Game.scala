@@ -46,7 +46,7 @@ case class Game(
 
   def dailyGameId = Game.makeDailyGameId(createdDate)
 
-  def play(roundWord: String): ZIO[WordGeneratorService, GameIssue | WordGeneratorLanguageNotSupported, Game] =
+  def play(roundWord: String): ZIO[WordGeneratorService, GameIsOver | GamePlayInvalidSize | GameWordNotInDictionary | WordGeneratorLanguageNotSupported, Game] =
     for
       givenWord          <- WordGeneratorService.wordNormalize(language, roundWord)
       _                  <- ZIO.cond(givenWord.size == hiddenWord.size, (), GamePlayInvalidSize(givenWord))
@@ -76,16 +76,16 @@ object Game {
 
   def makeDefaultWordMask(word: String): String = (word.head +: word.tail.map(_ => "_")).mkString
 
-  def init(language: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | WordGeneratorLanguageNotSupported, Game] =
+  def init(language: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, WordGeneratorLanguageNotSupported, Game] =
     for {
       todayWord <- WordGeneratorService.todayWord(language)
       game      <- init(language, todayWord, maxAttemptsCount)
     } yield game
 
-  def init(language: String, hiddenWord: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | WordGeneratorLanguageNotSupported, Game] =
+  def init(language: String, hiddenWord: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, WordGeneratorLanguageNotSupported, Game] =
     init(language, hiddenWord, makeDefaultWordMask(hiddenWord), maxAttemptsCount)
 
-  def init(language: String, hiddenWord: String, wordMask: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, GameIssue | WordGeneratorLanguageNotSupported, Game] =
+  def init(language: String, hiddenWord: String, wordMask: String, maxAttemptsCount: Int): ZIO[WordGeneratorService, WordGeneratorLanguageNotSupported, Game] =
     for {
       createdDate   <- Clock.currentDateTime
       _             <- Random.setSeed(createdDate.toInstant.toEpochMilli)

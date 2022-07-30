@@ -15,33 +15,52 @@
  */
 package fr.janalyse.zwords.webapi.store
 
-import zio.{Ref, Task}
+import zio.*
+import fr.janalyse.zwords.webapi.store.model.*
 
 import java.util.UUID
 
 case class PersistenceServiceMemory(
-  playersRef: Ref[Map[UUID, Player]],
-  dailyStatsRef: Ref[Map[String, DailyStats]],
-  globalStatsRef: Ref[Option[GlobalStats]]
+  sessionsRef: Ref[Map[UUID, StoredPlayerSession]],
+  gamesRef: Ref[Map[(UUID, String), StoredCurrentGame]],
+  dailyStatsRef: Ref[Map[(String, String), DailyStats]],
+  globalStatsRef: Ref[Map[String, GlobalStats]]
 ) extends PersistenceService {
 
-  def getPlayer(playerUUID: UUID): Task[Option[Player]] =
-    for {
-      players    <- playersRef.get
-      mayBePlayer = players.get(playerUUID)
-    } yield mayBePlayer
+  override def getPlayerSession(sessionId: UUID): Task[Option[StoredPlayerSession]] =
+    sessionsRef.get.map(_.get(sessionId))
 
-  def upsertPlayer(player: Player): Task[Player] =
-    for {
-      _ <- playersRef.getAndUpdate(players => players + (player.uuid -> player))
-    } yield player
+  override def upsertPlayerSession(session: StoredPlayerSession): Task[StoredPlayerSession] =
+    sessionsRef.update(players => players + (session.sessionId -> session)).map(_ => session)
 
-  def getGlobalStats:Task[Option[GlobalStats]] = ???
-  
-  def upsertGlobalStats(modifier: Option[GlobalStats]=>GlobalStats):Task[GlobalStats] = ???
-  
-  def getDailyStats(dailyId:String):Task[Option[DailyStats]] = ???
-  
-  def upsertDailyStats(dailyId: String, modifier: Option[DailyStats]=> DailyStats): Task[DailyStats] = ???
+  override def deletePlayerSession(sessionId: UUID): Task[Boolean] =
+    sessionsRef.update(_.removed(sessionId)).map(_ => true)
+
+  override def getCurrentGame(sessionId: UUID, languageKey: String): Task[Option[StoredCurrentGame]] =
+    gamesRef.get.map(_.get((sessionId, languageKey)))
+
+  override def upsertCurrentGame(sessionId: UUID, languageKey: String, game: StoredCurrentGame): Task[StoredCurrentGame] =
+    gamesRef.update(games => games + ((sessionId, languageKey) -> game)).map(_ => game)
+
+  override def deleteCurrentGame(sessionId: UUID, languageKey: String): Task[Boolean] =
+    gamesRef.update(_.removed((sessionId, languageKey))).map(_ => true)
+
+  override def getGlobalStats(languageKey: String): Task[Option[GlobalStats]] =
+    globalStatsRef.get.map(_.get(languageKey))
+
+  override def upsertGlobalStats(languageKey: String, modifier: Option[GlobalStats] => GlobalStats): Task[GlobalStats] =
+    globalStatsRef
+      .updateAndGet(entries => entries + (languageKey -> modifier(entries.get(languageKey))))
+      .map(entries => entries(languageKey)) // Can not fail as this key has been inserted in the previous operation
+
+  override def getDailyStats(dailyId: String, languageKey: String): Task[Option[DailyStats]] =
+    dailyStatsRef.get.map(_.get((dailyId, languageKey)))
+
+  override def upsertDailyStats(dailyId: String, languageKey: String, modifier: Option[DailyStats] => DailyStats): Task[DailyStats] = {
+    val key = (dailyId, languageKey)
+    dailyStatsRef
+      .updateAndGet(entries => entries + (key -> modifier(entries.get(key))))
+      .map(entries => entries(key)) // Can not fail as this key has been inserted in the previous operation
+  }
 
 }

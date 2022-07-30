@@ -17,13 +17,15 @@ package fr.janalyse.zwords.gamelogic
 
 import fr.janalyse.zwords.dictionary.{DictionaryConfig, DictionaryService}
 import fr.janalyse.zwords.wordgen.WordGeneratorService
+import org.junit.runner.RunWith
 import zio.*
 import zio.json.*
 import zio.test.*
 import zio.test.Assertion.*
 import zio.test.TestAspect.*
 
-object GameSpec extends ZIOSpecDefault {
+@RunWith(classOf[zio.test.junit.ZTestJUnitRunner])
+class GameSpec extends ZIOSpecDefault {
   val lang = "fr"
   override def spec = {
     suite("game logic spec")(

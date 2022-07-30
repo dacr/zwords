@@ -16,6 +16,7 @@
 package fr.janalyse.zwords.wordgen
 
 import fr.janalyse.zwords.dictionary.{DictionaryConfig, DictionaryService}
+import org.junit.runner.RunWith
 import zio.*
 import zio.test.*
 import zio.test.Assertion.*
@@ -23,7 +24,8 @@ import zio.test.TestAspect.*
 
 import java.time.{OffsetDateTime, ZoneOffset}
 
-object WordGeneratorServiceSpec extends ZIOSpecDefault {
+@RunWith(classOf[zio.test.junit.ZTestJUnitRunner])
+class WordGeneratorServiceSpec extends ZIOSpecDefault {
   val lang = "fr"
   def makeDate(year: Int, month: Int, day: Int) =
     OffsetDateTime.of(year, month, day, 12, 12, 12, 0, ZoneOffset.UTC).toInstant
