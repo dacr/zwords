@@ -70,11 +70,11 @@ class LMDBOperations(
 
     ZIO.logSpan("getDatabase") {
       alreadyHereLogic.some
-        .tap(_ => ZIO.log(s"DB $dbName found"))
+        .tap(_ => ZIO.logDebug(s"DB $dbName found"))
         .orElse(
           addAndGetLogic.some
             .mapError(err => Exception(s"Couldn't find DB $dbName : $err"))
-            .tap(_ => ZIO.log(s"collection $dbName opened"))
+            .tap(_ => ZIO.logDebug(s"collection $dbName opened"))
         )
     }
   }
@@ -102,7 +102,7 @@ class LMDBOperations(
       databaseExists(dbName)
         .filterOrElse(identity)(
           databaseCreateLogic(dbName)
-            .tap(_ => ZIO.log(s"Collection $dbName created"))
+            .tap(_ => ZIO.logInfo(s"Collection $dbName created"))
         )
         .unit
     }
@@ -118,7 +118,7 @@ class LMDBOperations(
       db        <-
         ZIO
           .from(databases.get(dbName))
-          .tap(_ => ZIO.log(s"database $dbName created"))
+          .tapError(err => ZIO.log(s"Couldn't create DB $dbName ${err}"))
           .mapError(err => Exception(s"Couldn't create DB $dbName : $err"))
     } yield ()
   }
@@ -132,11 +132,11 @@ class LMDBOperations(
       ZIO.acquireReleaseWith(
         ZIO
           .attemptBlocking(env.txnWrite())
-          .tap(_ => ZIO.log(s"transaction write on $dbName opened"))
+          .tap(_ => ZIO.logDebug(s"transaction write on $dbName opened"))
       )(txn =>
         ZIO
           .attemptBlocking(txn.close())
-          .tap(_ => ZIO.log(s"transaction write on $dbName closed"))
+          .tap(_ => ZIO.logDebug(s"transaction write on $dbName closed"))
           .ignoreLogged
       ) { txn =>
         ZIO.attemptBlocking(db.drop(txn))
@@ -177,7 +177,7 @@ class LMDBOperations(
                              .map(bytes => new String(bytes))
                              .toList
                          }
-                         .tap(l => ZIO.log(s"${l.size} databases found : ${l.mkString(",")}"))
+                         .tap(l => ZIO.logDebug(s"${l.size} databases found : ${l.mkString(",")}"))
         } yield databases
       }
     )
@@ -192,11 +192,11 @@ class LMDBOperations(
       ZIO.acquireReleaseWith(
         ZIO
           .attemptBlocking(env.txnWrite())
-          .tap(_ => ZIO.log(s"transaction write on $dbName opened"))
+          .tap(_ => ZIO.logDebug(s"transaction write on $dbName opened"))
       )(txn =>
         ZIO
           .attemptBlocking(txn.close())
-          .tap(_ => ZIO.log(s"transaction write on $dbName closed"))
+          .tap(_ => ZIO.logDebug(s"transaction write on $dbName closed"))
           .ignoreLogged
       ) { txn =>
         for {
@@ -225,11 +225,11 @@ class LMDBOperations(
       ZIO.acquireReleaseWith(
         ZIO
           .attemptBlocking(env.txnRead())
-          .tap(_ => ZIO.log(s"transaction read on $dbName opened"))
+          .tap(_ => ZIO.logDebug(s"transaction read on $dbName opened"))
       )(txn =>
         ZIO
           .attemptBlocking(txn.close())
-          .tap(_ => ZIO.log(s"transaction read on $dbName closed"))
+          .tap(_ => ZIO.logDebug(s"transaction read on $dbName closed"))
           .ignoreLogged
       ) { txn =>
         {
@@ -266,11 +266,11 @@ class LMDBOperations(
       ZIO.acquireReleaseWith(
         ZIO
           .attemptBlocking(env.txnWrite())
-          .tap(_ => ZIO.log(s"transaction write on $dbName opened"))
+          .tap(_ => ZIO.logDebug(s"transaction write on $dbName opened"))
       )(txn =>
         ZIO
           .attemptBlocking(txn.close())
-          .tap(_ => ZIO.log(s"transaction write on $dbName closed"))
+          .tap(_ => ZIO.logDebug(s"transaction write on $dbName closed"))
           .ignoreLogged
       ) { txn =>
         for {
@@ -303,11 +303,11 @@ class LMDBOperations(
       ZIO.acquireReleaseWith(
         ZIO
           .attemptBlocking(env.txnWrite())
-          .tap(_ => ZIO.log(s"transaction write on $dbName opened"))
+          .tap(_ => ZIO.logDebug(s"transaction write on $dbName opened"))
       )(txn =>
         ZIO
           .attemptBlocking(txn.close())
-          .tap(_ => ZIO.log(s"transaction write on $dbName closed"))
+          .tap(_ => ZIO.logDebug(s"transaction write on $dbName closed"))
           .ignoreLogged
       ) { txn =>
         for {
@@ -344,21 +344,21 @@ class LMDBOperations(
       txn       <- ZIO.acquireRelease(
                      ZIO
                        .attemptBlocking(env.txnRead())
-                       .tap(_ => ZIO.log(s"transaction read on $dbName opened"))
+                       .tap(_ => ZIO.logDebug(s"transaction read on $dbName opened"))
                    )(txn =>
                      ZIO
                        .attemptBlocking(txn.close())
-                       .tap(_ => ZIO.log(s"transaction read on $dbName closed"))
+                       .tap(_ => ZIO.logDebug(s"transaction read on $dbName closed"))
                        .ignoreLogged
                    )
       iterable  <- ZIO.acquireRelease(
                      ZIO
                        .attemptBlocking(db.iterate(txn, KeyRange.all()))
-                       .tap(_ => ZIO.log(s"iterable on $dbName opened for txn ${txn.getId}"))
+                       .tap(_ => ZIO.logDebug(s"iterable on $dbName opened for txn ${txn.getId}"))
                    )(cursor =>
                      ZIO
                        .attemptBlocking(cursor.close())
-                       .tap(_ => ZIO.log(s"iterable on $dbName closed for txn ${txn.getId}"))
+                       .tap(_ => ZIO.logDebug(s"iterable on $dbName closed for txn ${txn.getId}"))
                        .ignoreLogged
                    )
       collected <- ZIO.attempt {
@@ -402,21 +402,21 @@ class LMDBOperations(
       txn      <- ZIO.acquireRelease(
                     ZIO
                       .attemptBlocking(env.txnRead())
-                      .tap(_ => ZIO.log(s"transaction read $dbName opened"))
+                      .tap(_ => ZIO.logDebug(s"transaction read $dbName opened"))
                   )(txn =>
                     ZIO
                       .attemptBlocking(txn.close())
-                      .tap(_ => ZIO.log(s"transaction read $dbName closed"))
+                      .tap(_ => ZIO.logDebug(s"transaction read $dbName closed"))
                       .ignoreLogged
                   )
       iterable <- ZIO.acquireRelease(
                     ZIO
                       .attemptBlocking(db.iterate(txn, KeyRange.all()))
-                      .tap(_ => ZIO.log(s"iterable $dbName opened on txn ${txn.getId}"))
+                      .tap(_ => ZIO.logDebug(s"iterable $dbName opened on txn ${txn.getId}"))
                   )(cursor =>
                     ZIO
                       .attemptBlocking(cursor.close())
-                      .tap(_ => ZIO.log(s"iterable $dbName closed on txn ${txn.getId}"))
+                      .tap(_ => ZIO.logDebug(s"iterable $dbName closed on txn ${txn.getId}"))
                       .ignoreLogged
                   )
     } yield ZStream
@@ -462,11 +462,11 @@ object LMDBOperations {
                                    EnvFlags.MDB_NOSYNC  // Acceptable, in particular because EXT4 is used
                                  )
                              }
-                             .tap(_ => ZIO.log(s"database environment $databasesPath opened"))
+                             .tap(_ => ZIO.logInfo(s"database environment $databasesPath opened"))
                          ) { env =>
                            ZIO
                              .attemptBlocking(env.close)
-                             .tap(_ => ZIO.log(s"database environment $databasesPath closed"))
+                             .tap(_ => ZIO.logInfo(s"database environment $databasesPath closed"))
                              .ignoreLogged
                          }
       openedDatabases <- Ref.make[Map[String, Dbi[ByteBuffer]]](Map.empty)

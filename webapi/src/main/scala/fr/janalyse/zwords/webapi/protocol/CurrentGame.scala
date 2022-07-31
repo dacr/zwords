@@ -15,7 +15,8 @@ case class CurrentGame(
   possibleWordsCount: Int,
   state: String,
   hiddenWord: Option[String],
-  winRank: Option[Int]
+  winRank: Option[Int],
+  finished: Boolean
 )
 
 object CurrentGame {
@@ -63,6 +64,7 @@ object CurrentGame {
       possibleWordsCount = game.possibleWordsCount,
       state = state,
       hiddenWord = if (game.isOver) Some(game.hiddenWord) else None,
-      winRank = storedGame.winRank
+      winRank = storedGame.winRank,
+      finished = game.isOver
     )
 }
