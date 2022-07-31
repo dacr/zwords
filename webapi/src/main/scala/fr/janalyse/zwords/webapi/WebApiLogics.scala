@@ -175,7 +175,9 @@ object WebApiLogics {
   }
 
   private def checkGivenLanguageInput(language: String): ZIO[WordGeneratorService, UnsupportedLanguageIssue, List[String]] =
-    WordGeneratorService.languages.filterOrFail(_.contains(language))(UnsupportedLanguageIssue(b64encode(language)))
+    WordGeneratorService.languages
+      .filterOrFail(_.contains(language))(UnsupportedLanguageIssue(b64encode(language)))
+      .tapError(err => ZIO.logWarning(err.toString))
 
   private def storedGameGet(sessionId: UUID, language: String): ZIO[PersistenceService, ServiceInternalError, Option[StoredCurrentGame]] =
     PersistenceService
@@ -226,7 +228,7 @@ object WebApiLogics {
   private def checkGivenWordInput(givenWord: GivenWord): ZIO[Any, InvalidGameWordIssue, Unit] = {
     ZIO
       .cond(givenWord.word.matches("[a-zA-Z]{1,42}"), (), InvalidGameWordIssue(b64encode(givenWord.word)))
-      .tapError(err => ZIO.logError(s"Invalid word received : $err"))
+      .tapError(err => ZIO.logWarning(err.toString))
   }
 
   def updatedWonIn(game: Game, wonIn: Map[String, Int]): Map[String, Int] =
@@ -347,8 +349,8 @@ object WebApiLogics {
           storedGame         <- storedGameGet(sessionId, language).some.orElseFail(NotFoundGameIssue())
           game                = storedGame.game
           now                <- Clock.currentDateTime
-          _                  <- ZIO.cond(isSameDay(game.createdDate, now), (), ExpiredGameIssue(game.createdDate))
-          nextGame           <- gamePlay(game, givenWord, language)
+          _                  <- ZIO.cond(isSameDay(game.createdDate, now), (), ExpiredGameIssue(game.createdDate)).tapError(err => ZIO.logWarning(err.toString))
+          nextGame           <- gamePlay(game, givenWord, language).tapError(err => ZIO.log(err.toString))
           _                  <- refreshStoredSessionStats(storedSession, previousGame = game, nextGame = nextGame)
           updatedDailyStats  <- PersistenceService
                                   .upsertDailyStats(game.dailyGameId, language, dailyStatsUpdater(game, nextGame))
@@ -365,7 +367,7 @@ object WebApiLogics {
                                   lastUpdatedDateTime = now
                                 )
           _                  <- storedGameUpsert(sessionId, language, updatedStoredGame)
-          _                  <- ZIO.log("played")
+          _                  <- ZIO.log(s"played word:${givenWord.word}")
         } yield CurrentGame.from(updatedStoredGame)
       }
     }
