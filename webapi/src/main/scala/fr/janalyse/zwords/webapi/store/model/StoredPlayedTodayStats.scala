@@ -15,15 +15,19 @@
  */
 package fr.janalyse.zwords.webapi.store.model
 
+import fr.janalyse.zwords.webapi.store.model.StoredPlayedTodayStats
 import zio.json.*
 
-case class CommonStats(
-  playedCount: Int = 0, // number of finished game either win or lost
+case class StoredPlayedTodayStats(
+  playedCount: Int = 0,
   wonCount: Int = 0,
   lostCount: Int = 0,
-  triedCount: Int = 0,  // players count who try at least to play once on this day
-  wonIn: Map[String, Int] = Map.empty
+  triedCount: Int = 0,
+  wonIn: Map[String, Int] = Map.empty,
+  goodPlaceLetterCount: Int = 0,
+  wrongPlaceLetterCount: Int = 0,
+  unusedLetterCount: Int = 0
 )
 
-object CommonStats:
-  given JsonCodec[CommonStats] = DeriveJsonCodec.gen
+object StoredPlayedTodayStats:
+  given JsonCodec[StoredPlayedTodayStats] = DeriveJsonCodec.gen

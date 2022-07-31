@@ -42,19 +42,19 @@ case class PersistenceServiceLMBD(lmdb: LMDBOperations) extends PersistenceServi
   override def deleteCurrentGame(sessionId: UUID, languageKey: String): Task[Boolean] =
     lmdb.delete(dbNameCurrentGames, makeCurrentGameStoreId(sessionId, languageKey))
 
-  override def getGlobalStats(languageKey: String): Task[Option[GlobalStats]] =
+  override def getGlobalStats(languageKey: String): Task[Option[StoredSessionStats]] =
     lmdb.fetch(dbNameGlobalStats, languageKey)
 
-  override def upsertGlobalStats(languageKey: String, modifier: Option[GlobalStats] => GlobalStats): Task[GlobalStats] =
+  override def upsertGlobalStats(languageKey: String, modifier: Option[StoredSessionStats] => StoredSessionStats): Task[StoredSessionStats] =
     lmdb.upsert(dbNameGlobalStats, languageKey, modifier)
 
   private def makeDailyStatsStoreId(dailyId: String, languageKey: String): String =
     s"$dailyId-$languageKey"
 
-  override def getDailyStats(dailyId: String, languageKey: String): Task[Option[DailyStats]] =
+  override def getDailyStats(dailyId: String, languageKey: String): Task[Option[StoredPlayedStats]] =
     lmdb.fetch(dbNameDailyStats, makeDailyStatsStoreId(dailyId, languageKey))
 
-  override def upsertDailyStats(dailyId: String, languageKey: String, modifier: Option[DailyStats] => DailyStats): Task[DailyStats] =
+  override def upsertDailyStats(dailyId: String, languageKey: String, modifier: Option[StoredPlayedStats] => StoredPlayedStats): Task[StoredPlayedStats] =
     lmdb.upsert(dbNameDailyStats, makeDailyStatsStoreId(dailyId, languageKey), modifier)
 }
 

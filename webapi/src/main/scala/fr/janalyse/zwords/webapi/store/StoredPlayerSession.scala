@@ -16,7 +16,7 @@
 package fr.janalyse.zwords.webapi.store
 
 import fr.janalyse.zwords.gamelogic.Game
-import fr.janalyse.zwords.webapi.store.model.Stats
+import fr.janalyse.zwords.webapi.store.model.StoredPlayedTodayStats
 import zio.json.*
 
 import java.time.OffsetDateTime
@@ -27,7 +27,7 @@ case class StoredPlayerSession(
   pseudo: String,
   createdOn: OffsetDateTime,
   lastUpdated: OffsetDateTime,
-  stats: Stats,
+  stats: StoredPlayedTodayStats,
   game: Game,
   currentWinRank: Option[Int] // rank for the current game if game has been won
 )

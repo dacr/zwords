@@ -18,7 +18,7 @@ package fr.janalyse.zwords.webapi.store.model
 import zio.json.*
 import java.time.OffsetDateTime
 
-case class DailyStats(
+case class StoredPlayedStats(
   dateTime: OffsetDateTime,
   dailyGameId: String,  // daily game descriptor : ZWORDS-2022-92
   hiddenWord: String,
@@ -29,5 +29,5 @@ case class DailyStats(
   wonIn: Map[String, Int] = Map.empty
 )
 
-object DailyStats:
-  given JsonCodec[DailyStats] = DeriveJsonCodec.gen
+object StoredPlayedStats:
+  given JsonCodec[StoredPlayedStats] = DeriveJsonCodec.gen

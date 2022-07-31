@@ -23,8 +23,8 @@ import java.util.UUID
 case class PersistenceServiceMemory(
   sessionsRef: Ref[Map[UUID, StoredPlayerSession]],
   gamesRef: Ref[Map[(UUID, String), StoredCurrentGame]],
-  dailyStatsRef: Ref[Map[(String, String), DailyStats]],
-  globalStatsRef: Ref[Map[String, GlobalStats]]
+  dailyStatsRef: Ref[Map[(String, String), StoredPlayedStats]],
+  globalStatsRef: Ref[Map[String, StoredSessionStats]]
 ) extends PersistenceService {
 
   override def getPlayerSession(sessionId: UUID): Task[Option[StoredPlayerSession]] =
@@ -45,18 +45,18 @@ case class PersistenceServiceMemory(
   override def deleteCurrentGame(sessionId: UUID, languageKey: String): Task[Boolean] =
     gamesRef.update(_.removed((sessionId, languageKey))).map(_ => true)
 
-  override def getGlobalStats(languageKey: String): Task[Option[GlobalStats]] =
+  override def getGlobalStats(languageKey: String): Task[Option[StoredSessionStats]] =
     globalStatsRef.get.map(_.get(languageKey))
 
-  override def upsertGlobalStats(languageKey: String, modifier: Option[GlobalStats] => GlobalStats): Task[GlobalStats] =
+  override def upsertGlobalStats(languageKey: String, modifier: Option[StoredSessionStats] => StoredSessionStats): Task[StoredSessionStats] =
     globalStatsRef
       .updateAndGet(entries => entries + (languageKey -> modifier(entries.get(languageKey))))
       .map(entries => entries(languageKey)) // Can not fail as this key has been inserted in the previous operation
 
-  override def getDailyStats(dailyId: String, languageKey: String): Task[Option[DailyStats]] =
+  override def getDailyStats(dailyId: String, languageKey: String): Task[Option[StoredPlayedStats]] =
     dailyStatsRef.get.map(_.get((dailyId, languageKey)))
 
-  override def upsertDailyStats(dailyId: String, languageKey: String, modifier: Option[DailyStats] => DailyStats): Task[DailyStats] = {
+  override def upsertDailyStats(dailyId: String, languageKey: String, modifier: Option[StoredPlayedStats] => StoredPlayedStats): Task[StoredPlayedStats] = {
     val key = (dailyId, languageKey)
     dailyStatsRef
       .updateAndGet(entries => entries + (key -> modifier(entries.get(key))))

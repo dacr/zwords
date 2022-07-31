@@ -13,21 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fr.janalyse.zwords.webapi.store.model
+package fr.janalyse.zwords.webapi.protocol
 
-import fr.janalyse.zwords.webapi.store.model.Stats
+import fr.janalyse.zwords.webapi.store.model.StoredSessionStats
 import zio.json.*
 
-case class Stats(
-  playedCount: Int = 0,
+case class PlayedStats(
+  playedCount: Int = 0, // number of finished game either win or lost
   wonCount: Int = 0,
   lostCount: Int = 0,
-  triedCount: Int = 0,
-  wonIn: Map[String, Int] = Map.empty,
-  goodPlaceLetterCount: Int = 0,
-  wrongPlaceLetterCount: Int = 0,
-  unusedLetterCount: Int = 0
+  triedCount: Int = 0,  // players count who try at least to play once
+  wonIn: Map[String, Int] = Map.empty
 )
 
-object Stats:
-  given JsonCodec[Stats] = DeriveJsonCodec.gen
+object PlayedStats {
+  given JsonCodec[PlayedStats] = DeriveJsonCodec.gen
+
+  def from(stats: StoredSessionStats): PlayedStats =
+    PlayedStats(
+      playedCount = stats.playedCount,
+      wonCount = stats.wonCount,
+      lostCount = stats.lostCount,
+      triedCount = stats.triedCount,
+      wonIn = stats.wonIn
+    )
+}

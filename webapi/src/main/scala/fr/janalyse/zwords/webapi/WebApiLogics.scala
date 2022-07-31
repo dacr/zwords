@@ -6,7 +6,7 @@ import fr.janalyse.zwords.wordgen.{WordGeneratorLanguageNotSupported, WordGenera
 import fr.janalyse.zwords.gamelogic.*
 import fr.janalyse.zwords.webapi.protocol.*
 import fr.janalyse.zwords.webapi.store.PersistenceService
-import fr.janalyse.zwords.webapi.store.model.{StoredCurrentGame, StoredPlayerSession}
+import fr.janalyse.zwords.webapi.store.model.*
 
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoField
@@ -31,6 +31,47 @@ object WebApiLogics {
 
   val serviceStatusLogic = ZIO.succeed(ServiceStatus(alive = true))
 
+  val serviceInfoLogic: ZIO[PersistenceService with WordGeneratorService, ServiceInternalError, GameInfo] = {
+    for {
+      languages             <- WordGeneratorService.languages
+      today                 <- Clock.currentDateTime
+      dailyGameId            = Game.makeDailyGameId(today)
+      dictionaryStatsTuples <- ZIO.foreach(languages) { lang =>
+                                 WordGeneratorService
+                                   .stats(lang)
+                                   .map { wordStats =>
+                                     lang -> DictionaryStats(
+                                       dictionaryBaseSize = wordStats.dictionaryBaseSize,
+                                       dictionaryExpandedSize = wordStats.dictionaryExpandedSize,
+                                       filteredSelectedWordsCount = wordStats.filteredSelectedWordsCount,
+                                       filteredAcceptableWordsCount = wordStats.filteredAcceptableWordsCount
+                                     )
+                                   }
+                                   .mapError(err => ServiceInternalError()) // TODO - introduce errorID from stacktrace
+                               }
+      todaysStatsTuples     <- ZIO.foreach(languages) { lang =>
+                                 PersistenceService
+                                   .getDailyStats(dailyGameId, lang)
+                                   .map(mayBeStats => mayBeStats.map(stats => lang -> PlayedTodayStats.from(stats)))
+                                   .tapError(err => ZIO.logError(s"Couldn't upsert user session ${err.getMessage}"))
+                                   .mapError(err => ServiceInternalError()) // TODO - introduce errorID from stacktrace
+                               }
+      globalStatsTuples     <- ZIO.foreach(languages) { lang =>
+                                 PersistenceService
+                                   .getGlobalStats(lang)
+                                   .map(mayBeStats => mayBeStats.map(stats => lang -> PlayedStats.from(stats)))
+                                   .tapError(err => ZIO.logError(s"Couldn't upsert user session ${err.getMessage}"))
+                                   .mapError(err => ServiceInternalError()) // TODO - introduce errorID from stacktrace
+                               }
+    } yield GameInfo(
+      authors = List("@BriossantC", "@crodav"),
+      message = "Enjoy the game",
+      dictionaryStats = dictionaryStatsTuples.toMap,
+      playedStats = globalStatsTuples.flatten.toMap,
+      playedTodayStats = todaysStatsTuples.flatten.toMap
+    )
+  }
+
   // =======================================================================================
 
   private def storedSessionGet(sessionId: UUID): ZIO[PersistenceService, ServiceInternalError | UnknownSessionIssue, StoredPlayerSession] =
@@ -47,8 +88,16 @@ object WebApiLogics {
     storedSession <- storedSessionGet(sessionId)
   } yield PlayerSession(
     sessionId = storedSession.sessionId,
-    pseudo = storedSession.pseudo
+    pseudo = storedSession.pseudo,
+    statistics = PlayerSessionStatistics.fromStats(storedSession.statistics)
   )
+
+  private def sessionUpsert(storedPlayerSession: StoredPlayerSession): ZIO[PersistenceService, ServiceInternalError, StoredPlayerSession] = {
+    PersistenceService
+      .upsertPlayerSession(storedPlayerSession)
+      .tapError(err => ZIO.logError(s"Couldn't upsert user session ${err.getMessage}"))
+      .mapError(err => ServiceInternalError()) // TODO - introduce errorID from stacktrace
+  }
 
   private def sessionCreate(ip: Option[String], userAgent: Option[String]): ZIO[PersistenceService, ServiceInternalError, PlayerSession] = for {
     now          <- Clock.currentDateTime
@@ -56,6 +105,7 @@ object WebApiLogics {
     storedSession = StoredPlayerSession(
                       sessionId = sessionId,
                       pseudo = None,
+                      statistics = StoredPlayedTodayStats(),
                       createdDateTime = now,
                       createdFromIP = ip,
                       createdFromUserAgent = userAgent,
@@ -63,13 +113,11 @@ object WebApiLogics {
                       lastUpdatedFromIP = ip,
                       lastUpdatedFromUserAgent = userAgent
                     )
-    _            <- PersistenceService
-                      .upsertPlayerSession(storedSession)
-                      .tapError(err => ZIO.logError(s"Couldn't create user session ${err.getMessage}"))
-                      .mapError(err => ServiceInternalError()) // TODO - introduce errorID from stacktrace
+    _            <- sessionUpsert(storedSession)
   } yield PlayerSession(
     sessionId = storedSession.sessionId,
-    pseudo = storedSession.pseudo
+    pseudo = storedSession.pseudo,
+    statistics = PlayerSessionStatistics.fromStats(storedSession.statistics)
   )
 
   def sessionGetLogic(mayBeSessionId: Option[UUID], ip: Option[String], userAgent: Option[String]): ZIO[PersistenceService, ServiceInternalError | UnknownSessionIssue, PlayerSession] =
@@ -91,10 +139,7 @@ object WebApiLogics {
                              lastUpdatedFromIP = ip,
                              lastUpdatedFromUserAgent = userAgent
                            )
-    _                   <- PersistenceService
-                             .upsertPlayerSession(updatedStoredSession)
-                             .tapError(err => ZIO.logError(s"Couldn't update user session ${err.getMessage}"))
-                             .mapError(err => ServiceInternalError()) // TODO - introduce errorID from stacktrace
+    _                   <- sessionUpsert(updatedStoredSession)
   } yield session
 
   def sessionDeleteLogic(sessionId: UUID): ZIO[PersistenceService, ServiceInternalError | UnknownSessionIssue, Unit] = for {
@@ -139,7 +184,7 @@ object WebApiLogics {
     _         <- storedGameUpsert(sessionId, language, storedGame)
   } yield CurrentGame.from(storedGame)
 
-  def gameGetLogic(sessionId: UUID, language: String): ZIO[PersistenceService & WordGeneratorService, ServiceInternalError | UnknownSessionIssue | UnsupportedLanguageIssue, CurrentGame] = for {
+  def gameGetLogic(language: String, sessionId: UUID): ZIO[PersistenceService & WordGeneratorService, ServiceInternalError | UnknownSessionIssue | UnsupportedLanguageIssue, CurrentGame] = for {
     storedSession   <- storedSessionGet(sessionId)
     _               <- checkGivenLanguageInput(language)
     mayBeStoredGame <- storedGameGet(sessionId, language)
@@ -150,41 +195,151 @@ object WebApiLogics {
                          .orElse(gameCreate(storedSession.sessionId, language))
   } yield game
 
-  private def checkGivenWordInput(givenWord: GameGivenWord): ZIO[Any, InvalidGameWordIssue, Unit] =
+  private def checkGivenWordInput(givenWord: GivenWord): ZIO[Any, InvalidGameWordIssue, Unit] = {
     ZIO
       .cond(givenWord.word.matches("[a-zA-Z]{1,42}"), (), InvalidGameWordIssue(b64encode(givenWord.word)))
       .tapError(err => ZIO.logError(s"Invalid word received : $err"))
+  }
+
+  def updatedWonIn(game: Game, wonIn: Map[String, Int]): Map[String, Int] =
+    if (!game.isWin) wonIn
+    else {
+      val attempt = game.board.playedRows.size
+      val key     = s"tried$attempt"
+      wonIn + (key -> (wonIn.getOrElse(key, 0) + 1))
+    }
+
+  def refreshStoredSessionStats(storedSession: StoredPlayerSession, previousGame: Game, nextGame: Game) = {
+    if (!previousGame.isOver && nextGame.isOver) {
+      val stats                      = storedSession.statistics
+      val playedRows                 = nextGame.board.playedRows
+      val addedGoodPlaceLetterCount  = playedRows.map(_.state.count(_.isInstanceOf[GoodPlaceCell])).sum
+      val addedWrongPlaceLetterCount = playedRows.map(_.state.count(_.isInstanceOf[WrongPlaceCell])).sum
+      val addedUnusedLetterCount     = playedRows.map(_.state.count(_.isInstanceOf[NotUsedCell])).sum
+
+      val newWonIn = updatedWonIn(nextGame, stats.wonIn)
+
+      val updatedStats = stats.copy(
+        playedCount = stats.playedCount + 1,
+        wonCount = stats.wonCount + (if (nextGame.isWin) 1 else 0),
+        lostCount = stats.lostCount + (if (nextGame.isLost) 1 else 0),
+        wonIn = newWonIn,
+        goodPlaceLetterCount = stats.goodPlaceLetterCount + addedGoodPlaceLetterCount,
+        wrongPlaceLetterCount = stats.wrongPlaceLetterCount + addedWrongPlaceLetterCount,
+        unusedLetterCount = stats.unusedLetterCount + addedUnusedLetterCount
+      )
+      sessionUpsert(storedSession.copy(statistics = updatedStats)).unit
+    } else ZIO.succeed(())
+  }
+
+  def dailyStatsUpdater(game: Game, nextGame: Game)(mayBeStats: Option[StoredPlayedStats]): StoredPlayedStats =
+    val justOver = !game.isOver && nextGame.isOver
+    mayBeStats match {
+      case None if justOver =>
+        StoredPlayedStats(
+          dateTime = game.createdDate,
+          dailyGameId = game.dailyGameId,
+          hiddenWord = game.hiddenWord,
+          playedCount = 1,
+          wonCount = if (nextGame.isWin) 1 else 0,
+          lostCount = if (nextGame.isLost) 1 else 0,
+          triedCount = 1,
+          wonIn = updatedWonIn(nextGame, Map.empty)
+        )
+
+      case None =>
+        StoredPlayedStats(
+          dateTime = game.createdDate,
+          dailyGameId = game.dailyGameId,
+          hiddenWord = game.hiddenWord,
+          triedCount = 1
+        )
+
+      case Some(stats) if justOver =>
+        stats.copy(
+          playedCount = stats.playedCount + 1,
+          wonCount = stats.wonCount + (if (nextGame.isWin) 1 else 0),
+          lostCount = stats.lostCount + (if (nextGame.isLost) 1 else 0),
+          wonIn = updatedWonIn(nextGame, stats.wonIn)
+        )
+
+      case Some(stats) => stats
+    }
+
+  def globalStatsUpdater(game: Game, nextGame: Game)(mayBeStats: Option[StoredSessionStats]): StoredSessionStats =
+    val justOver = !game.isOver && nextGame.isOver
+    mayBeStats match {
+      case None if justOver =>
+        StoredSessionStats(
+          playedCount = 1,
+          wonCount = if (nextGame.isWin) 1 else 0,
+          lostCount = if (nextGame.isLost) 1 else 0,
+          triedCount = 1,
+          wonIn = updatedWonIn(nextGame, Map.empty)
+        )
+
+      case None =>
+        StoredSessionStats(
+          triedCount = 1
+        )
+
+      case Some(stats) if justOver =>
+        stats.copy(
+          playedCount = stats.playedCount + 1,
+          wonCount = stats.wonCount + (if (nextGame.isWin) 1 else 0),
+          lostCount = stats.lostCount + (if (nextGame.isLost) 1 else 0),
+          wonIn = updatedWonIn(nextGame, stats.wonIn)
+        )
+
+      case Some(stats) => stats
+    }
 
   type GamePlayLogicIssues =
     ServiceInternalError | UnknownSessionIssue | UnsupportedLanguageIssue | InvalidGameWordIssue | ExpiredGameIssue | NotFoundGameIssue | GameIsOverIssue | InvalidGameWordSizeIssue | WordNotInDictionaryIssue
 
+  private def gamePlay(game: Game, givenWord: GivenWord, language: String): ZIO[WordGeneratorService, GamePlayLogicIssues, Game] =
+    game.play(givenWord.word).mapError[GamePlayLogicIssues] {
+      case _: GameIsOver                        => GameIsOverIssue()
+      case _: GamePlayInvalidSize               => InvalidGameWordSizeIssue(givenWord.word)
+      case _: GameWordNotInDictionary           => WordNotInDictionaryIssue(givenWord.word)
+      case _: WordGeneratorLanguageNotSupported => UnsupportedLanguageIssue(language)
+    }
+
   def gamePlayLogic(
-    sessionId: UUID,
     language: String,
-    givenWord: GameGivenWord
+    sessionId: UUID,
+    givenWord: GivenWord
   ): ZIO[PersistenceService & WordGeneratorService, GamePlayLogicIssues, CurrentGame] = for {
-    storedSession    <- storedSessionGet(sessionId) // to fail fast if session doesn't exist
-    _                <- checkGivenLanguageInput(language)
-    storedGame       <- storedGameGet(sessionId, language).some.orElseFail(NotFoundGameIssue())
-    _                <- checkGivenWordInput(givenWord)
-    game              = storedGame.game
-    now              <- Clock.currentDateTime
-    _                <- ZIO.cond(isSameDay(game.createdDate, now), (), ExpiredGameIssue(game.createdDate))
-    nextGame         <- game.play(givenWord.word).mapError[GamePlayLogicIssues] {
-                          case _: GameIsOver                        => GameIsOverIssue()
-                          case _: GamePlayInvalidSize               => InvalidGameWordSizeIssue(givenWord.word)
-                          case _: GameWordNotInDictionary           => WordNotInDictionaryIssue(givenWord.word)
-                          case _: WordGeneratorLanguageNotSupported => UnsupportedLanguageIssue(language)
-                        }
-    updatedStoredGame = storedGame.copy(
-                          game = nextGame,
-                          winRank = None, // TODO
-                          lastUpdatedDateTime = now
-                        )
-    _                <- storedGameUpsert(sessionId, language, updatedStoredGame)
+    _                  <- checkGivenLanguageInput(language)
+    _                  <- checkGivenWordInput(givenWord)
+    storedSession      <- storedSessionGet(sessionId)
+    storedGame         <- storedGameGet(sessionId, language).some.orElseFail(NotFoundGameIssue())
+    game                = storedGame.game
+    now                <- Clock.currentDateTime
+    _                  <- ZIO.cond(isSameDay(game.createdDate, now), (), ExpiredGameIssue(game.createdDate))
+    nextGame           <- gamePlay(game, givenWord, language)
+    _                  <- refreshStoredSessionStats(storedSession, previousGame = game, nextGame = nextGame)
+    updatedDailyStats  <- PersistenceService
+                            .upsertDailyStats(game.dailyGameId, language, dailyStatsUpdater(game, nextGame))
+                            .tapError(err => ZIO.logError(s"Couldn't upsert daily stats ${err.getMessage}"))
+                            .mapError(err => ServiceInternalError()) // TODO - introduce errorID from stacktrace
+    updatedGlobalStats <- PersistenceService
+                            .upsertGlobalStats(language, globalStatsUpdater(game, nextGame))
+                            .tapError(err => ZIO.logError(s"Couldn't upsert global stats ${err.getMessage}"))
+                            .mapError(err => ServiceInternalError()) // TODO - introduce errorID from stacktrace
+    winRank             = if (!game.isOver && nextGame.isWin) Some(updatedDailyStats.wonCount) else None // dailyStats data are safe, upsertDailyStats does safe atomic changes !
+    updatedStoredGame   = storedGame.copy(
+                            game = nextGame,
+                            winRank = winRank,
+                            lastUpdatedDateTime = now
+                          )
+    _                  <- storedGameUpsert(sessionId, language, updatedStoredGame)
   } yield CurrentGame.from(updatedStoredGame)
 
-  def gameStatsLogic(sessionId: UUID, language: String) = ???
+  def gameStatsLogic(language: String, sessionId: UUID): ZIO[PersistenceService & WordGeneratorService, ServiceInternalError | UnknownSessionIssue | UnsupportedLanguageIssue, PlayerSessionStatistics] = for {
+    _             <- checkGivenLanguageInput(language)
+    storedSession <- storedSessionGet(sessionId)
+  } yield PlayerSessionStatistics.fromStats(storedSession.statistics)
 
   // =======================================================================================
 

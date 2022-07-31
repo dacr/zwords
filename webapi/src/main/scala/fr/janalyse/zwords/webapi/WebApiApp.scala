@@ -60,6 +60,24 @@ object WebApiApp extends ZIOAppDefault {
 
   // -------------------------------------------------------------------------------------------------------------------
 
+  val serviceInfoEndpoint =
+    systemEndpoint
+      .name("Game service global information")
+      .summary("Get game information and some global statistics")
+      .description("Returns game service global information such as release information, authors and global game statistics")
+      .get
+      .in("info")
+      .out(jsonBody[GameInfo])
+      .errorOut(
+        oneOf(
+          oneOfVariant(StatusCode.InternalServerError, jsonBody[ServiceInternalError].description("Something went wrong with the game engine backend")),
+          oneOfVariant(StatusCode.BadRequest, jsonBody[UnsupportedLanguageIssue].description("No dictionary is available for the given language"))
+        )
+      )
+      .zServerLogic[GameEnv](_ => serviceInfoLogic)
+
+  // -------------------------------------------------------------------------------------------------------------------
+
   val sessionGetEndpoint =
     sessionEndpoint
       .name("Session setup")
@@ -140,8 +158,8 @@ object WebApiApp extends ZIOAppDefault {
       .description("Returns the current game status for given player session")
       .get
       .in("play")
-      .in(path[UUID]("sessionId"))
       .in(path[String]("languageKey").example("en"))
+      .in(path[UUID]("sessionId"))
       .out(jsonBody[CurrentGame])
       .errorOut(
         oneOf(
@@ -161,9 +179,9 @@ object WebApiApp extends ZIOAppDefault {
       .description("Play the next round of the game if the current game is not finished and returns the next game state")
       .post
       .in("play")
-      .in(path[UUID]("sessionId"))
       .in(path[String]("languageKey").example("en"))
-      .in(jsonBody[GameGivenWord])
+      .in(path[UUID]("sessionId"))
+      .in(jsonBody[GivenWord])
       .out(jsonBody[CurrentGame])
       .errorOut(
         oneOf(
@@ -189,9 +207,16 @@ object WebApiApp extends ZIOAppDefault {
       .description("Returns statistics about all the games you've played with this session and for the given selected languauge")
       .get
       .in("statistics")
-      .in(path[UUID]("sessionId"))
       .in(path[String]("languageKey").example("en"))
+      .in(path[UUID]("sessionId"))
       .out(jsonBody[PlayerSessionStatistics])
+      .errorOut(
+        oneOf(
+          oneOfVariant(StatusCode.InternalServerError, jsonBody[ServiceInternalError].description("Something went wrong with the game engine backend")),
+          oneOfVariant(StatusCode.NotFound, jsonBody[UnknownSessionIssue].description("Given game session does not exist")),
+          oneOfVariant(StatusCode.BadRequest, jsonBody[UnsupportedLanguageIssue].description("No dictionary is available for the given language"))
+        )
+      )
       .zServerLogic[GameEnv](gameStatsLogic)
 
   // -------------------------------------------------------------------------------------------------------------------
@@ -208,6 +233,7 @@ object WebApiApp extends ZIOAppDefault {
   // -------------------------------------------------------------------------------------------------------------------
   val apiRoutes = List(
     serviceStatusEndpoint,
+    serviceInfoEndpoint,
     sessionGetEndpoint,
     sessionUpdateEndpoint,
     sessionDeleteEndpoint,

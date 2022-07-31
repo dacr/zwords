@@ -8,6 +8,7 @@ import java.util.UUID
 case class StoredPlayerSession(
   sessionId: UUID,
   pseudo: Option[String],
+  statistics: StoredPlayedTodayStats,
   createdDateTime: OffsetDateTime,
   createdFromIP: Option[String],
   createdFromUserAgent: Option[String],

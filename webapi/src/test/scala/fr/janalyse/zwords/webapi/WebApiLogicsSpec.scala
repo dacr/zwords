@@ -16,7 +16,7 @@ import org.junit.runner.RunWith
 import WebApiLogics.*
 import fr.janalyse.zwords.dictionary.DictionaryService
 import fr.janalyse.zwords.dictionary.DictionaryConfig
-import fr.janalyse.zwords.webapi.protocol.GameGivenWord
+import fr.janalyse.zwords.webapi.protocol.GivenWord
 import fr.janalyse.zwords.webapi.store.PersistenceService
 import fr.janalyse.zwords.wordgen.WordGeneratorService
 
@@ -58,14 +58,16 @@ class WebApiLogicsSpec extends ZIOSpecDefault {
         languages <- gameLanguagesLogic
         language   = "en-common"
         session   <- sessionGetLogic(None, None, None)
-        round0    <- gameGetLogic(session.sessionId, language)
-        round1    <- gamePlayLogic(session.sessionId, language, GameGivenWord("noses"))
-        round2    <- gamePlayLogic(session.sessionId, language, GameGivenWord("never"))
-        round3    <- gamePlayLogic(session.sessionId, language, GameGivenWord("nymph"))
+        round0    <- gameGetLogic(language, session.sessionId)
+        round1    <- gamePlayLogic(language, session.sessionId, GivenWord("noses"))
+        round2    <- gamePlayLogic(language, session.sessionId, GivenWord("never"))
+        round3    <- gamePlayLogic(language, session.sessionId, GivenWord("nymph"))
       } yield assertTrue(
         languages.keys.contains(language),
         round0.state == "playing",
-        round3.state == "success"
+        round0.winRank == None,
+        round3.state == "success",
+        round3.winRank == Some(1)
       )
     )
   ).provide(PersistenceService.mem, WordGeneratorService.live, DictionaryService.live, DictionaryConfig.layer)

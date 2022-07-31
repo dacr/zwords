@@ -156,7 +156,7 @@ object Hunspell {
         all                  = filteredEntries.flatMap(entry => affixRules.decompose(entry))
         _                   <- ZIO.log(s"All hunspell generated words ${all.size} (${all.map(_.word).distinct.size} distinct)")
         // hunspell    <- ZIO.cond(entries.size == count, Hunspell(entries, affixRules), DicFatalIssue("Didn't find the right number of words in dictionary"))
-        hunspell             = Hunspell(entries, affixRules) // No check as count input data looks invalid :(
+        hunspell             = Hunspell(filteredEntries, affixRules) // No check as count input data looks invalid :(
       } yield hunspell
     }
 }

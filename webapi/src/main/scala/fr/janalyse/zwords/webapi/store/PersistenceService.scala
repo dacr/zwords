@@ -34,11 +34,11 @@ trait PersistenceService {
   def upsertCurrentGame(sessionId: UUID, languageKey: String, game: StoredCurrentGame): Task[StoredCurrentGame]
   def deleteCurrentGame(sessionId: UUID, languageKey: String): Task[Boolean]
 
-  def getGlobalStats(languageKey: String): Task[Option[GlobalStats]]
-  def upsertGlobalStats(languageKey: String, modifier: Option[GlobalStats] => GlobalStats): Task[GlobalStats]
+  def getGlobalStats(languageKey: String): Task[Option[StoredSessionStats]]
+  def upsertGlobalStats(languageKey: String, modifier: Option[StoredSessionStats] => StoredSessionStats): Task[StoredSessionStats]
 
-  def getDailyStats(dailyId: String, languageKey: String): Task[Option[DailyStats]]
-  def upsertDailyStats(dailyId: String, languageKey: String, modifier: Option[DailyStats] => DailyStats): Task[DailyStats]
+  def getDailyStats(dailyId: String, languageKey: String): Task[Option[StoredPlayedStats]]
+  def upsertDailyStats(dailyId: String, languageKey: String, modifier: Option[StoredPlayedStats] => StoredPlayedStats): Task[StoredPlayedStats]
 }
 
 object PersistenceService {
@@ -50,18 +50,18 @@ object PersistenceService {
   def upsertCurrentGame(sessionId: UUID, languageKey: String, game: StoredCurrentGame): RIO[PersistenceService, StoredCurrentGame] = ZIO.serviceWithZIO(_.upsertCurrentGame(sessionId, languageKey, game))
   def deleteCurrentGame(sessionId: UUID, languageKey: String): RIO[PersistenceService, Boolean]                                    = ZIO.serviceWithZIO(_.deleteCurrentGame(sessionId, languageKey))
 
-  def getGlobalStats(languageKey: String): RIO[PersistenceService, Option[GlobalStats]]                                          = ZIO.serviceWithZIO(_.getGlobalStats(languageKey))
-  def upsertGlobalStats(languageKey: String, modifier: Option[GlobalStats] => GlobalStats): RIO[PersistenceService, GlobalStats] = ZIO.serviceWithZIO(_.upsertGlobalStats(languageKey, modifier))
+  def getGlobalStats(languageKey: String): RIO[PersistenceService, Option[StoredSessionStats]]                                          = ZIO.serviceWithZIO(_.getGlobalStats(languageKey))
+  def upsertGlobalStats(languageKey: String, modifier: Option[StoredSessionStats] => StoredSessionStats): RIO[PersistenceService, StoredSessionStats] = ZIO.serviceWithZIO(_.upsertGlobalStats(languageKey, modifier))
 
-  def getDailyStats(dailyId: String, languageKey: String): RIO[PersistenceService, Option[DailyStats]]                                        = ZIO.serviceWithZIO(_.getDailyStats(dailyId, languageKey))
-  def upsertDailyStats(dailyId: String, languageKey: String, modifier: Option[DailyStats] => DailyStats): RIO[PersistenceService, DailyStats] = ZIO.serviceWithZIO(_.upsertDailyStats(dailyId, languageKey, modifier))
+  def getDailyStats(dailyId: String, languageKey: String): RIO[PersistenceService, Option[StoredPlayedStats]]                                        = ZIO.serviceWithZIO(_.getDailyStats(dailyId, languageKey))
+  def upsertDailyStats(dailyId: String, languageKey: String, modifier: Option[StoredPlayedStats] => StoredPlayedStats): RIO[PersistenceService, StoredPlayedStats] = ZIO.serviceWithZIO(_.upsertDailyStats(dailyId, languageKey, modifier))
 
   lazy val mem = ZLayer.fromZIO(
     for {
       sessionsRef    <- Ref.make(Map.empty[UUID, StoredPlayerSession])
       gamesRef       <- Ref.make(Map.empty[(UUID, String), StoredCurrentGame])
-      dailyStatsRef  <- Ref.make(Map.empty[(String, String), DailyStats])
-      globalStatsRef <- Ref.make(Map.empty[String, GlobalStats])
+      dailyStatsRef  <- Ref.make(Map.empty[(String, String), StoredPlayedStats])
+      globalStatsRef <- Ref.make(Map.empty[String, StoredSessionStats])
     } yield PersistenceServiceMemory(sessionsRef, gamesRef, dailyStatsRef, globalStatsRef)
   )
 

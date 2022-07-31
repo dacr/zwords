@@ -3,7 +3,7 @@ package fr.janalyse.zwords.webapi.protocol
 import zio.json.{DeriveJsonCodec, JsonCodec}
 import fr.janalyse.zwords.gamelogic.{GoodPlaceCell, NotUsedCell, WrongPlaceCell}
 import fr.janalyse.zwords.gamelogic.Game
-import fr.janalyse.zwords.webapi.store.model.{DailyStats, StoredCurrentGame}
+import fr.janalyse.zwords.webapi.store.model.{StoredPlayedStats, StoredCurrentGame}
 
 import java.time.temporal.ChronoField
 
@@ -48,7 +48,8 @@ object CurrentGame {
   def makeSexyId(game: Game): String =
     val fields = List(ChronoField.YEAR, ChronoField.DAY_OF_YEAR)
     val ts     = fields.map(field => game.createdDate.get(field)).mkString("-")
-    s"#ZWORDS $ts"
+    val lang   = game.language
+    s"#ZWORDS $ts $lang"
 
   def from(storedGame: StoredCurrentGame): CurrentGame =
     val game  = storedGame.game
