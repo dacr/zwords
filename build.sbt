@@ -11,6 +11,7 @@ val versions = new {
   val tapir      = "1.0.2"
   val elastic4s  = "8.2.2"
   val lmdb       = "0.8.2"
+  val logback    = "1.2.11"
 }
 
 val sharedSettings = Seq(
@@ -20,9 +21,9 @@ val sharedSettings = Seq(
   scalacOptions ++= Seq("-deprecation"), // "-Xfatal-warnings",
   excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13",
   libraryDependencies ++= Seq(
-    "dev.zio" %% "zio"          % versions.zio,
-    "dev.zio" %% "zio-test"     % versions.zio % Test,
-    "dev.zio" %% "zio-test-sbt" % versions.zio % Test,
+    "dev.zio" %% "zio"            % versions.zio,
+    "dev.zio" %% "zio-test"       % versions.zio % Test,
+    "dev.zio" %% "zio-test-sbt"   % versions.zio % Test,
     "dev.zio" %% "zio-test-junit" % versions.zio % Test
   )
 )
@@ -92,12 +93,13 @@ lazy val webapi =
       ),
       sharedSettings,
       libraryDependencies ++= Seq(
-        "dev.zio"                     %% "zio-logging"                  % versions.ziologging,
-        "dev.zio"                     %% "zio-logging-slf4j"            % versions.ziologging,
-        "com.softwaremill.sttp.tapir" %% "tapir-zio"                    % versions.tapir,
-        "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server"        % versions.tapir,
-        "com.softwaremill.sttp.tapir" %% "tapir-json-zio"               % versions.tapir,
-        "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle"      % versions.tapir,
-        "org.lmdbjava"                 % "lmdbjava"                     % versions.lmdb
+        "dev.zio"                     %% "zio-logging"             % versions.ziologging,
+        "dev.zio"                     %% "zio-logging-slf4j"       % versions.ziologging,
+        "com.softwaremill.sttp.tapir" %% "tapir-zio"               % versions.tapir,
+        "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server"   % versions.tapir,
+        "com.softwaremill.sttp.tapir" %% "tapir-json-zio"          % versions.tapir,
+        "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % versions.tapir,
+        "org.lmdbjava"                 % "lmdbjava"                % versions.lmdb,
+        "ch.qos.logback"               % "logback-classic"         % versions.logback
       )
     )

@@ -81,11 +81,9 @@ object WebApiLogics {
     PersistenceService
       .getPlayerSession(sessionId)
       .tapError(err => ZIO.logError(s"Couldn't get user session ${err.getMessage}"))
-      .some
-      .mapError {
-        case Some(error) => ServiceInternalError() // TODO - introduce errorID from stacktrace
-        case None        => UnknownSessionIssue(sessionId)
-      }
+      .mapError[ServiceInternalError | UnknownSessionIssue](err => ServiceInternalError()) // TODO - introduce errorID from stacktrace
+      .someOrFail(UnknownSessionIssue(sessionId))
+      .tapError(err => ZIO.logWarning(err.toString))
 
   private def sessionGet(sessionId: UUID) = for {
     storedSession <- storedSessionGet(sessionId)
@@ -116,7 +114,8 @@ object WebApiLogics {
                       lastUpdatedFromIP = ip,
                       lastUpdatedFromUserAgent = userAgent
                     )
-    _            <- sessionUpsert(storedSession)
+    _            <- sessionUpsert(storedSession) @@ annotated("sessionId" -> sessionId.toString)
+    _            <- ZIO.logInfo("New session created") @@ annotated("sessionId" -> sessionId.toString)
   } yield PlayerSession(
     sessionId = storedSession.sessionId,
     pseudo = storedSession.pseudo,
@@ -125,9 +124,13 @@ object WebApiLogics {
 
   def sessionGetLogic(mayBeSessionId: Option[UUID], ip: Option[String], userAgent: Option[String]): ZIO[PersistenceService, ServiceInternalError | UnknownSessionIssue, PlayerSession] = {
     ZIO.logSpan("sessionGet") {
-      mayBeSessionId match {
-        case Some(sessionId) => sessionGet(sessionId)
-        case None            => sessionCreate(ip, userAgent)
+      ZIO.logAnnotate("ip", ip.toString) {
+        ZIO.logAnnotate("userAgent", userAgent.toString) {
+          mayBeSessionId match {
+            case Some(sessionId) => sessionGet(sessionId)
+            case None            => sessionCreate(ip, userAgent)
+          }
+        }
       }
     }
   }
@@ -137,33 +140,41 @@ object WebApiLogics {
   def sessionUpdateLogic(session: PlayerSession, ip: Option[String], userAgent: Option[String]): ZIO[PersistenceService, ServiceInternalError | UnknownSessionIssue | InvalidPseudoIssue, PlayerSession] = {
     ZIO.logSpan("sessionUpdate") {
       ZIO.logAnnotate("sessionId", session.sessionId.toString) {
-        for {
-          storedSession       <- storedSessionGet(session.sessionId)
-          now                 <- Clock.currentDateTime
-          _                   <- ZIO
-                                   .cond(session.pseudo.isEmpty || session.pseudo.exists(p => pseudoRegexPattern.matches(p)), (), InvalidPseudoIssue(b64encode(session.pseudo.get)))
-          updatedStoredSession = storedSession.copy(
-                                   pseudo = session.pseudo,
-                                   lastUpdatedDateTime = now,
-                                   lastUpdatedFromIP = ip,
-                                   lastUpdatedFromUserAgent = userAgent
-                                 )
-          _                   <- sessionUpsert(updatedStoredSession)
-        } yield session
+        ZIO.logAnnotate("ip", ip.toString) {
+          ZIO.logAnnotate("userAgent", userAgent.toString) {
+            for {
+              storedSession       <- storedSessionGet(session.sessionId)
+              now                 <- Clock.currentDateTime
+              _                   <- ZIO
+                                       .cond(session.pseudo.isEmpty || session.pseudo.exists(p => pseudoRegexPattern.matches(p)), (), InvalidPseudoIssue(b64encode(session.pseudo.get)))
+              updatedStoredSession = storedSession.copy(
+                                       pseudo = session.pseudo,
+                                       lastUpdatedDateTime = now,
+                                       lastUpdatedFromIP = ip,
+                                       lastUpdatedFromUserAgent = userAgent
+                                     )
+              _                   <- sessionUpsert(updatedStoredSession)
+            } yield session
+          }
+        }
       }
     }
   }
 
-  def sessionDeleteLogic(sessionId: UUID): ZIO[PersistenceService, ServiceInternalError | UnknownSessionIssue, Unit] = {
+  def sessionDeleteLogic(sessionId: UUID, ip: Option[String], userAgent: Option[String]): ZIO[PersistenceService, ServiceInternalError | UnknownSessionIssue, Unit] = {
     ZIO.logSpan("sessionDelete") {
       ZIO.logAnnotate("sessionId", sessionId.toString) {
-        for {
-          session <- storedSessionGet(sessionId)
-          _       <- PersistenceService
-                       .deletePlayerSession(session.sessionId)
-                       .tapError(err => ZIO.logError(s"Couldn't delete user session ${err.getMessage}"))
-                       .mapError(err => ServiceInternalError()) // TODO - introduce errorID from stacktrace
-        } yield ()
+        ZIO.logAnnotate("ip", ip.toString) {
+          ZIO.logAnnotate("userAgent", userAgent.toString) {
+            for {
+              session <- storedSessionGet(sessionId)
+              _       <- PersistenceService
+                           .deletePlayerSession(session.sessionId)
+                           .tapError(err => ZIO.logError(s"Couldn't delete user session ${err.getMessage}"))
+                           .mapError(err => ServiceInternalError()) // TODO - introduce errorID from stacktrace
+            } yield ()
+          }
+        }
       }
     }
   }

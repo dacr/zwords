@@ -126,7 +126,7 @@ object Hunspell {
     content <- charset.decodeString(bytes)
     lines    = content.split("\n").toList
     count   <- ZIO.attempt(lines.headOption.map(_.toInt).getOrElse(0)).orElseFail(DictionaryInternalIssue("Couldn't extract words count"))
-    _       <- ZIO.log(s"Expecting to find $count hunspell entries")
+    //_       <- ZIO.log(s"Expecting to find $count hunspell entries")
     specs    = lines.tail
   } yield specs.flatMap(HunspellEntry.fromLine)
 
@@ -140,23 +140,23 @@ object Hunspell {
   def loadHunspellDictionary(dictionaryConfig: DictionaryConfig): IO[DictionaryInternalIssue, Hunspell] =
     ZIO.logSpan("Hunspell dictionary") {
       for {
-        _                   <- ZIO.log("loading")
+        _                  <- ZIO.log("loading")
         // ---------------------------------------------
-        affFilename         <- ZIO.from(dictionaryConfig.affFilename).orElseFail(DictionaryInternalIssue("Aff filename not provided"))
-        affixRules          <- loadAff(affFilename)
+        affFilename        <- ZIO.from(dictionaryConfig.affFilename).orElseFail(DictionaryInternalIssue("Aff filename not provided"))
+        affixRules         <- loadAff(affFilename)
         // ---------------------------------------------
-        dicFilename         <- ZIO.from(dictionaryConfig.dicFilename).orElseFail(DictionaryInternalIssue("Dic filename not provided"))
-        entries             <- loadDic(dicFilename)
+        dicFilename        <- ZIO.from(dictionaryConfig.dicFilename).orElseFail(DictionaryInternalIssue("Dic filename not provided"))
+        entries            <- loadDic(dicFilename)
         // ---------------------------------------------
-        mayBeSubsetFilename  = dictionaryConfig.subsetFilename
-        mayBeSubsetWords    <- ZIO.when(mayBeSubsetFilename.isDefined)(loadSubsetWords(mayBeSubsetFilename.get))
-        filteredEntries      = mayBeSubsetWords.map(subsetWords => entries.filter(entry => subsetWords.contains(entry.word))).getOrElse(entries)
+        mayBeSubsetFilename = dictionaryConfig.subsetFilename
+        mayBeSubsetWords   <- ZIO.when(mayBeSubsetFilename.isDefined)(loadSubsetWords(mayBeSubsetFilename.get))
+        filteredEntries     = mayBeSubsetWords.map(subsetWords => entries.filter(entry => subsetWords.contains(entry.word))).getOrElse(entries)
         // ---------------------------------------------
-        _                   <- ZIO.log(s"Found ${entries.size} hunspell entries")
-        all                  = filteredEntries.flatMap(entry => affixRules.decompose(entry))
-        _                   <- ZIO.log(s"All hunspell generated words ${all.size} (${all.map(_.word).distinct.size} distinct)")
+        all                 = filteredEntries.flatMap(entry => affixRules.decompose(entry))
+        size                = all.map(e => e.word.size * 2).sum / 1024 // TODO To enhance
+        _                  <- ZIO.log(s"Found ${filteredEntries.size} hunspell entries, which expands to ${all.size} (${all.map(_.word).distinct.size} distinct) (expanded size ~${size}Kb")
         // hunspell    <- ZIO.cond(entries.size == count, Hunspell(entries, affixRules), DicFatalIssue("Didn't find the right number of words in dictionary"))
-        hunspell             = Hunspell(filteredEntries, affixRules) // No check as count input data looks invalid :(
+        hunspell            = Hunspell(filteredEntries, affixRules) // No check as count input data looks invalid :(
       } yield hunspell
     }
 }
