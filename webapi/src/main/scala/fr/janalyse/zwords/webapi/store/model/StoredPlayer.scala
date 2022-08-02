@@ -5,8 +5,8 @@ import zio.json.{DeriveJsonCodec, JsonCodec}
 import java.time.OffsetDateTime
 import java.util.UUID
 
-case class StoredPlayerSession(
-  sessionId: UUID,
+case class StoredPlayer(
+  playerId: UUID,
   pseudo: Option[String],
   statistics: StoredPlayedTodayStats,
   createdDateTime: OffsetDateTime,
@@ -17,6 +17,6 @@ case class StoredPlayerSession(
   lastUpdatedFromUserAgent: Option[String]
 )
 
-object StoredPlayerSession {
-  given JsonCodec[StoredPlayerSession] = DeriveJsonCodec.gen
+object StoredPlayer {
+  given JsonCodec[StoredPlayer] = DeriveJsonCodec.gen
 }

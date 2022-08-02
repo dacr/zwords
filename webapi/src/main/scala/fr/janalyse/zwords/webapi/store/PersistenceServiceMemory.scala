@@ -21,34 +21,34 @@ import fr.janalyse.zwords.webapi.store.model.*
 import java.util.UUID
 
 case class PersistenceServiceMemory(
-  sessionsRef: Ref[Map[UUID, StoredPlayerSession]],
+  playersRef: Ref[Map[UUID, StoredPlayer]],
   gamesRef: Ref[Map[(UUID, String), StoredCurrentGame]],
   dailyStatsRef: Ref[Map[(String, String), StoredPlayedStats]],
-  globalStatsRef: Ref[Map[String, StoredSessionStats]]
+  globalStatsRef: Ref[Map[String, StoredPlayerStats]]
 ) extends PersistenceService {
 
-  override def getPlayerSession(sessionId: UUID): Task[Option[StoredPlayerSession]] =
-    sessionsRef.get.map(_.get(sessionId))
+  override def getPlayer(playerId: UUID): Task[Option[StoredPlayer]] =
+    playersRef.get.map(_.get(playerId))
 
-  override def upsertPlayerSession(session: StoredPlayerSession): Task[StoredPlayerSession] =
-    sessionsRef.update(players => players + (session.sessionId -> session)).map(_ => session)
+  override def upsertPlayer(player: StoredPlayer): Task[StoredPlayer] =
+    playersRef.update(players => players + (player.playerId -> player)).map(_ => player)
 
-  override def deletePlayerSession(sessionId: UUID): Task[Boolean] =
-    sessionsRef.update(_.removed(sessionId)).map(_ => true)
+  override def deletePlayer(playerId: UUID): Task[Boolean] =
+    playersRef.update(_.removed(playerId)).map(_ => true)
 
-  override def getCurrentGame(sessionId: UUID, languageKey: String): Task[Option[StoredCurrentGame]] =
-    gamesRef.get.map(_.get((sessionId, languageKey)))
+  override def getCurrentGame(playerId: UUID, languageKey: String): Task[Option[StoredCurrentGame]] =
+    gamesRef.get.map(_.get((playerId, languageKey)))
 
-  override def upsertCurrentGame(sessionId: UUID, languageKey: String, game: StoredCurrentGame): Task[StoredCurrentGame] =
-    gamesRef.update(games => games + ((sessionId, languageKey) -> game)).map(_ => game)
+  override def upsertCurrentGame(playerId: UUID, languageKey: String, game: StoredCurrentGame): Task[StoredCurrentGame] =
+    gamesRef.update(games => games + ((playerId, languageKey) -> game)).map(_ => game)
 
-  override def deleteCurrentGame(sessionId: UUID, languageKey: String): Task[Boolean] =
-    gamesRef.update(_.removed((sessionId, languageKey))).map(_ => true)
+  override def deleteCurrentGame(playerId: UUID, languageKey: String): Task[Boolean] =
+    gamesRef.update(_.removed((playerId, languageKey))).map(_ => true)
 
-  override def getGlobalStats(languageKey: String): Task[Option[StoredSessionStats]] =
+  override def getGlobalStats(languageKey: String): Task[Option[StoredPlayerStats]] =
     globalStatsRef.get.map(_.get(languageKey))
 
-  override def upsertGlobalStats(languageKey: String, modifier: Option[StoredSessionStats] => StoredSessionStats): Task[StoredSessionStats] =
+  override def upsertGlobalStats(languageKey: String, modifier: Option[StoredPlayerStats] => StoredPlayerStats): Task[StoredPlayerStats] =
     globalStatsRef
       .updateAndGet(entries => entries + (languageKey -> modifier(entries.get(languageKey))))
       .map(entries => entries(languageKey)) // Can not fail as this key has been inserted in the previous operation

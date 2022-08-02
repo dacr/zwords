@@ -38,7 +38,7 @@ import java.time.temporal.ChronoField
 import java.util.UUID
 
 object WebApiApp extends ZIOAppDefault {
-  import WebApiLogics.*
+  import ApiLogics.*
 
   type GameEnv = PersistenceService & WordGeneratorService
 
@@ -48,20 +48,20 @@ object WebApiApp extends ZIOAppDefault {
     LogLevel.Debug,
     format = LogFormat.colored
   )
-  
-  override val bootstrap =  loggingLayer
+
+  override val bootstrap = loggingLayer
 
   // -------------------------------------------------------------------------------------------------------------------
-  val systemEndpoint  = endpoint.in("api").in("system").tag("System")
-  val sessionEndpoint = endpoint.in("api").tag("Session")
-  val gameEndpoint    = endpoint.in("api").in("game").tag("Game")
-  val socialEndpoint  = endpoint.in("api").in("social").tag("Social")
+  val systemEndpoint = endpoint.in("api").in("system").tag("System")
+  val playerEndpoint = endpoint.in("api").in("players").tag("Players")
+  val gameEndpoint   = endpoint.in("api").in("game").tag("Game")
+  val socialEndpoint = endpoint.in("api").in("social").tag("Social")
 
   // -------------------------------------------------------------------------------------------------------------------
   val userAgent = header[Option[String]]("User-Agent").schema(_.hidden(true))
 
   val statusForServiceInternalError     = oneOfVariant(StatusCode.InternalServerError, jsonBody[ServiceInternalError].description("Something went wrong with the game engine backend"))
-  val statusForUnknownSessionIssue      = oneOfVariant(StatusCode.NotFound, jsonBody[UnknownSessionIssue].description("Given game session does not exist"))
+  val statusForUnknownPlayerIssue       = oneOfVariant(StatusCode.NotFound, jsonBody[UnknownPlayerIssue].description("Player does not exist"))
   val statusForUnsupportedLanguageIssue = oneOfVariant(StatusCode.BadRequest, jsonBody[UnsupportedLanguageIssue].description("No dictionary is available for the given language, don't try to hack me"))
   val statusForInvalidPseudoIssue       = oneOfVariant(StatusCode(460), jsonBody[InvalidPseudoIssue].description("Given pseudo is invalid"))
   val statusForInvalidGameWordIssue     = oneOfVariant(StatusCode(461), jsonBody[InvalidGameWordIssue].description("Invalid word given, don't try to hack me"))
@@ -98,50 +98,50 @@ object WebApiApp extends ZIOAppDefault {
 
   // -------------------------------------------------------------------------------------------------------------------
 
-  val sessionGetEndpoint =
-    sessionEndpoint
-      .name("Session setup")
-      .summary("Create or get player session")
-      .description("Create a new session if no sessionId is provided or return player current known session")
+  val playerGetEndpoint =
+    playerEndpoint
+      .name("Player setup")
+      .summary("Create player or get player information")
+      .description("Create a new player if no playerId is provided and return the current player information")
       .get
-      .in("session")
-      .in(query[Option[UUID]]("sessionId"))
+      .in("player")
+      .in(query[Option[UUID]]("playerId"))
       .in(clientIp)
       .in(userAgent)
-      .out(jsonBody[PlayerSession])
-      .errorOut(oneOf(statusForServiceInternalError, statusForUnknownSessionIssue))
-      .zServerLogic[GameEnv](sessionGetLogic)
+      .out(jsonBody[Player])
+      .errorOut(oneOf(statusForServiceInternalError, statusForUnknownPlayerIssue))
+      .zServerLogic[GameEnv](playerGetLogic)
 
   // -------------------------------------------------------------------------------------------------------------------
 
-  val sessionUpdateEndpoint =
-    sessionEndpoint
-      .name("Session update")
-      .summary("Update player information or current settings")
+  val playerUpdateEndpoint =
+    playerEndpoint
+      .name("Player update")
+      .summary("Update some player information or settings")
       .description("Update player pseudo, change default language, ...")
-      .post
-      .in("session")
-      .in(jsonBody[PlayerSession])
+      .put
+      .in("player")
+      .in(jsonBody[Player])
       .in(clientIp)
       .in(userAgent)
-      .out(jsonBody[PlayerSession])
-      .errorOut(oneOf(statusForServiceInternalError, statusForUnknownSessionIssue, statusForInvalidPseudoIssue))
-      .zServerLogic[GameEnv](sessionUpdateLogic)
+      .out(jsonBody[Player])
+      .errorOut(oneOf(statusForServiceInternalError, statusForUnknownPlayerIssue, statusForInvalidPseudoIssue))
+      .zServerLogic[GameEnv](playerUpdateLogic)
 
   // -------------------------------------------------------------------------------------------------------------------
 
-  val sessionDeleteEndpoint =
-    sessionEndpoint
-      .name("Session delete")
-      .summary("Delete player session")
-      .description("Delete player session definitively")
+  val playerDeleteEndpoint =
+    playerEndpoint
+      .name("Player delete")
+      .summary("Delete player")
+      .description("Delete player definitively")
       .delete
-      .in("session")
-      .in(path[UUID]("sessionId"))
+      .in("player")
+      .in(path[UUID]("playerId"))
       .in(clientIp)
       .in(userAgent)
-      .errorOut(oneOf(statusForServiceInternalError, statusForUnknownSessionIssue))
-      .zServerLogic[GameEnv](sessionDeleteLogic)
+      .errorOut(oneOf(statusForServiceInternalError, statusForUnknownPlayerIssue))
+      .zServerLogic[GameEnv](playerDeleteLogic)
 
   // -------------------------------------------------------------------------------------------------------------------
 
@@ -161,13 +161,13 @@ object WebApiApp extends ZIOAppDefault {
     gameEndpoint
       .name("Game state")
       .summary("Get the current player game status")
-      .description("Returns the current game status for given player session")
+      .description("Returns the current game status for given player")
       .get
       .in("play")
       .in(path[String]("languageKey").example("en"))
-      .in(path[UUID]("sessionId"))
+      .in(path[UUID]("playerId"))
       .out(jsonBody[CurrentGame])
-      .errorOut(oneOf(statusForServiceInternalError, statusForUnknownSessionIssue, statusForUnsupportedLanguageIssue))
+      .errorOut(oneOf(statusForServiceInternalError, statusForUnknownPlayerIssue, statusForUnsupportedLanguageIssue))
       .zServerLogic[GameEnv](gameGetLogic)
 
   // -------------------------------------------------------------------------------------------------------------------
@@ -180,13 +180,13 @@ object WebApiApp extends ZIOAppDefault {
       .post
       .in("play")
       .in(path[String]("languageKey").example("en"))
-      .in(path[UUID]("sessionId"))
+      .in(path[UUID]("playerId"))
       .in(jsonBody[GivenWord])
       .out(jsonBody[CurrentGame])
       .errorOut(
         oneOf(
           statusForServiceInternalError,
-          statusForUnknownSessionIssue,
+          statusForUnknownPlayerIssue,
           statusForUnsupportedLanguageIssue,
           statusForNotFoundGameIssue,
           statusForExpiredGameIssue,
@@ -202,15 +202,15 @@ object WebApiApp extends ZIOAppDefault {
 
   val gameStatsEndpoint =
     gameEndpoint
-      .name("Played game statistics")
-      .summary("Get your playing statistics")
-      .description("Returns statistics about all the games you've played with this session and for the given selected languauge")
+      .name("Player game statistics")
+      .summary("Get your game statistics")
+      .description("Returns statistics about all the games you've played with this player and for the given selected language")
       .get
       .in("statistics")
       .in(path[String]("languageKey").example("en"))
-      .in(path[UUID]("sessionId"))
-      .out(jsonBody[PlayerSessionStatistics])
-      .errorOut(oneOf(statusForServiceInternalError, statusForUnknownSessionIssue, statusForUnsupportedLanguageIssue))
+      .in(path[UUID]("playerId"))
+      .out(jsonBody[PlayerStatistics])
+      .errorOut(oneOf(statusForServiceInternalError, statusForUnknownPlayerIssue, statusForUnsupportedLanguageIssue))
       .zServerLogic[GameEnv](gameStatsLogic)
 
   // -------------------------------------------------------------------------------------------------------------------
@@ -228,9 +228,9 @@ object WebApiApp extends ZIOAppDefault {
   val apiRoutes = List(
     serviceStatusEndpoint,
     serviceInfoEndpoint,
-    sessionGetEndpoint,
-    sessionUpdateEndpoint,
-    sessionDeleteEndpoint,
+    playerGetEndpoint,
+    playerUpdateEndpoint,
+    playerDeleteEndpoint,
     gameLanguagesEndpoint,
     gameGetEndpoint,
     gamePlayEndpoint,

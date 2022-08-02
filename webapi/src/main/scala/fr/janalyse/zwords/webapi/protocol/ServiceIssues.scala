@@ -42,9 +42,9 @@ object InvalidGameWordIssue {
   given JsonCodec[InvalidGameWordIssue] = DeriveJsonCodec.gen
 }
 
-case class UnknownSessionIssue(session: UUID) extends ServiceIssue
-object UnknownSessionIssue {
-  given JsonCodec[UnknownSessionIssue] = DeriveJsonCodec.gen
+case class UnknownPlayerIssue(playerId: UUID) extends ServiceIssue
+object UnknownPlayerIssue {
+  given JsonCodec[UnknownPlayerIssue] = DeriveJsonCodec.gen
 }
 
 case class UnsupportedLanguageIssue(givenLanguageBase64: String) extends ServiceIssue

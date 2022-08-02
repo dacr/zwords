@@ -21,31 +21,31 @@ import java.util.UUID
 case class PersistenceServiceLMBD(lmdb: LMDBOperations) extends PersistenceService {
   import PersistenceServiceLMBD.*
 
-  override def getPlayerSession(sessionId: UUID): Task[Option[StoredPlayerSession]] =
-    lmdb.fetch(dbNameSessions, sessionId.toString)
+  override def getPlayer(playerId: UUID): Task[Option[StoredPlayer]] =
+    lmdb.fetch(dbNamePlayers, playerId.toString)
 
-  override def upsertPlayerSession(session: StoredPlayerSession): Task[StoredPlayerSession] =
-    lmdb.upsertOverwrite[StoredPlayerSession](dbNameSessions, session.sessionId.toString, session)
+  override def upsertPlayer(player: StoredPlayer): Task[StoredPlayer] =
+    lmdb.upsertOverwrite[StoredPlayer](dbNamePlayers, player.playerId.toString, player)
 
-  override def deletePlayerSession(sessionId: UUID): Task[Boolean] =
-    lmdb.delete(dbNameSessions, sessionId.toString)
+  override def deletePlayer(playerId: UUID): Task[Boolean] =
+    lmdb.delete(dbNamePlayers, playerId.toString)
 
-  private def makeCurrentGameStoreId(sessionId: UUID, languageKey: String): String =
-    s"$sessionId-$languageKey"
+  private def makeCurrentGameStoreId(playerId: UUID, languageKey: String): String =
+    s"$playerId-$languageKey"
 
-  override def getCurrentGame(sessionId: UUID, languageKey: String): Task[Option[StoredCurrentGame]] =
-    lmdb.fetch(dbNameCurrentGames, makeCurrentGameStoreId(sessionId, languageKey))
+  override def getCurrentGame(playerId: UUID, languageKey: String): Task[Option[StoredCurrentGame]] =
+    lmdb.fetch(dbNameCurrentGames, makeCurrentGameStoreId(playerId, languageKey))
 
-  override def upsertCurrentGame(sessionId: UUID, languageKey: String, game: StoredCurrentGame): Task[StoredCurrentGame] =
-    lmdb.upsertOverwrite[StoredCurrentGame](dbNameCurrentGames, makeCurrentGameStoreId(sessionId, languageKey), game)
+  override def upsertCurrentGame(playerId: UUID, languageKey: String, game: StoredCurrentGame): Task[StoredCurrentGame] =
+    lmdb.upsertOverwrite[StoredCurrentGame](dbNameCurrentGames, makeCurrentGameStoreId(playerId, languageKey), game)
 
-  override def deleteCurrentGame(sessionId: UUID, languageKey: String): Task[Boolean] =
-    lmdb.delete(dbNameCurrentGames, makeCurrentGameStoreId(sessionId, languageKey))
+  override def deleteCurrentGame(playerId: UUID, languageKey: String): Task[Boolean] =
+    lmdb.delete(dbNameCurrentGames, makeCurrentGameStoreId(playerId, languageKey))
 
-  override def getGlobalStats(languageKey: String): Task[Option[StoredSessionStats]] =
+  override def getGlobalStats(languageKey: String): Task[Option[StoredPlayerStats]] =
     lmdb.fetch(dbNameGlobalStats, languageKey)
 
-  override def upsertGlobalStats(languageKey: String, modifier: Option[StoredSessionStats] => StoredSessionStats): Task[StoredSessionStats] =
+  override def upsertGlobalStats(languageKey: String, modifier: Option[StoredPlayerStats] => StoredPlayerStats): Task[StoredPlayerStats] =
     lmdb.upsert(dbNameGlobalStats, languageKey, modifier)
 
   private def makeDailyStatsStoreId(dailyId: String, languageKey: String): String =
@@ -59,13 +59,13 @@ case class PersistenceServiceLMBD(lmdb: LMDBOperations) extends PersistenceServi
 }
 
 object PersistenceServiceLMBD {
-  val dbNameSessions     = "sessions"
+  val dbNamePlayers     = "players"
   val dbNameCurrentGames = "current-games"
   val dbNameDailyStats   = "daily-stats"
   val dbNameGlobalStats  = "global-stats"
 
   val autoCreateCollections = List(
-    dbNameSessions,
+    dbNamePlayers,
     dbNameCurrentGames,
     dbNameDailyStats,
     dbNameGlobalStats

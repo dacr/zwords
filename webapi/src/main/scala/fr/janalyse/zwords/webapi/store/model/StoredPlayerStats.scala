@@ -17,7 +17,7 @@ package fr.janalyse.zwords.webapi.store.model
 
 import zio.json.*
 
-case class StoredSessionStats(
+case class StoredPlayerStats(
   playedCount: Int = 0, // number of finished game either win or lost
   wonCount: Int = 0,
   lostCount: Int = 0,
@@ -25,5 +25,5 @@ case class StoredSessionStats(
   wonIn: Map[String, Int] = Map.empty
 )
 
-object StoredSessionStats:
-  given JsonCodec[StoredSessionStats] = DeriveJsonCodec.gen
+object StoredPlayerStats:
+  given JsonCodec[StoredPlayerStats] = DeriveJsonCodec.gen

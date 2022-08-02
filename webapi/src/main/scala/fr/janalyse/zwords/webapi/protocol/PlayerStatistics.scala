@@ -3,7 +3,7 @@ package fr.janalyse.zwords.webapi.protocol
 import fr.janalyse.zwords.webapi.store.model.StoredPlayedTodayStats
 import zio.json.{DeriveJsonCodec, JsonCodec}
 
-case class PlayerSessionStatistics(
+case class PlayerStatistics(
   playedCount: Int,
   wonCount: Int,
   lostCount: Int,
@@ -13,11 +13,11 @@ case class PlayerSessionStatistics(
   wrongPlaceLetterCount: Int,
   unusedLetterCount: Int
 )
-object PlayerSessionStatistics {
-  given JsonCodec[PlayerSessionStatistics] = DeriveJsonCodec.gen
+object PlayerStatistics {
+  given JsonCodec[PlayerStatistics] = DeriveJsonCodec.gen
 
-  def fromStats(stats: StoredPlayedTodayStats): PlayerSessionStatistics =
-    PlayerSessionStatistics(
+  def fromStats(stats: StoredPlayedTodayStats): PlayerStatistics =
+    PlayerStatistics(
       playedCount = stats.playedCount,
       wonCount = stats.wonCount,
       lostCount = stats.lostCount,
