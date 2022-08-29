@@ -2,7 +2,7 @@
 
 ZWords is a Wordle (motus) like game using [scala][scala], [ZIO][zio],
 [tapir][tapir], [zhttp][zhttp] for the backend. 
-**Support only french words, english will come soon**.
+**multiple dictionaries supported, the deployed release comes with english and french dictionaries**.
 
 - **Play it** : https://zwords.mapland.fr/ 
 - Code your AI Bot with this API : https://zwords.mapland.fr/docs/
