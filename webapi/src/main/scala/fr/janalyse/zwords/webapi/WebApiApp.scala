@@ -247,10 +247,15 @@ object WebApiApp extends ZIOAppDefault {
 
   def server = for {
     clientResources             <- System.env("ZWORDS_CLIENT_RESOURCES_PATH").some
+    listeningPort               <- System
+                                     .envOrElse("ZWORDS_LISTENING_PORT", "8090")
+                                     .mapAttempt(port => port.toInt)
+                                     .mapError(th => "ZWORDS_LISTENING_PORT : provided value is not a number")
+                                     .filterOrFail(port => port > 0 && port < 30000)("ZWORDS_LISTENING_PORT : Invalid port number provided")
     clientSideResourcesEndPoints = filesGetServerEndpoint(emptyInput)(clientResources).widen[GameEnv]
     clientSideRoutes             = List(clientSideResourcesEndPoints)
     httpApp                      = ZioHttpInterpreter().toHttp(apiRoutes ++ apiDocRoutes ++ clientSideRoutes).provideSomeLayer(loggingLayer)
-    zservice                    <- zhttp.service.Server.start(8090, httpApp)
+    zservice                    <- zhttp.service.Server.start(listeningPort, httpApp)
   } yield zservice
 
   override def run =
