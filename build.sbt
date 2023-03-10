@@ -2,20 +2,19 @@ name        := "zwords"
 description := "Guess a word everyday game"
 
 val versions = new {
-  val zio        = "2.0.2"
-  val zionio     = "2.0.0"
-  val zioconfig  = "3.0.2"
+  val zio        = "2.0.10"
+  val zionio     = "2.0.1"
+  val zioconfig  = "3.0.7"
   val ziocli     = "0.2.2"
-  val ziojson    = "0.3.0"
-  val ziologging = "2.1.2"
-  val tapir      = "1.1.3"
-  val elastic4s  = "8.2.2"
-  val lmdb       = "0.8.2"
-  val logback    = "1.4.4"
+  val ziojson    = "0.4.2"
+  val ziologging = "2.1.10"
+  val ziolmdb    = "1.0.5"
+  val tapir      = "1.2.10"
+  val logback    = "1.4.5"
 }
 
 val sharedSettings = Seq(
-  scalaVersion := "3.2.0",
+  scalaVersion := "3.2.2",
   Test / fork  := true,
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   scalacOptions ++= Seq("-deprecation"), // "-Xfatal-warnings",
@@ -99,7 +98,7 @@ lazy val webapi =
         "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server"   % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-json-zio"          % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % versions.tapir,
-        "org.lmdbjava"                 % "lmdbjava"                % versions.lmdb,
+        "fr.janalyse"                 %% "zio-lmdb"                % versions.ziolmdb,
         "ch.qos.logback"               % "logback-classic"         % versions.logback
       )
     )

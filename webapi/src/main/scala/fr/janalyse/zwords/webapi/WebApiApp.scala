@@ -28,11 +28,16 @@ import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 import sttp.tapir.ztapir.{oneOfVariant, *}
 import zio.*
+import zio.lmdb.{LMDB,LMDBConfig}
+import zio.http.*
 import zio.json.*
 import zio.json.ast.*
 import zio.logging.{LogFormat, removeDefaultLoggers}
 import zio.logging.backend.SLF4J
 
+import zio.nio.file.{Files, Path}
+
+import java.net.{Inet4Address, InetAddress, InetSocketAddress}
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoField
 import java.util.UUID
@@ -245,22 +250,43 @@ object WebApiApp extends ZIOAppDefault {
         Info(title = "ZWORDS Game API", version = "2.0", description = Some("A wordle like game as an API by @BriossantC and @crodav"))
       )
 
+
   def server = for {
     clientResources             <- System.env("ZWORDS_CLIENT_RESOURCES_PATH").some
-    listeningPort               <- System
-                                     .envOrElse("ZWORDS_LISTENING_PORT", "8090")
-                                     .mapAttempt(port => port.toInt)
-                                     .mapError(th => "ZWORDS_LISTENING_PORT : provided value is not a number")
-                                     .filterOrFail(port => port > 0 && port < 30000)("ZWORDS_LISTENING_PORT : Invalid port number provided")
     clientSideResourcesEndPoints = filesGetServerEndpoint(emptyInput)(clientResources).widen[GameEnv]
     clientSideRoutes             = List(clientSideResourcesEndPoints)
-    httpApp                      = ZioHttpInterpreter().toHttp(apiRoutes ++ apiDocRoutes ++ clientSideRoutes).provideSomeLayer(loggingLayer)
-    zservice                    <- zhttp.service.Server.start(listeningPort, httpApp)
+    allRoutes                    = apiRoutes ++ apiDocRoutes ++ clientSideRoutes
+    httpApp                      = ZioHttpInterpreter().toHttp(allRoutes).provideSomeLayer(loggingLayer)
+    zservice                    <- Server.serve(httpApp.withDefaultErrorResponse)
   } yield zservice
+
+  val listeningAddress = System
+    .envOrElse("ZWORDS_LISTENING_PORT", "8090")
+    .mapAttempt(port => port.toInt)
+    .mapError(th => Exception("ZWORDS_LISTENING_PORT : provided value is not a number"))
+    .filterOrFail(port => port > 0 && port < 30000)(Exception("ZWORDS_LISTENING_PORT : Invalid port number provided"))
+    .mapAttempt(port => InetSocketAddress(port))
+    .mapError(th => Exception("Can't build listening address configuration"))
+
+  val lmdbConfigLayer = ZLayer.scoped(
+    for {
+      directory    <- System.env("ZWORDS_LMDB_PATH").some
+      directoryPath = Path(directory)
+      _            <- Files.createDirectories(directoryPath)
+      lmdbConfig    = LMDBConfig(directoryPath.toFile)
+    } yield lmdbConfig
+  )
+  
+  val serverConfigLayer = ZLayer.fromZIO(listeningAddress.map(address => ServerConfig(address = address)))
 
   override def run =
     server
       .provide(
+        Scope.default,
+        lmdbConfigLayer,
+        LMDB.live,
+        serverConfigLayer,
+        Server.live,
         PersistenceService.live,
         DictionaryService.live,
         WordGeneratorService.live,

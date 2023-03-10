@@ -17,11 +17,10 @@ package fr.janalyse.zwords.webapi.store
 
 import zio.*
 import zio.json.*
-import zio.nio.file.{Files, Path}
+import zio.lmdb.LMDB
 
 import java.time.OffsetDateTime
 import java.util.UUID
-
 import fr.janalyse.zwords.gamelogic.Game
 import fr.janalyse.zwords.webapi.store.model.*
 
@@ -65,13 +64,10 @@ object PersistenceService {
     } yield PersistenceServiceMemory(playersRef, gamesRef, dailyStatsRef, globalStatsRef)
   )
 
-  lazy val live = ZLayer.scoped(
+  lazy val live = ZLayer.fromZIO(
     for {
-      directory    <- System.env("ZWORDS_LMDB_PATH").some
-      directoryPath = Path(directory)
-      _            <- Files.createDirectories(directoryPath)
-      lmdb         <- LMDBOperations.setup(directoryPath.toFile)
-      persistence  <- PersistenceServiceLMBD.setup(lmdb)
+      lmdb        <- ZIO.service[LMDB]
+      persistence <- PersistenceServiceLMBD.setup(lmdb)
     } yield persistence
   )
 }
