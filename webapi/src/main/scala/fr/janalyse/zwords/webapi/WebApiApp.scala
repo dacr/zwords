@@ -257,6 +257,7 @@ object WebApiApp extends ZIOAppDefault {
     clientSideRoutes             = List(clientSideResourcesEndPoints)
     allRoutes                    = apiRoutes ++ apiDocRoutes ++ clientSideRoutes
     httpApp                      = ZioHttpInterpreter().toHttp(allRoutes).provideSomeLayer(loggingLayer)
+    _                           <- ZIO.logInfo("Starting service")
     zservice                    <- Server.serve(httpApp.withDefaultErrorResponse)
   } yield zservice
 
@@ -265,7 +266,7 @@ object WebApiApp extends ZIOAppDefault {
     .mapAttempt(port => port.toInt)
     .mapError(th => Exception("ZWORDS_LISTENING_PORT : provided value is not a number"))
     .filterOrFail(port => port > 0 && port < 30000)(Exception("ZWORDS_LISTENING_PORT : Invalid port number provided"))
-    .mapAttempt(port => InetSocketAddress(port))
+    .mapAttempt(port => InetSocketAddress("127.0.0.1", port))
     .mapError(th => Exception("Can't build listening address configuration"))
 
   val lmdbConfigLayer = ZLayer.scoped(
