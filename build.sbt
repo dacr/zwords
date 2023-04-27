@@ -1,16 +1,17 @@
 name        := "zwords"
 description := "Guess a word everyday game"
+scalaVersion := "3.2.2"
 
 val versions = new {
-  val zio        = "2.0.10"
+  val zio        = "2.0.13"
   val zionio     = "2.0.1"
   val zioconfig  = "3.0.7"
   val ziocli     = "0.2.2"
-  val ziojson    = "0.4.2"
-  val ziologging = "2.1.10"
-  val ziolmdb    = "1.0.5"
-  val tapir      = "1.2.10"
-  val logback    = "1.4.5"
+  val ziojson    = "0.5.0"
+  val ziologging = "2.1.12"
+  val ziolmdb    = "1.0.6"
+  val tapir      = "1.2.13"
+  val logback    = "1.4.7"
 }
 
 val sharedSettings = Seq(
@@ -18,12 +19,11 @@ val sharedSettings = Seq(
   Test / fork  := true,
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   scalacOptions ++= Seq("-deprecation"), // "-Xfatal-warnings",
-  excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13",
+  //excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13",
   libraryDependencies ++= Seq(
     "dev.zio" %% "zio"            % versions.zio,
     "dev.zio" %% "zio-test"       % versions.zio % Test,
-    "dev.zio" %% "zio-test-sbt"   % versions.zio % Test,
-    "dev.zio" %% "zio-test-junit" % versions.zio % Test
+    "dev.zio" %% "zio-test-sbt"   % versions.zio % Test
   )
 )
 

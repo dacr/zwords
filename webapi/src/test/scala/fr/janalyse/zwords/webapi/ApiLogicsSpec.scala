@@ -12,7 +12,6 @@ import zio.test.TestAspect.*
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import org.junit.runner.RunWith
 import ApiLogics.*
 import fr.janalyse.zwords.dictionary.DictionaryService
 import fr.janalyse.zwords.dictionary.DictionaryConfig
@@ -20,17 +19,16 @@ import fr.janalyse.zwords.webapi.protocol.GivenWord
 import fr.janalyse.zwords.webapi.store.PersistenceService
 import fr.janalyse.zwords.wordgen.WordGeneratorService
 
-@RunWith(classOf[zio.test.junit.ZTestJUnitRunner])
-class ApiLogicsSpec extends ZIOSpecDefault {
+object ApiLogicsSpec extends ZIOSpecDefault {
 
   def playerSuite = suite("player logics")(
     test("player CRUD")(
       for {
-        player         <- playerGetLogic(None, None, None)
-        playerId        = player.playerId
-        gottenPlayer   <- playerGetLogic(Some(playerId), None, None)
+        player          <- playerGetLogic(None, None, None)
+        playerId         = player.playerId
+        gottenPlayer    <- playerGetLogic(Some(playerId), None, None)
         pseudo           = "the-gamer"
-        updatedPlayer  <- playerUpdateLogic(gottenPlayer.copy(pseudo = Some(pseudo)), None, None)
+        updatedPlayer   <- playerUpdateLogic(gottenPlayer.copy(pseudo = Some(pseudo)), None, None)
         _               <- playerDeleteLogic(playerId, None, None)
         gottenHasFailed <- playerGetLogic(Some(playerId), None, None).isFailure
       } yield assertTrue(
@@ -40,7 +38,7 @@ class ApiLogicsSpec extends ZIOSpecDefault {
     ),
     test("invalid pseudo updates")(
       for {
-        player       <- playerGetLogic(None, None, None)
+        player        <- playerGetLogic(None, None, None)
         invalidPseudos = List("", "a", "@@@@", "x" * 43, "     ", " truc ")
         results       <- ZIO.foreach(invalidPseudos) { invalidPseudo =>
                            playerUpdateLogic(player.copy(pseudo = Some(invalidPseudo)), None, None).isFailure
@@ -57,11 +55,12 @@ class ApiLogicsSpec extends ZIOSpecDefault {
       for {
         languages <- gameLanguagesLogic
         language   = "en-common"
-        player   <- playerGetLogic(None, None, None)
+        _         <- TestClock.setTime(java.time.Instant.ofEpochMilli(0)) // Remember used randomness is using day based seed
+        player    <- playerGetLogic(None, None, None)
         round0    <- gameGetLogic(language, player.playerId)
-        round1    <- gamePlayLogic(language, player.playerId, GivenWord("noses"))
-        round2    <- gamePlayLogic(language, player.playerId, GivenWord("never"))
-        round3    <- gamePlayLogic(language, player.playerId, GivenWord("nymph"))
+        round1    <- gamePlayLogic(language, player.playerId, GivenWord("certain"))
+        round2    <- gamePlayLogic(language, player.playerId, GivenWord("central"))
+        round3    <- gamePlayLogic(language, player.playerId, GivenWord("command"))
       } yield assertTrue(
         languages.keys.contains(language),
         round0.state == "playing",

@@ -16,7 +16,6 @@
 package fr.janalyse.zwords.wordgen
 
 import fr.janalyse.zwords.dictionary.{DictionaryConfig, DictionaryService}
-import org.junit.runner.RunWith
 import zio.*
 import zio.test.*
 import zio.test.Assertion.*
@@ -24,9 +23,8 @@ import zio.test.TestAspect.*
 
 import java.time.{OffsetDateTime, ZoneOffset}
 
-@RunWith(classOf[zio.test.junit.ZTestJUnitRunner])
-class WordGeneratorServiceSpec extends ZIOSpecDefault {
-  val lang = "fr"
+object WordGeneratorServiceSpec extends ZIOSpecDefault {
+  val lang                                      = "fr"
   def makeDate(year: Int, month: Int, day: Int) =
     OffsetDateTime.of(year, month, day, 12, 12, 12, 0, ZoneOffset.UTC).toInstant
 
@@ -65,10 +63,10 @@ class WordGeneratorServiceSpec extends ZIOSpecDefault {
           word6 == "ISOPET",
           word7 == "ERYTHREEN",
           word8 == "AUTOGRAPHE",
-          word9 == "PANACHAGE",
+          word9 == "PANACHAGE"
         )
       )
-    ).provideCustomShared(
+    ).provideShared(
       DictionaryService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize dictionary service $err"))),
       WordGeneratorService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize word generator service $err"))),
       DictionaryConfig.layer

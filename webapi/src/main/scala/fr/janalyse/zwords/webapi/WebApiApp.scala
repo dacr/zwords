@@ -28,8 +28,8 @@ import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 import sttp.tapir.ztapir.{oneOfVariant, *}
 import zio.*
-import zio.lmdb.{LMDB,LMDBConfig}
-import zio.http.*
+import zio.lmdb.{LMDB, LMDBConfig}
+import zio.http.{Server}
 import zio.json.*
 import zio.json.ast.*
 import zio.logging.{LogFormat, removeDefaultLoggers}
@@ -49,10 +49,7 @@ object WebApiApp extends ZIOAppDefault {
 
   // -------------------------------------------------------------------------------------------------------------------
 
-  lazy val loggingLayer = removeDefaultLoggers >>> SLF4J.slf4j(
-    LogLevel.Debug,
-    format = LogFormat.colored
-  )
+  lazy val loggingLayer = removeDefaultLoggers >>> SLF4J.slf4j(format = LogFormat.colored)
 
   override val bootstrap = loggingLayer
 
@@ -250,7 +247,6 @@ object WebApiApp extends ZIOAppDefault {
         Info(title = "ZWORDS Game API", version = "2.0", description = Some("A wordle like game as an API by @BriossantC and @crodav"))
       )
 
-
   def server = for {
     clientResources             <- System.env("ZWORDS_CLIENT_RESOURCES_PATH").some
     clientSideResourcesEndPoints = filesGetServerEndpoint(emptyInput)(clientResources).widen[GameEnv]
@@ -261,13 +257,13 @@ object WebApiApp extends ZIOAppDefault {
     zservice                    <- Server.serve(httpApp.withDefaultErrorResponse)
   } yield zservice
 
-  val listeningAddress = System
+  val listeningPort = System
     .envOrElse("ZWORDS_LISTENING_PORT", "8090")
     .mapAttempt(port => port.toInt)
     .mapError(th => Exception("ZWORDS_LISTENING_PORT : provided value is not a number"))
     .filterOrFail(port => port > 0 && port < 30000)(Exception("ZWORDS_LISTENING_PORT : Invalid port number provided"))
-    .mapAttempt(port => InetSocketAddress("127.0.0.1", port))
-    .mapError(th => Exception("Can't build listening address configuration"))
+  // .mapAttempt(port => InetSocketAddress("127.0.0.1", port))
+  // .mapError(th => Exception("Can't build listening address configuration"))
 
   val lmdbConfigLayer = ZLayer.scoped(
     for {
@@ -277,8 +273,8 @@ object WebApiApp extends ZIOAppDefault {
       lmdbConfig    = LMDBConfig(directoryPath.toFile)
     } yield lmdbConfig
   )
-  
-  val serverConfigLayer = ZLayer.fromZIO(listeningAddress.map(address => ServerConfig(address = address)))
+
+  val serverConfigLayer = ZLayer.fromZIO(listeningPort.map(port => Server.Config.default.port(port)))
 
   override def run =
     server
