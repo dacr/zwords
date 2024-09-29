@@ -17,6 +17,7 @@ val versions = new {
 
 val sharedSettings = Seq(
   scalaVersion := "3.5.1",
+  organization := "fr.janalyse",
   Test / fork  := true,
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   scalacOptions ++= Seq("-deprecation"), // "-Xfatal-warnings",
@@ -33,6 +34,7 @@ lazy val dictionary =
     .in(file("dictionary"))
     .settings(
       name:="zwords-dictionary",
+      description  := "Dictionary management",
       sharedSettings,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-config"          % versions.zioconfig,
@@ -48,6 +50,7 @@ lazy val wordGenerator =
     .dependsOn(dictionary)
     .settings(
       name:="zwords-word-generator",
+      description  := "generate word candidate from dictionary",
       sharedSettings,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-json" % versions.ziojson
@@ -60,6 +63,7 @@ lazy val gameLogic =
     .dependsOn(wordGenerator)
     .settings(
       name:="zwords-game-logic",
+      description  := "the sutom/motus game logic",
       sharedSettings
     )
 
@@ -71,6 +75,7 @@ lazy val consoleUI =
     .dependsOn(dictionary)
     .settings(
       name:="zwords-console",
+      description  := "Play zwords from the console",
       sharedSettings
     )
 
@@ -83,6 +88,7 @@ lazy val webapi =
     .enablePlugins(JavaServerAppPackaging)
     .settings(
       name:="zwords-webapi",
+      description  := "zwords sutom/motus game REST API",
       //Universal / packageName := "zwords",
       Universal / javaOptions := Seq( // -- Required for LMDB with recent JVM
         "--add-opens",
