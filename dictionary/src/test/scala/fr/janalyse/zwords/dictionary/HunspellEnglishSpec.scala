@@ -15,13 +15,17 @@
  */
 package fr.janalyse.zwords.dictionary
 
+import com.typesafe.config.ConfigFactory
 import zio.*
 import zio.test.*
 import zio.test.Assertion.*
 import zio.test.TestAspect.*
+import zio.config.typesafe.TypesafeConfigProvider
 
-object HunspellEnglishSpec extends ZIOSpecDefault {
+object HunspellEnglishSpec extends BaseSpecDefault {
+
   val lang = "en"
+
   override def spec = {
     suite("dictionary")(
       test("words check")(
@@ -33,7 +37,7 @@ object HunspellEnglishSpec extends ZIOSpecDefault {
           captiveExpandedWords = expandedEntries.map(_.word).filter(_.startsWith("captive")).sorted
         } yield assertTrue(
           captiveBaseWords == List("captive"),
-          captiveExpandedWords == List("captive", "captive's", "captives"),
+          captiveExpandedWords == List("captive", "captive's", "captives")
         )
       ),
       test("standard features with comic")(
@@ -52,9 +56,6 @@ object HunspellEnglishSpec extends ZIOSpecDefault {
         } yield assertTrue(entry.word == "capture") &&
           assert(words.map(_.word))(hasSubset(List("capture", "captures")))
       )
-    ).provideShared(
-      DictionaryService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize dictionary service $err"))),
-      DictionaryConfig.layer
-    )
+    ).provide(DictionaryService.live)
   } @@ withLiveSystem
 }

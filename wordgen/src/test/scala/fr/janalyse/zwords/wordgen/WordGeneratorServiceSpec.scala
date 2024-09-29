@@ -15,16 +15,19 @@
  */
 package fr.janalyse.zwords.wordgen
 
+import com.typesafe.config.ConfigFactory
 import fr.janalyse.zwords.dictionary.{DictionaryConfig, DictionaryService}
 import zio.*
+import zio.config.typesafe.TypesafeConfigProvider
 import zio.test.*
 import zio.test.Assertion.*
 import zio.test.TestAspect.*
 
 import java.time.{OffsetDateTime, ZoneOffset}
 
-object WordGeneratorServiceSpec extends ZIOSpecDefault {
-  val lang                                      = "fr"
+object WordGeneratorServiceSpec extends BaseSpecDefault {
+  val lang = "fr"
+
   def makeDate(year: Int, month: Int, day: Int) =
     OffsetDateTime.of(year, month, day, 12, 12, 12, 0, ZoneOffset.UTC).toInstant
 
@@ -66,10 +69,9 @@ object WordGeneratorServiceSpec extends ZIOSpecDefault {
           word9 == "PANACHAGE"
         )
       )
-    ).provideShared(
-      DictionaryService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize dictionary service $err"))),
-      WordGeneratorService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize word generator service $err"))),
-      DictionaryConfig.layer
+    ).provide(
+      DictionaryService.live,
+      WordGeneratorService.live,
     ) @@ withLiveSystem
   }
 }

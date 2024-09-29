@@ -24,7 +24,7 @@ import zio.{Chunk, Console, ZIO}
 import scala.util.matching.Regex
 
 case class HunspellEntry(word: String, flags: Option[String], attributes: Map[String, String]) {
-  val isDiv        = attributes.get("po") == Some("div") // Separator
+  val isDiv        = attributes.get("po").contains("div") // Separator
   val isCommonWord = word.head.isLower                   // Nom commun
   val isCompound   = word.contains('-') || word.contains('\'')
   val isProperNoun = word.head.isUpper
@@ -112,40 +112,40 @@ case class Hunspell(entries: List[HunspellEntry], affixRules: AffixRules) {
 }
 
 object Hunspell {
-  def loadAff(filename: String): IO[DictionaryInternalIssue, AffixRules] = for {
-    file    <- ZIO.attempt(Path(filename)).orElseFail(DictionaryInternalIssue(s"Filename '$filename' is invalid"))
-    bytes   <- Files.readAllBytes(file).orElseFail(DictionaryInternalIssue(s"Couldn't read aff file content $file"))
+  def loadAff(filename: String): IO[DictionaryIssue, AffixRules] = for {
+    file    <- ZIO.attempt(Path(filename)).mapError(th => DictionaryIssue.InternalIssue(s"Filename '$filename' is invalid", Some(th)))
+    bytes   <- Files.readAllBytes(file).orElseFail(DictionaryIssue.ResourceNotFound(filename))
     charset  = Charset.Standard.utf8
     content <- charset.decodeString(bytes)
   } yield AffixRules(content)
 
-  def loadDic(filename: String): IO[DictionaryInternalIssue, List[HunspellEntry]] = for {
-    file    <- ZIO.attempt(Path(filename)).orElseFail(DictionaryInternalIssue(s"Filename '$filename' is invalid"))
-    bytes   <- Files.readAllBytes(file).orElseFail(DictionaryInternalIssue(s"Couldn't file content $file"))
+  def loadDic(filename: String): IO[DictionaryIssue, List[HunspellEntry]] = for {
+    file    <- ZIO.attempt(Path(filename)).mapError(th => DictionaryIssue.InternalIssue(s"Filename '$filename' is invalid", Some(th)))
+    bytes   <- Files.readAllBytes(file).orElseFail(DictionaryIssue.ResourceNotFound(filename))
     charset  = Charset.Standard.utf8
     content <- charset.decodeString(bytes)
     lines    = content.split("\n").toList
-    count   <- ZIO.attempt(lines.headOption.map(_.toInt).getOrElse(0)).orElseFail(DictionaryInternalIssue("Couldn't extract words count"))
+    count   <- ZIO.attempt(lines.headOption.map(_.toInt).getOrElse(0)).orElseFail(DictionaryIssue.InternalIssue("Couldn't extract words count"))
     // _       <- ZIO.log(s"Expecting to find $count hunspell entries")
     specs    = lines.tail
   } yield specs.flatMap(HunspellEntry.fromLine)
 
-  def loadSubsetWords(filename: String): IO[DictionaryInternalIssue, Set[String]] = for {
-    file       <- ZIO.attempt(Path(filename)).orElseFail(DictionaryInternalIssue(s"Filename '$filename' is invalid"))
-    dicBytes   <- Files.readAllBytes(file).orElseFail(DictionaryInternalIssue(s"Couldn't read file content $file"))
+  def loadSubsetWords(filename: String): IO[DictionaryIssue, Set[String]] = for {
+    file       <- ZIO.attempt(Path(filename)).mapError(th => DictionaryIssue.InternalIssue(s"Filename '$filename' is invalid", Some(th)))
+    dicBytes   <- Files.readAllBytes(file).mapError(th => DictionaryIssue.InternalIssue(s"Couldn't read file content $file", Some(th)))
     charset     = Charset.Standard.utf8
     dicContent <- charset.decodeString(dicBytes)
   } yield dicContent.split("\n").map(_.trim).toSet
 
-  def loadHunspellDictionary(dictionaryConfig: DictionaryConfig): IO[DictionaryInternalIssue, Hunspell] =
+  def loadHunspellDictionary(dictionaryConfig: DictionaryConfig): IO[DictionaryIssue, Hunspell] =
     ZIO.logSpan("Hunspell dictionary") {
       for {
         _                  <- ZIO.log("loading")
         // ---------------------------------------------
-        affFilename        <- ZIO.from(dictionaryConfig.affFilename).orElseFail(DictionaryInternalIssue("Aff filename not provided"))
+        affFilename        <- ZIO.from(dictionaryConfig.affFilename).orElseFail(DictionaryIssue.MissingConfiguration("Aff filename not provided"))
         affixRules         <- loadAff(affFilename)
         // ---------------------------------------------
-        dicFilename        <- ZIO.from(dictionaryConfig.dicFilename).orElseFail(DictionaryInternalIssue("Dic filename not provided"))
+        dicFilename        <- ZIO.from(dictionaryConfig.dicFilename).orElseFail(DictionaryIssue.MissingConfiguration("Dic filename not provided"))
         entries            <- loadDic(dicFilename)
         // ---------------------------------------------
         mayBeSubsetFilename = dictionaryConfig.subsetFilename

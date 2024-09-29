@@ -41,7 +41,7 @@ case class PersistenceServiceLMBD(lmdb: LMDB) extends PersistenceService {
     val result = for {
       col   <- playersCollection
       state <- col.upsertOverwrite(player.playerId.toString, player)
-    } yield state.current
+    } yield player
     result.mapError(errorConverter)
   }
 
@@ -70,7 +70,7 @@ case class PersistenceServiceLMBD(lmdb: LMDB) extends PersistenceService {
       col    <- currentGamesCollection
       storeId = makeCurrentGameStoreId(playerId, languageKey)
       state  <- col.upsertOverwrite(storeId, game)
-    } yield state.current
+    } yield game
     result.mapError(errorConverter)
   }
 
@@ -95,7 +95,7 @@ case class PersistenceServiceLMBD(lmdb: LMDB) extends PersistenceService {
     val result = for {
       col   <- globalStatsCollection
       state <- col.upsert(languageKey, modifier)
-    } yield state.current
+    } yield state
     result.mapError(errorConverter)
   }
 
@@ -116,7 +116,7 @@ case class PersistenceServiceLMBD(lmdb: LMDB) extends PersistenceService {
       col    <- dailyStatsCollection
       storeId = makeDailyStatsStoreId(dailyId, languageKey)
       state  <- col.upsert(storeId, modifier)
-    } yield state.current
+    } yield state
     result.mapError(errorConverter)
   }
 }
@@ -155,7 +155,7 @@ object PersistenceServiceLMBD {
 
   def setup(lmdb: LMDB) = {
     ZIO
-      .foreach(autoCreateCollections)(collectionName =>
+      .foreachDiscard(autoCreateCollections)(collectionName =>
         lmdb
           .collectionAllocate(collectionName)
           .ignore

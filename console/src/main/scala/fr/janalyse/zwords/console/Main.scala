@@ -1,15 +1,26 @@
 package fr.janalyse.zwords.console
 
+import com.typesafe.config.ConfigFactory
 import fr.janalyse.zwords.gamelogic.{Game, GameInternalIssue, GameIssue, GoodPlaceCell}
 import fr.janalyse.zwords.dictionary.DictionaryService
 import fr.janalyse.zwords.dictionary.DictionaryConfig
 import fr.janalyse.zwords.wordgen.{WordGeneratorLanguageNotSupported, WordGeneratorService}
 import zio.*
+import zio.Runtime.removeDefaultLoggers
+import zio.config.typesafe.TypesafeConfigProvider
 
 import scala.Console.{RED, RESET, YELLOW}
 import java.io.IOException
 
 object Main extends ZIOAppDefault {
+  override val bootstrap: ZLayer[ZIOAppArgs, Any, Any] = {
+    val configProviderLayer = {
+      val config   = ConfigFactory.load()
+      val provider = TypesafeConfigProvider.fromTypesafeConfig(config).kebabCase
+      Runtime.setConfigProvider(provider)
+    }
+    configProviderLayer
+  }
 
   def playLogic(game: Game): ZIO[WordGeneratorService, GameIssue | WordGeneratorLanguageNotSupported | IOException, Game] =
     for
@@ -42,8 +53,7 @@ object Main extends ZIOAppDefault {
 
   override def run = consoleBasedGame.provide(
     DictionaryService.live,
-    WordGeneratorService.live,
-    DictionaryConfig.layer
+    WordGeneratorService.live
   )
 
 }

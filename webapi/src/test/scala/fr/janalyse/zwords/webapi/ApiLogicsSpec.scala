@@ -13,13 +13,12 @@ import zio.test.TestAspect.*
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import ApiLogics.*
-import fr.janalyse.zwords.dictionary.DictionaryService
-import fr.janalyse.zwords.dictionary.DictionaryConfig
+import fr.janalyse.zwords.dictionary.{DictionaryConfig, DictionaryService}
 import fr.janalyse.zwords.webapi.protocol.GivenWord
 import fr.janalyse.zwords.webapi.store.PersistenceService
 import fr.janalyse.zwords.wordgen.WordGeneratorService
 
-object ApiLogicsSpec extends ZIOSpecDefault {
+object ApiLogicsSpec extends BaseSpecDefault {
 
   def playerSuite = suite("player logics")(
     test("player CRUD")(
@@ -64,12 +63,12 @@ object ApiLogicsSpec extends ZIOSpecDefault {
       } yield assertTrue(
         languages.keys.contains(language),
         round0.state == "playing",
-        round0.winRank == None,
+        round0.winRank.isEmpty,
         round3.state == "success",
-        round3.winRank == Some(1)
+        round3.winRank.contains(1)
       )
     )
-  ).provide(PersistenceService.mem, WordGeneratorService.live, DictionaryService.live, DictionaryConfig.layer)
+  ).provide(PersistenceService.mem, WordGeneratorService.live, DictionaryService.live)
 
   override def spec = suite("game implementations specs")(
     playerSuite,

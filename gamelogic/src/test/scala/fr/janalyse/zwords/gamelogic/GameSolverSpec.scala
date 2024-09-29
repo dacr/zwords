@@ -23,7 +23,7 @@ import zio.test.*
 import zio.test.Assertion.*
 import zio.test.TestAspect.*
 
-object GameSolverSpec extends ZIOSpecDefault {
+object GameSolverSpec extends BaseSpecDefault {
 
   override def spec = {
     suite("Game solver spec")(

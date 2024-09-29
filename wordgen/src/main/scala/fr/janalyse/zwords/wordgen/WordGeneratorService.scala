@@ -15,7 +15,7 @@
  */
 package fr.janalyse.zwords.wordgen
 
-import fr.janalyse.zwords.dictionary.{DictionaryService, HunspellEntry}
+import fr.janalyse.zwords.dictionary.{DictionaryIssue, DictionaryService, HunspellEntry}
 import zio.*
 
 import java.time.OffsetDateTime
@@ -73,7 +73,7 @@ object WordGeneratorService {
   def stats(language: String): ZIO[WordGeneratorService, WordGeneratorLanguageNotSupported, WordStats] =
     ZIO.serviceWithZIO(_.stats(language))
 
-  val live = ZLayer.fromZIO(
+  val live: ZLayer[DictionaryService, DictionaryIssue, WordGeneratorServiceImpl] = ZLayer.fromZIO(
     for {
       dictionaryService <- ZIO.service[DictionaryService]
       languages         <- dictionaryService.languages

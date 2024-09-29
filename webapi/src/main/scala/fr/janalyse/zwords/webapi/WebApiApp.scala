@@ -15,6 +15,7 @@
  */
 package fr.janalyse.zwords.webapi
 
+import com.typesafe.config.ConfigFactory
 import fr.janalyse.zwords.dictionary.{DictionariesConfig, DictionaryConfig, DictionaryService}
 import fr.janalyse.zwords.gamelogic.*
 import fr.janalyse.zwords.webapi.protocol.*
@@ -24,17 +25,19 @@ import sttp.apispec.openapi.Info
 import sttp.model.StatusCode
 import sttp.tapir.generic.auto.*
 import sttp.tapir.json.zio.*
+import sttp.tapir.files.staticFilesGetServerEndpoint
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 import sttp.tapir.ztapir.{oneOfVariant, *}
 import zio.*
+import zio.Runtime.removeDefaultLoggers
+import zio.config.typesafe.TypesafeConfigProvider
 import zio.lmdb.{LMDB, LMDBConfig}
-import zio.http.{Server}
+import zio.http.Server
 import zio.json.*
 import zio.json.ast.*
-import zio.logging.{LogFormat, removeDefaultLoggers}
+import zio.logging.LogFormat
 import zio.logging.backend.SLF4J
-
 import zio.nio.file.{Files, Path}
 
 import java.net.{Inet4Address, InetAddress, InetSocketAddress}
@@ -49,9 +52,15 @@ object WebApiApp extends ZIOAppDefault {
 
   // -------------------------------------------------------------------------------------------------------------------
 
-  lazy val loggingLayer = removeDefaultLoggers >>> SLF4J.slf4j(format = LogFormat.colored)
-
-  override val bootstrap = loggingLayer
+  override val bootstrap: ZLayer[ZIOAppArgs, Any, Any] = {
+    val loggingLayer        = removeDefaultLoggers >>> SLF4J.slf4j(format = LogFormat.colored)
+    val configProviderLayer = {
+      val config   = ConfigFactory.load()
+      val provider = TypesafeConfigProvider.fromTypesafeConfig(config).kebabCase
+      Runtime.setConfigProvider(provider)
+    }
+    loggingLayer ++ configProviderLayer
+  }
 
   // -------------------------------------------------------------------------------------------------------------------
   val systemEndpoint = endpoint.in("api").in("system").tag("System")
@@ -249,12 +258,12 @@ object WebApiApp extends ZIOAppDefault {
 
   def server = for {
     clientResources             <- System.env("ZWORDS_CLIENT_RESOURCES_PATH").some
-    clientSideResourcesEndPoints = filesGetServerEndpoint(emptyInput)(clientResources).widen[GameEnv]
+    clientSideResourcesEndPoints = staticFilesGetServerEndpoint(emptyInput)(clientResources).widen[GameEnv]
     clientSideRoutes             = List(clientSideResourcesEndPoints)
     allRoutes                    = apiRoutes ++ apiDocRoutes ++ clientSideRoutes
-    httpApp                      = ZioHttpInterpreter().toHttp(allRoutes).provideSomeLayer(loggingLayer)
+    httpApp                      = ZioHttpInterpreter().toHttp(allRoutes)
     _                           <- ZIO.logInfo("Starting service")
-    zservice                    <- Server.serve(httpApp.withDefaultErrorResponse)
+    zservice                    <- Server.serve(httpApp)
   } yield zservice
 
   val listeningPort = System
@@ -262,17 +271,9 @@ object WebApiApp extends ZIOAppDefault {
     .mapAttempt(port => port.toInt)
     .mapError(th => Exception("ZWORDS_LISTENING_PORT : provided value is not a number"))
     .filterOrFail(port => port > 0 && port < 30000)(Exception("ZWORDS_LISTENING_PORT : Invalid port number provided"))
+    .tap(port => ZIO.logInfo(s"Listening on port $port"))
   // .mapAttempt(port => InetSocketAddress("127.0.0.1", port))
   // .mapError(th => Exception("Can't build listening address configuration"))
-
-  val lmdbConfigLayer = ZLayer.scoped(
-    for {
-      directory    <- System.env("ZWORDS_LMDB_PATH").some
-      directoryPath = Path(directory)
-      _            <- Files.createDirectories(directoryPath)
-      lmdbConfig    = LMDBConfig(directoryPath.toFile)
-    } yield lmdbConfig
-  )
 
   val serverConfigLayer = ZLayer.fromZIO(listeningPort.map(port => Server.Config.default.port(port)))
 
@@ -280,14 +281,12 @@ object WebApiApp extends ZIOAppDefault {
     server
       .provide(
         Scope.default,
-        lmdbConfigLayer,
         LMDB.live,
         serverConfigLayer,
         Server.live,
         PersistenceService.live,
         DictionaryService.live,
-        WordGeneratorService.live,
-        DictionaryConfig.layer
+        WordGeneratorService.live
       )
 
 }

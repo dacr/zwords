@@ -1,21 +1,21 @@
 name        := "zwords"
 description := "Guess a word everyday game"
-scalaVersion := "3.2.2"
+scalaVersion := "3.5.1"
 
 val versions = new {
-  val zio        = "2.0.13"
-  val zionio     = "2.0.1"
-  val zioconfig  = "3.0.7"
+  val zio        = "2.1.9"
+  val zionio     = "2.0.2"
+  val zioconfig  = "4.0.2"
   val ziocli     = "0.2.2"
-  val ziojson    = "0.5.0"
-  val ziologging = "2.1.12"
-  val ziolmdb    = "1.0.6"
-  val tapir      = "1.2.13"
-  val logback    = "1.4.7"
+  val ziojson    = "0.7.3"
+  val ziologging = "2.3.1"
+  val ziolmdb    = "1.8.2"
+  val tapir      = "1.11.5"
+  val logback    = "1.5.8"
 }
 
 val sharedSettings = Seq(
-  scalaVersion := "3.2.2",
+  scalaVersion := "3.5.1",
   Test / fork  := true,
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   scalacOptions ++= Seq("-deprecation"), // "-Xfatal-warnings",

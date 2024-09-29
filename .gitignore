@@ -13,3 +13,4 @@ test*.log
 static-examples/
 lmdb-examples/
 .scala-build/
+test.sh

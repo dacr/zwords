@@ -15,13 +15,17 @@
  */
 package fr.janalyse.zwords.dictionary
 
+import com.typesafe.config.ConfigFactory
 import zio.*
+import zio.config.typesafe.TypesafeConfigProvider
 import zio.test.*
 import zio.test.Assertion.*
 import zio.test.TestAspect.*
 
-object HunspellFrenchSpec extends ZIOSpecDefault {
+object HunspellFrenchSpec extends BaseSpecDefault {
+
   val lang = "fr"
+
   override def spec = {
     suite("dictionary")(
       test("words check")(
@@ -55,9 +59,6 @@ object HunspellFrenchSpec extends ZIOSpecDefault {
         } yield assertTrue(entry.word == "restaurer") &&
           assert(words.map(_.word))(hasSubset(List("restaurer", "restaure", "restaurant")))
       )
-    ).provideShared(
-      DictionaryService.live.mapError(err => TestFailure.fail(Exception(s"Can't initialize dictionary service $err"))),
-      DictionaryConfig.layer
-    )
+    ).provide(DictionaryService.live)
   } @@ withLiveSystem
 }

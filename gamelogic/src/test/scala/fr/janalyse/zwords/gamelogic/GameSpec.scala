@@ -23,8 +23,10 @@ import zio.test.*
 import zio.test.Assertion.*
 import zio.test.TestAspect.*
 
-object GameSpec extends ZIOSpecDefault {
+object GameSpec extends BaseSpecDefault {
+  
   val lang = "fr"
+  
   override def spec = {
     suite("game logic spec")(
       test("game example 1") {
@@ -64,9 +66,8 @@ object GameSpec extends ZIOSpecDefault {
         )
       }
     ) @@ sequential
-  }.provideShared(
+  }.provide(
     DictionaryService.live,
-    WordGeneratorService.live,
-    DictionaryConfig.layer
+    WordGeneratorService.live
   )  @@ withLiveSystem
 }
