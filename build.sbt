@@ -1,7 +1,18 @@
-organization := "fr.janalyse"
-name         := "zwords"
-description  := "Guess a word everyday game"
-scalaVersion := "3.5.1"
+ThisBuild / organization := "fr.janalyse"
+ThisBuild / name         := "zwords"
+ThisBuild / description  := "Guess a word everyday game"
+ThisBuild / homepage     := Some(url("https://github.com/dacr/sotohp"))
+ThisBuild / licenses     += "Apache 2" -> url(s"https://www.apache.org/licenses/LICENSE-2.0.txt")
+ThisBuild / scmInfo      := Some(
+  ScmInfo(
+    url(s"https://github.com/dacr/zwords.git"),
+    s"git@github.com:dacr/zwords.git"
+  )
+)
+
+ThisBuild / scalaVersion := "3.5.1"
+
+publishArtifact := false
 
 val versions = new {
   val zio        = "2.1.9"
@@ -16,8 +27,7 @@ val versions = new {
 }
 
 val sharedSettings = Seq(
-  scalaVersion := "3.5.1",
-  organization := "fr.janalyse",
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value, // MUST BE SET HERE TO TRIGGER THIS REQUIREMENT
   Test / fork  := true,
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   scalacOptions ++= Seq("-deprecation"), // "-Xfatal-warnings",
@@ -89,7 +99,6 @@ lazy val webapi =
     .settings(
       name:="zwords-webapi",
       description  := "zwords sutom/motus game REST API",
-      //Universal / packageName := "zwords",
       Universal / javaOptions := Seq( // -- Required for LMDB with recent JVM
         "--add-opens",
         "java.base/java.nio=ALL-UNNAMED",

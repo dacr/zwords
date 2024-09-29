@@ -1,18 +1,15 @@
 ThisBuild / pomIncludeRepository := { _ => false }
-
+ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / releaseCrossBuild := true
-ThisBuild / releasePublishArtifactsAction := PgpKeys.publishSigned.value
-ThisBuild / publishMavenStyle := true
+//ThisBuild / releasePublishArtifactsAction := PgpKeys.publishSigned.value
+ThisBuild / publishMavenStyle    := true
 ThisBuild / Test / publishArtifact := false
-ThisBuild / Compile / packageBin / publishArtifact := true
-ThisBuild / Compile / packageDoc / publishArtifact := false
-ThisBuild / Compile / packageSrc / publishArtifact := true
 ThisBuild / publishTo := Some(if (isSnapshot.value) Opts.resolver.sonatypeOssSnapshots.head else Opts.resolver.sonatypeStaging)
 
-Global / PgpKeys.useGpg := true      // workaround with pgp and sbt 1.2.x
-ThisBuild / pgpSecretRing := pgpPublicRing.value // workaround with pgp and sbt 1.2.x
+//Global / PgpKeys.useGpg := true      // workaround with pgp and sbt 1.2.x
+//ThisBuild / pgpSecretRing := pgpPublicRing.value // workaround with pgp and sbt 1.2.x
 
-ThisBuild / pomExtra in Global := {
+ThisBuild / pomExtra := {
   <developers>
     <developer>
       <id>dacr</id>
@@ -26,18 +23,18 @@ ThisBuild / releaseTagComment := s"Releasing ${(ThisBuild / version).value}"
 ThisBuild / releaseCommitMessage := s"Setting version to ${(ThisBuild / version).value}"
 ThisBuild / releaseNextCommitMessage := s"[ci skip] Setting version to ${(ThisBuild / version).value}"
 
-import ReleaseTransformations._
+import ReleaseTransformations.*
 ThisBuild / releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
-  //runClean,
+  runClean,
   runTest,
   setReleaseVersion,
   commitReleaseVersion,
   tagRelease,
   publishArtifacts,
+  releaseStepCommand("sonatypeReleaseAll"),
   setNextVersion,
   commitNextVersion,
-  releaseStepCommand("sonatypeReleaseAll"),
   pushChanges
 )
