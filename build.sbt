@@ -1,5 +1,6 @@
-name        := "zwords"
-description := "Guess a word everyday game"
+organization := "fr.janalyse"
+name         := "zwords"
+description  := "Guess a word everyday game"
 scalaVersion := "3.5.1"
 
 val versions = new {
@@ -19,11 +20,11 @@ val sharedSettings = Seq(
   Test / fork  := true,
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   scalacOptions ++= Seq("-deprecation"), // "-Xfatal-warnings",
-  //excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13",
+  // excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13",
   libraryDependencies ++= Seq(
-    "dev.zio" %% "zio"            % versions.zio,
-    "dev.zio" %% "zio-test"       % versions.zio % Test,
-    "dev.zio" %% "zio-test-sbt"   % versions.zio % Test
+    "dev.zio" %% "zio"          % versions.zio,
+    "dev.zio" %% "zio-test"     % versions.zio % Test,
+    "dev.zio" %% "zio-test-sbt" % versions.zio % Test
   )
 )
 
@@ -31,6 +32,7 @@ lazy val dictionary =
   project
     .in(file("dictionary"))
     .settings(
+      name:="zwords-dictionary",
       sharedSettings,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-config"          % versions.zioconfig,
@@ -45,6 +47,7 @@ lazy val wordGenerator =
     .in(file("wordgen"))
     .dependsOn(dictionary)
     .settings(
+      name:="zwords-word-generator",
       sharedSettings,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-json" % versions.ziojson
@@ -56,6 +59,7 @@ lazy val gameLogic =
     .in(file("gamelogic"))
     .dependsOn(wordGenerator)
     .settings(
+      name:="zwords-game-logic",
       sharedSettings
     )
 
@@ -66,6 +70,7 @@ lazy val consoleUI =
     .dependsOn(wordGenerator)
     .dependsOn(dictionary)
     .settings(
+      name:="zwords-console",
       sharedSettings
     )
 
@@ -77,7 +82,8 @@ lazy val webapi =
     .dependsOn(dictionary)
     .enablePlugins(JavaServerAppPackaging)
     .settings(
-      Universal / packageName := "zwords",
+      name:="zwords-webapi",
+      //Universal / packageName := "zwords",
       Universal / javaOptions := Seq( // -- Required for LMDB with recent JVM
         "--add-opens",
         "java.base/java.nio=ALL-UNNAMED",
