@@ -1,18 +1,12 @@
-ThisBuild / organization := "fr.janalyse"
-ThisBuild / name         := "zwords"
-ThisBuild / description  := "Guess a word everyday game"
-ThisBuild / homepage     := Some(url("https://github.com/dacr/sotohp"))
-ThisBuild / licenses     += "Apache 2" -> url(s"https://www.apache.org/licenses/LICENSE-2.0.txt")
-ThisBuild / scmInfo      := Some(
-  ScmInfo(
-    url(s"https://github.com/dacr/zwords.git"),
-    s"git@github.com:dacr/zwords.git"
-  )
-)
+ThisBuild / name                   := "zwords"
+ThisBuild / organization           := "fr.janalyse"
+ThisBuild / description            := "Guess a word everyday game"
+
+ThisBuild / licenses += "Apache 2" -> url(s"https://www.apache.org/licenses/LICENSE-2.0.txt")
 
 ThisBuild / scalaVersion := "3.5.1"
 
-publishArtifact := false
+publishArtifact := false // no artifact for "root" project
 
 val versions = new {
   val zio        = "2.1.9"
@@ -28,7 +22,7 @@ val versions = new {
 
 val sharedSettings = Seq(
   releasePublishArtifactsAction := PgpKeys.publishSigned.value, // MUST BE SET HERE TO TRIGGER THIS REQUIREMENT
-  Test / fork  := true,
+  Test / fork                   := true,
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
   scalacOptions ++= Seq("-deprecation"), // "-Xfatal-warnings",
   // excludeDependencies += "org.scala-lang.modules" % "scala-collection-compat_2.13",
@@ -43,8 +37,8 @@ lazy val dictionary =
   project
     .in(file("dictionary"))
     .settings(
-      name:="zwords-dictionary",
-      description  := "Dictionary management",
+      name        := "zwords-dictionary",
+      description := "Dictionary management",
       sharedSettings,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-config"          % versions.zioconfig,
@@ -59,8 +53,8 @@ lazy val wordGenerator =
     .in(file("wordgen"))
     .dependsOn(dictionary)
     .settings(
-      name:="zwords-word-generator",
-      description  := "generate word candidate from dictionary",
+      name        := "zwords-word-generator",
+      description := "generate word candidate from dictionary",
       sharedSettings,
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-json" % versions.ziojson
@@ -72,8 +66,8 @@ lazy val gameLogic =
     .in(file("gamelogic"))
     .dependsOn(wordGenerator)
     .settings(
-      name:="zwords-game-logic",
-      description  := "the sutom/motus game logic",
+      name        := "zwords-game-logic",
+      description := "the sutom/motus game logic",
       sharedSettings
     )
 
@@ -84,8 +78,8 @@ lazy val consoleUI =
     .dependsOn(wordGenerator)
     .dependsOn(dictionary)
     .settings(
-      name:="zwords-console",
-      description  := "Play zwords from the console",
+      name        := "zwords-console",
+      description := "Play zwords from the console",
       sharedSettings
     )
 
@@ -97,8 +91,8 @@ lazy val webapi =
     .dependsOn(dictionary)
     .enablePlugins(JavaServerAppPackaging)
     .settings(
-      name:="zwords-webapi",
-      description  := "zwords sutom/motus game REST API",
+      name                    := "zwords-webapi",
+      description             := "zwords sutom/motus game REST API",
       Universal / javaOptions := Seq( // -- Required for LMDB with recent JVM
         "--add-opens",
         "java.base/java.nio=ALL-UNNAMED",
@@ -123,3 +117,14 @@ lazy val webapi =
         "ch.qos.logback"               % "logback-classic"         % versions.logback
       )
     )
+
+ThisBuild / homepage   := Some(url("https://github.com/dacr/sotohp"))
+ThisBuild / scmInfo    := Some(ScmInfo(url(s"https://github.com/dacr/zwords.git"), s"git@github.com:dacr/zwords.git"))
+ThisBuild / developers := List(
+  Developer(
+    id = "dacr",
+    name = "David Crosson",
+    email = "crosson.david@gmail.com",
+    url = url("https://github.com/dacr")
+  )
+)
