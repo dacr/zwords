@@ -9,15 +9,15 @@ ThisBuild / scalaVersion := "3.5.1"
 publishArtifact := false // no artifact for "root" project
 
 val versions = new {
-  val zio        = "2.1.9"
+  val zio        = "2.1.11"
   val zionio     = "2.0.2"
   val zioconfig  = "4.0.2"
   val ziocli     = "0.2.2"
   val ziojson    = "0.7.3"
   val ziologging = "2.3.1"
   val ziolmdb    = "1.8.2"
-  val tapir      = "1.11.5"
-  val logback    = "1.5.8"
+  val tapir      = "1.11.7"
+  val logback    = "1.5.10"
 }
 
 val sharedSettings = Seq(

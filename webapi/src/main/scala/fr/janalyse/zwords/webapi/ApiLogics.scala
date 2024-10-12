@@ -32,7 +32,7 @@ object ApiLogics {
 
   val serviceStatusLogic = ZIO.succeed(ServiceStatus(alive = true))
 
-  val serviceInfoLogic: ZIO[PersistenceService with WordGeneratorService, ServiceInternalError, GameInfo] = {
+  val serviceInfoLogic: ZIO[PersistenceService & WordGeneratorService, ServiceInternalError, GameInfo] = {
     ZIO.logSpan("serviceInfo") {
       for {
         languages             <- WordGeneratorService.languages
