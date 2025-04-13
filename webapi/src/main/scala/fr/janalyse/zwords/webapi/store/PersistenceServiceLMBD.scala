@@ -147,7 +147,7 @@ object PersistenceServiceLMBD {
         storageUserError match {
           case CollectionAlreadExists(name)          => Exception(s"Collection $name already exists")
           case CollectionNotFound(name)              => Exception(s"Collection $name not found")
-          case JsonFailure(issue)                    => Exception(s"Json encoding issue : $issue")
+          case CodecFailure(issue)                   => Exception(s"Codec encoding issue : $issue")
           case OverSizedKey(id, expandedSize, limit) => Exception(s"Key size ($expandedSize) is too big, should be below $limit")
         }
     }

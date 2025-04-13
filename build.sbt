@@ -1,23 +1,23 @@
-ThisBuild / name                   := "zwords"
-ThisBuild / organization           := "fr.janalyse"
-ThisBuild / description            := "Guess a word everyday game"
+ThisBuild / name         := "zwords"
+ThisBuild / organization := "fr.janalyse"
+ThisBuild / description  := "Guess a word everyday game"
 
 ThisBuild / licenses += "Apache 2" -> url(s"https://www.apache.org/licenses/LICENSE-2.0.txt")
 
-ThisBuild / scalaVersion := "3.5.1"
+ThisBuild / scalaVersion := "3.6.4"
 
 publishArtifact := false // no artifact for "root" project
 
 val versions = new {
-  val zio        = "2.1.11"
+  val zio        = "2.1.17"
   val zionio     = "2.0.2"
-  val zioconfig  = "4.0.2"
+  val zioconfig  = "4.0.4"
   val ziocli     = "0.2.2"
-  val ziojson    = "0.7.3"
-  val ziologging = "2.3.1"
-  val ziolmdb    = "1.8.2"
-  val tapir      = "1.11.7"
-  val logback    = "1.5.10"
+  val ziojson    = "0.7.42"
+  val ziologging = "2.5.0"
+  val ziolmdb    = "2.0.0"
+  val tapir      = "1.11.24"
+  val logback    = "1.5.18"
 }
 
 val sharedSettings = Seq(
@@ -91,20 +91,22 @@ lazy val webapi =
     .dependsOn(dictionary)
     .enablePlugins(JavaServerAppPackaging)
     .settings(
-      name                    := "zwords-webapi",
-      description             := "zwords sutom/motus game REST API",
-      Universal / javaOptions := Seq( // -- Required for LMDB with recent JVM
+      name                          := "zwords-webapi",
+      description                   := "zwords sutom/motus game REST API",
+      Universal / javaOptions       := Seq( // -- Required for LMDB with recent JVM
         "--add-opens",
         "java.base/java.nio=ALL-UNNAMED",
         "--add-opens",
         "java.base/sun.nio.ch=ALL-UNNAMED"
       ),
-      Test / javaOptions      := Seq( // -- Required for LMDB with recent JVM
+      Test / javaOptions            := Seq( // -- Required for LMDB with recent JVM
         "--add-opens",
         "java.base/java.nio=ALL-UNNAMED",
         "--add-opens",
         "java.base/sun.nio.ch=ALL-UNNAMED"
       ),
+      Universal / topLevelDirectory := None,
+      Universal / packageName       := s"${name.value}",
       sharedSettings,
       libraryDependencies ++= Seq(
         "dev.zio"                     %% "zio-logging"             % versions.ziologging,

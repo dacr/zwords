@@ -57,9 +57,9 @@ object ApiLogicsSpec extends BaseSpecDefault {
         _         <- TestClock.setTime(java.time.Instant.ofEpochMilli(0)) // Remember used randomness is using day based seed
         player    <- playerGetLogic(None, None, None)
         round0    <- gameGetLogic(language, player.playerId)
-        round1    <- gamePlayLogic(language, player.playerId, GivenWord("certain"))
-        round2    <- gamePlayLogic(language, player.playerId, GivenWord("central"))
-        round3    <- gamePlayLogic(language, player.playerId, GivenWord("command"))
+        round1    <- gamePlayLogic(language, player.playerId, GivenWord("cables"))
+        round2    <- gamePlayLogic(language, player.playerId, GivenWord("custom"))
+        round3    <- gamePlayLogic(language, player.playerId, GivenWord("credit"))
       } yield assertTrue(
         languages.keys.contains(language),
         round0.state == "playing",

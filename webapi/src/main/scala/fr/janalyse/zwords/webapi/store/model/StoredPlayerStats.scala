@@ -16,6 +16,7 @@
 package fr.janalyse.zwords.webapi.store.model
 
 import zio.json.*
+import zio.lmdb.json.LMDBCodecJson
 
 case class StoredPlayerStats(
   playedCount: Int = 0, // number of finished game either win or lost
@@ -23,7 +24,4 @@ case class StoredPlayerStats(
   lostCount: Int = 0,
   triedCount: Int = 0,  // players count who try at least to play once
   wonIn: Map[String, Int] = Map.empty
-)
-
-object StoredPlayerStats:
-  given JsonCodec[StoredPlayerStats] = DeriveJsonCodec.gen
+) derives LMDBCodecJson

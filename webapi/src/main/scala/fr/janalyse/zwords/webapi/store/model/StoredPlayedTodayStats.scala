@@ -17,6 +17,7 @@ package fr.janalyse.zwords.webapi.store.model
 
 import fr.janalyse.zwords.webapi.store.model.StoredPlayedTodayStats
 import zio.json.*
+import zio.lmdb.json.LMDBCodecJson
 
 case class StoredPlayedTodayStats(
   playedCount: Int = 0,
@@ -27,7 +28,4 @@ case class StoredPlayedTodayStats(
   goodPlaceLetterCount: Int = 0,
   wrongPlaceLetterCount: Int = 0,
   unusedLetterCount: Int = 0
-)
-
-object StoredPlayedTodayStats:
-  given JsonCodec[StoredPlayedTodayStats] = DeriveJsonCodec.gen
+) derives LMDBCodecJson, JsonCodec // TODO enhance zio-lmdb to remove JsonCodec derivation
