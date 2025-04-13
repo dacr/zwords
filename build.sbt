@@ -107,6 +107,10 @@ lazy val webapi =
       ),
       Universal / topLevelDirectory := None,
       Universal / packageName       := s"${name.value}",
+      Universal / javaOptions ++= Seq(
+        "-J--add-opens=java.base/java.nio=ALL-UNNAMED",
+        "-J--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
+      ),
       sharedSettings,
       libraryDependencies ++= Seq(
         "dev.zio"                     %% "zio-logging"             % versions.ziologging,
