@@ -125,7 +125,7 @@
             ZWORDS_FR_SUBSET_FILENAME    = (lib.strings.concatStrings [config.services.zwords.datastore "/" config.services.zwords.frSubsetFilename]);
             ZWORDS_EN_SUBSET_FILENAME    = (lib.strings.concatStrings [config.services.zwords.datastore "/" config.services.zwords.enSubsetFilename]);
             ZWORDS_LMDB_PATH             = (lib.strings.concatStrings [config.services.zwords.datastore "/" config.services.zwords.lmdbPath]);
-            ZWORDS_LMDB_NAME             = (lib.strings.concatStrings [config.services.zwords.datastore "/" config.services.zwords.lmdbName]);
+            ZWORDS_LMDB_NAME             = config.services.zwords.lmdbName;
           };
           serviceConfig = {
             ExecStart = "${self.packages.${pkgs.system}.default}/bin/nix-zwords";
