@@ -28,4 +28,4 @@ case class StoredPlayedTodayStats(
   goodPlaceLetterCount: Int = 0,
   wrongPlaceLetterCount: Int = 0,
   unusedLetterCount: Int = 0
-) derives LMDBCodecJson, JsonCodec // TODO enhance zio-lmdb to remove JsonCodec derivation
+) derives LMDBCodecJson
