@@ -257,7 +257,7 @@ object WebApiApp extends ZIOAppDefault {
       )
 
   def server = for {
-    clientResources             <- System.env("ZWORDS_CLIENT_RESOURCES_PATH").some
+    clientResources             <- System.envOrElse("ZWORDS_CLIENT_RESOURCES_PATH", "static-user-interfaces")
     clientSideResourcesEndPoints = staticFilesGetServerEndpoint(emptyInput)(clientResources).widen[GameEnv]
     clientSideRoutes             = List(clientSideResourcesEndPoints)
     allRoutes                    = apiRoutes ++ apiDocRoutes ++ clientSideRoutes

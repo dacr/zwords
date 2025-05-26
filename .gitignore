@@ -10,7 +10,6 @@ target/
 test*.log
 *.tmp
 .metals/
-static-examples/
 lmdb-examples/
 .scala-build/
 test.sh

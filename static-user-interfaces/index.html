@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZWords Game</title>
+    <style>
+        :root {
+            --correct-color: #6aaa64;
+            --misplaced-color: #c9b458;
+            --unused-color: #787c7e;
+            --keyboard-color: #d3d6da;
+            --border-color: #d3d6da;
+            --background-color: #ffffff;
+            --text-color: #000000;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .language-selector {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+        }
+
+        .language-selector select {
+            margin-left: 10px;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-rows: repeat(6, 1fr);
+            gap: 5px;
+            margin-bottom: 30px;
+            width: 100%;
+        }
+
+        .row {
+            display: grid;
+            gap: 5px;
+        }
+
+        .tile {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            aspect-ratio: 1;
+            border: 2px solid var(--border-color);
+            font-size: 2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .tile.correct {
+            background-color: var(--correct-color);
+            color: white;
+            border-color: var(--correct-color);
+        }
+
+        .tile.misplaced {
+            background-color: var(--misplaced-color);
+            color: white;
+            border-color: var(--misplaced-color);
+        }
+
+        .tile.unused {
+            background-color: var(--unused-color);
+            color: white;
+            border-color: var(--unused-color);
+        }
+
+        .keyboard {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .keyboard-row {
+            display: flex;
+            width: 100%;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .key {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 40px;
+            height: 58px;
+            border-radius: 4px;
+            background-color: var(--keyboard-color);
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            text-transform: uppercase;
+            flex: 1;
+        }
+
+        .key.wide {
+            flex: 1.5;
+            font-size: 12px;
+        }
+
+        .key.correct {
+            background-color: var(--correct-color);
+            color: white;
+        }
+
+        .key.misplaced {
+            background-color: var(--misplaced-color);
+            color: white;
+        }
+
+        .key.unused {
+            background-color: var(--unused-color);
+            color: white;
+        }
+
+        .message {
+            margin: 20px 0;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .message.show {
+            opacity: 1;
+        }
+
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .message.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .stats {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        @media (max-width: 500px) {
+            .tile {
+                font-size: 1.5rem;
+            }
+
+            .key {
+                min-width: 20px;
+                height: 50px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>ZWords</h1>
+        <div class="language-selector">
+            <label for="language">Language:</label>
+            <select id="language"></select>
+        </div>
+    </header>
+
+    <div class="game-container">
+        <div class="message" id="message"></div>
+
+        <div class="game-board" id="game-board">
+            <!-- Game board will be generated dynamically -->
+        </div>
+
+        <div class="keyboard" id="keyboard">
+            <!-- Keyboard will be generated dynamically -->
+        </div>
+
+        <div class="stats" id="stats"></div>
+    </div>
+
+    <script>
+        // Game state
+        let currentGame = null;
+        let player = null;
+        let currentLanguage = 'en';
+        let languages = [];
+        let currentRow = 0;
+        let currentCol = 0;
+        let currentGuess = '';
+        let gameOver = false;
+        let wordLength = 5; // Default, will be updated based on the game
+
+        // DOM elements
+        const gameBoard = document.getElementById('game-board');
+        const keyboard = document.getElementById('keyboard');
+        const messageEl = document.getElementById('message');
+        const languageSelect = document.getElementById('language');
+        const statsEl = document.getElementById('stats');
+
+        // Keyboard layout
+        const keyboardLayout = [
+            ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+            ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+            ['Enter', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'Backspace']
+        ];
+
+        // Initialize the game
+        async function initGame() {
+            try {
+                // Get available languages
+                await fetchLanguages();
+
+                // Create or get player
+                await createOrGetPlayer();
+
+                // Initialize the game board and keyboard
+                await startNewGame();
+
+                // Add event listeners
+                document.addEventListener('keydown', handleKeyPress);
+                languageSelect.addEventListener('change', handleLanguageChange);
+            } catch (error) {
+                showMessage('Error initializing game: ' + error.message, 'error');
+            }
+        }
+
+        // Fetch available languages
+        async function fetchLanguages() {
+            try {
+                const response = await fetch('/api/game/languages');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch languages');
+                }
+                const data = await response.json();
+                languages = data.keys;
+
+                // Populate language selector
+                languageSelect.innerHTML = '';
+                languages.forEach(lang => {
+                    const option = document.createElement('option');
+                    option.value = lang;
+                    option.textContent = lang.toUpperCase();
+                    languageSelect.appendChild(option);
+                });
+
+                // Set default language
+                if (languages.includes('en')) {
+                    languageSelect.value = 'en';
+                    currentLanguage = 'en';
+                } else if (languages.length > 0) {
+                    languageSelect.value = languages[0];
+                    currentLanguage = languages[0];
+                }
+            } catch (error) {
+                showMessage('Error fetching languages: ' + error.message, 'error');
+            }
+        }
+
+        // Create or get player
+        async function createOrGetPlayer() {
+            try {
+                // Check if player ID is stored in localStorage
+                const storedPlayerId = localStorage.getItem('zwords_player_id');
+
+                const response = await fetch(`/api/players/player${storedPlayerId ? `?playerId=${storedPlayerId}` : ''}`);
+                if (!response.ok) {
+                    throw new Error('Failed to create/get player');
+                }
+
+                player = await response.json();
+
+                // Store player ID in localStorage
+                localStorage.setItem('zwords_player_id', player.playerId);
+            } catch (error) {
+                showMessage('Error creating/getting player: ' + error.message, 'error');
+            }
+        }
+
+        // Start a new game
+        async function startNewGame() {
+            try {
+                if (!player) {
+                    throw new Error('Player not initialized');
+                }
+
+                const response = await fetch(`/api/game/play/${currentLanguage}/${player.playerId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to start new game');
+                }
+
+                currentGame = await response.json();
+                gameOver = currentGame.finished;
+
+                // Update word length based on the current mask
+                wordLength = currentGame.currentMask.length;
+
+                // Reset game state
+                currentRow = currentGame.rows.length;
+                currentCol = 0;
+                currentGuess = '';
+
+                // Create game board
+                createGameBoard();
+
+                // Create keyboard
+                createKeyboard();
+
+                // Update the board with existing rows
+                updateGameBoard();
+
+                // Update keyboard colors
+                updateKeyboardColors();
+
+                // Show game over message if game is finished
+                if (gameOver) {
+                    if (currentGame.state === 'success') {
+                        showMessage(`Congratulations! You guessed the word in ${currentGame.winRank} tries.`, 'success');
+                    } else {
+                        showMessage(`Game over! The word was: ${currentGame.hiddenWord}`, 'error');
+                    }
+                }
+            } catch (error) {
+                showMessage('Error starting new game: ' + error.message, 'error');
+            }
+        }
+
+        // Create the game board
+        function createGameBoard() {
+            gameBoard.innerHTML = '';
+
+            for (let i = 0; i < 6; i++) {
+                const row = document.createElement('div');
+                row.className = 'row';
+                row.id = `row-${i}`;
+                // Dynamically set grid columns based on word length
+                row.style.gridTemplateColumns = `repeat(${wordLength}, 1fr)`;
+
+                for (let j = 0; j < wordLength; j++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.id = `tile-${i}-${j}`;
+                    row.appendChild(tile);
+                }
+
+                gameBoard.appendChild(row);
+            }
+        }
+
+        // Create the keyboard
+        function createKeyboard() {
+            keyboard.innerHTML = '';
+
+            keyboardLayout.forEach((row, rowIndex) => {
+                const keyboardRow = document.createElement('div');
+                keyboardRow.className = 'keyboard-row';
+
+                row.forEach(key => {
+                    const keyEl = document.createElement('div');
+                    keyEl.className = 'key';
+                    keyEl.id = `key-${key.toLowerCase()}`;
+                    keyEl.textContent = key;
+
+                    if (key === 'Enter' || key === 'Backspace') {
+                        keyEl.className += ' wide';
+                    }
+
+                    keyEl.addEventListener('click', () => {
+                        handleKeyPress({ key });
+                    });
+
+                    keyboardRow.appendChild(keyEl);
+                });
+
+                keyboard.appendChild(keyboardRow);
+            });
+        }
+
+        // Update the game board with current game state
+        function updateGameBoard() {
+            // Clear the board
+            for (let i = 0; i < 6; i++) {
+                for (let j = 0; j < wordLength; j++) {
+                    const tile = document.getElementById(`tile-${i}-${j}`);
+                    tile.textContent = '';
+                    tile.className = 'tile';
+                }
+            }
+
+            // Fill in played rows
+            // Reverse the rows array to display newest words at the bottom
+            [...currentGame.rows].reverse().forEach((row, rowIndex) => {
+                if (row.givenWord) {
+                    const word = row.givenWord;
+                    // Calculate the actual row index from bottom to top
+                    const actualRowIndex = 5 - rowIndex;
+
+                    for (let i = 0; i < word.length; i++) {
+                        const tile = document.getElementById(`tile-${actualRowIndex}-${i}`);
+                        tile.textContent = word[i];
+
+                        // Set tile color based on masks
+                        if (row.goodPlacesMask[i] !== '_') {
+                            tile.classList.add('correct');
+                        } else if (row.wrongPlacesMask[i] !== '_') {
+                            tile.classList.add('misplaced');
+                        } else if (row.notUsedPlacesMask[i] !== '_') {
+                            tile.classList.add('unused');
+                        }
+                    }
+                }
+            });
+
+            // Update current guess
+            // Display the current guess in the next available row from the bottom
+            const currentGuessRowIndex = 5 - currentGame.rows.length;
+            for (let i = 0; i < currentGuess.length; i++) {
+                const tile = document.getElementById(`tile-${currentGuessRowIndex}-${i}`);
+                if (tile) {
+                    tile.textContent = currentGuess[i];
+                }
+            }
+        }
+
+        // Update keyboard colors based on game state
+        function updateKeyboardColors() {
+            // Reset all keys
+            document.querySelectorAll('.key').forEach(key => {
+                key.classList.remove('correct', 'misplaced', 'unused');
+            });
+
+            // Set colors based on played rows
+            currentGame.rows.forEach(row => {
+                if (row.givenWord) {
+                    const word = row.givenWord;
+
+                    for (let i = 0; i < word.length; i++) {
+                        const letter = word[i].toLowerCase();
+                        const keyEl = document.getElementById(`key-${letter}`);
+
+                        if (!keyEl) continue;
+
+                        // Priority: correct > misplaced > unused
+                        if (row.goodPlacesMask[i] !== '_') {
+                            keyEl.classList.remove('misplaced', 'unused');
+                            keyEl.classList.add('correct');
+                        } else if (row.wrongPlacesMask[i] !== '_' && !keyEl.classList.contains('correct')) {
+                            keyEl.classList.remove('unused');
+                            keyEl.classList.add('misplaced');
+                        } else if (row.notUsedPlacesMask[i] !== '_' && 
+                                  !keyEl.classList.contains('correct') && 
+                                  !keyEl.classList.contains('misplaced')) {
+                            keyEl.classList.add('unused');
+                        }
+                    }
+                }
+            });
+        }
+
+        // Handle key press
+        function handleKeyPress(event) {
+            if (gameOver) return;
+
+            const key = event.key;
+
+            if (key === 'Enter') {
+                submitGuess();
+            } else if (key === 'Backspace') {
+                if (currentGuess.length > 0) {
+                    currentGuess = currentGuess.slice(0, -1);
+                    currentCol--;
+                    updateGameBoard();
+                }
+            } else if (/^[a-zA-Z]$/.test(key) && currentGuess.length < wordLength) {
+                currentGuess += key.toLowerCase();
+                currentCol++;
+                updateGameBoard();
+            }
+        }
+
+        // Submit guess
+        async function submitGuess() {
+            if (currentGuess.length !== wordLength) {
+                showMessage(`Word must be ${wordLength} letters long`, 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/game/play/${currentLanguage}/${player.playerId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        word: currentGuess
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (response.status === 463) {
+                        showMessage(`"${currentGuess}" is not in the dictionary`, 'error');
+                    } else {
+                        showMessage(errorData.message || 'Error submitting guess', 'error');
+                    }
+                    return;
+                }
+
+                currentGame = await response.json();
+                gameOver = currentGame.finished;
+
+                // Reset current guess
+                currentGuess = '';
+                currentRow = currentGame.rows.length;
+                currentCol = 0;
+
+                // Update the board
+                updateGameBoard();
+
+                // Update keyboard colors
+                updateKeyboardColors();
+
+                // Check if game is over
+                if (gameOver) {
+                    if (currentGame.state === 'success') {
+                        showMessage(`Congratulations! You guessed the word in ${currentGame.winRank} tries.`, 'success');
+                    } else {
+                        showMessage(`Game over! The word was: ${currentGame.hiddenWord}`, 'error');
+                    }
+                }
+            } catch (error) {
+                showMessage('Error submitting guess: ' + error.message, 'error');
+            }
+        }
+
+        // Handle language change
+        async function handleLanguageChange() {
+            currentLanguage = languageSelect.value;
+            await startNewGame();
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            messageEl.textContent = text;
+            messageEl.className = 'message show';
+            messageEl.classList.add(type);
+
+            setTimeout(() => {
+                messageEl.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize the game when the page loads
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
