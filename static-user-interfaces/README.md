@@ -33,6 +33,10 @@ the full word must fit in a single line
 
 the just entered new word must be shown below the previous one and not at the top
 
+### step 4
+
+Save current selected language into current user navigator session
+
 ### results
 
 good and playable

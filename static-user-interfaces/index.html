@@ -299,8 +299,14 @@
                     languageSelect.appendChild(option);
                 });
 
-                // Set default language
-                if (languages.includes('en')) {
+                // Check if there's a saved language preference
+                const savedLanguage = localStorage.getItem('zwords_language');
+
+                // Set language based on saved preference or default
+                if (savedLanguage && languages.includes(savedLanguage)) {
+                    languageSelect.value = savedLanguage;
+                    currentLanguage = savedLanguage;
+                } else if (languages.includes('en')) {
                     languageSelect.value = 'en';
                     currentLanguage = 'en';
                 } else if (languages.length > 0) {
@@ -591,6 +597,8 @@
         // Handle language change
         async function handleLanguageChange() {
             currentLanguage = languageSelect.value;
+            // Save the selected language to localStorage
+            localStorage.setItem('zwords_language', currentLanguage);
             await startNewGame();
         }
 
