@@ -13,6 +13,10 @@
             --border-color: #d3d6da;
             --background-color: #ffffff;
             --text-color: #000000;
+            --primary-color: #4361ee;
+            --secondary-color: #7209b7;
+            --accent-color: #f72585;
+            --modal-background: rgba(0, 0, 0, 0.7);
         }
 
         body {
@@ -40,9 +44,19 @@
 
         h1 {
             margin: 0;
-            font-size: 28px;
-            text-align: center;
+            font-size: 36px;
+            text-align: left;
             flex-grow: 1;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            font-family: 'Arial Black', 'Arial Bold', Gadget, sans-serif;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+        }
+
+        h1:hover {
+            transform: scale(1.05);
+            color: var(--accent-color);
         }
 
         .language-selector {
@@ -89,6 +103,25 @@
             font-size: 2rem;
             font-weight: bold;
             text-transform: uppercase;
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .tile:not(:empty) {
+            animation: popIn 0.2s ease-in-out forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes flipIn {
+            0% { transform: rotateX(0); }
+            50% { transform: rotateX(90deg); }
+            100% { transform: rotateX(0); }
         }
 
         .tile.correct {
@@ -131,13 +164,27 @@
             align-items: center;
             min-width: 40px;
             height: 58px;
-            border-radius: 4px;
+            border-radius: 8px;
             background-color: var(--keyboard-color);
             font-weight: bold;
             cursor: pointer;
             user-select: none;
             text-transform: uppercase;
             flex: 1;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+
+        .key:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            background-color: #c1c4c8;
+        }
+
+        .key:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .key.wide {
@@ -198,6 +245,106 @@
             text-align: center;
         }
 
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--modal-background);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background-color: var(--background-color);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 400px;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.show .modal {
+            transform: translateY(0);
+        }
+
+        .modal h2 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .modal input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .modal input.error {
+            border-color: var(--accent-color);
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+        .modal button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal button:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .modal button:active {
+            transform: translateY(1px);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-left: 20px;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
         @media (max-width: 500px) {
             .tile {
                 font-size: 1.5rem;
@@ -214,11 +361,22 @@
 <body>
     <header>
         <h1>ZWords</h1>
+        <div class="user-info" id="user-info"></div>
         <div class="language-selector">
             <label for="language">Language:</label>
             <select id="language"></select>
         </div>
     </header>
+
+    <!-- Username Modal -->
+    <div class="modal-overlay" id="username-modal">
+        <div class="modal">
+            <h2>Welcome to ZWords!</h2>
+            <p>Please enter your nickname to continue:</p>
+            <input type="text" id="username-input" placeholder="Your nickname" maxlength="20">
+            <button id="save-username">Start Playing</button>
+        </div>
+    </div>
 
     <div class="game-container">
         <div class="message" id="message"></div>
@@ -245,6 +403,7 @@
         let currentGuess = '';
         let gameOver = false;
         let wordLength = 5; // Default, will be updated based on the game
+        let username = ''; // User's nickname
 
         // DOM elements
         const gameBoard = document.getElementById('game-board');
@@ -252,6 +411,14 @@
         const messageEl = document.getElementById('message');
         const languageSelect = document.getElementById('language');
         const statsEl = document.getElementById('stats');
+        const usernameModal = document.getElementById('username-modal');
+        const usernameInput = document.getElementById('username-input');
+        const saveUsernameBtn = document.getElementById('save-username');
+        const userInfoEl = document.getElementById('user-info');
+
+        // SVG icons for special keys
+        const enterIcon = `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 7v4H5.83l3.58-3.59L8 6l-6 6 6 6 1.41-1.41L5.83 13H21V7z"/></svg>`;
+        const backspaceIcon = `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/></svg>`;
 
         // Keyboard layout
         const keyboardLayout = [
@@ -260,8 +427,80 @@
             ['Enter', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'Backspace']
         ];
 
+        // Check for username and show modal if needed
+        function checkUsername() {
+            // Check if username is stored in localStorage
+            const storedUsername = localStorage.getItem('zwords_username');
+
+            if (storedUsername) {
+                username = storedUsername;
+                displayUsername();
+                return true;
+            } else {
+                // Show username modal
+                usernameModal.classList.add('show');
+                usernameInput.focus();
+                return false;
+            }
+        }
+
+        // Save username to localStorage
+        function saveUsername() {
+            username = usernameInput.value.trim();
+
+            if (username) {
+                localStorage.setItem('zwords_username', username);
+                usernameModal.classList.remove('show');
+                displayUsername();
+                return true;
+            } else {
+                usernameInput.classList.add('error');
+                setTimeout(() => {
+                    usernameInput.classList.remove('error');
+                }, 500);
+                return false;
+            }
+        }
+
+        // Display username in the header
+        function displayUsername() {
+            if (username) {
+                userInfoEl.textContent = `Player: ${username}`;
+            }
+        }
+
         // Initialize the game
         async function initGame() {
+            try {
+                // Check for username first
+                if (!checkUsername()) {
+                    // Setup username save button
+                    saveUsernameBtn.addEventListener('click', () => {
+                        if (saveUsername()) {
+                            initGameAfterUsername();
+                        }
+                    });
+
+                    // Allow Enter key to submit username
+                    usernameInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            if (saveUsername()) {
+                                initGameAfterUsername();
+                            }
+                        }
+                    });
+
+                    return; // Wait for username before continuing
+                }
+
+                await initGameAfterUsername();
+            } catch (error) {
+                showMessage('Error initializing game: ' + error.message, 'error');
+            }
+        }
+
+        // Initialize game after username is set
+        async function initGameAfterUsername() {
             try {
                 // Get available languages
                 await fetchLanguages();
@@ -420,10 +659,15 @@
                     const keyEl = document.createElement('div');
                     keyEl.className = 'key';
                     keyEl.id = `key-${key.toLowerCase()}`;
-                    keyEl.textContent = key;
 
-                    if (key === 'Enter' || key === 'Backspace') {
+                    if (key === 'Enter') {
                         keyEl.className += ' wide';
+                        keyEl.innerHTML = enterIcon;
+                    } else if (key === 'Backspace') {
+                        keyEl.className += ' wide';
+                        keyEl.innerHTML = backspaceIcon;
+                    } else {
+                        keyEl.textContent = key;
                     }
 
                     keyEl.addEventListener('click', () => {
@@ -460,14 +704,20 @@
                         const tile = document.getElementById(`tile-${actualRowIndex}-${i}`);
                         tile.textContent = word[i];
 
-                        // Set tile color based on masks
-                        if (row.goodPlacesMask[i] !== '_') {
-                            tile.classList.add('correct');
-                        } else if (row.wrongPlacesMask[i] !== '_') {
-                            tile.classList.add('misplaced');
-                        } else if (row.notUsedPlacesMask[i] !== '_') {
-                            tile.classList.add('unused');
-                        }
+                        // Set tile color based on masks with animation delay
+                        setTimeout(() => {
+                            tile.style.animation = 'flipIn 0.5s ease-in-out forwards';
+
+                            setTimeout(() => {
+                                if (row.goodPlacesMask[i] !== '_') {
+                                    tile.classList.add('correct');
+                                } else if (row.wrongPlacesMask[i] !== '_') {
+                                    tile.classList.add('misplaced');
+                                } else if (row.notUsedPlacesMask[i] !== '_') {
+                                    tile.classList.add('unused');
+                                }
+                            }, 250); // Apply color at the midpoint of the flip
+                        }, i * 100); // Stagger the animations
                     }
                 }
             });
