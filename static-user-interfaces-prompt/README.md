@@ -15,7 +15,7 @@ the user interface defined in the file `static-user-interfaces/index.html` must 
 ### results
 probably too much animation !
 
-![img.png](img.png)
+![](2025-05-28.png)
 
 ## 2025-05-26
 
