@@ -19,6 +19,9 @@ the keyboard lines must not be splitted into several ones, as it is with your la
 
 for big display size, playground background box is not big enough to contain all the keys of the keyboard, some keys are partially hidden.
 
+the width of the bounded box behind the game play is not wide enough to contain all the keys of the keyboard, fix that.
+
+the keyboard still overlaps the white rounded box on the left and on the right
 
 
 ## 2025-05-28

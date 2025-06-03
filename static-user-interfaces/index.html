@@ -95,7 +95,7 @@
             align-items: center;
             width: 100%;
             max-width: min(500px, 95vw);
-            padding: clamp(10px, 3vw, 20px) clamp(10px, 3vw, 20px) clamp(30px, 6vw, 40px); /* Increased bottom padding */
+            padding: clamp(10px, 3vw, 20px) clamp(20px, 5vw, 30px) clamp(30px, 6vw, 40px); /* Increased horizontal padding */
             background: rgba(255, 255, 255, 0.8);
             border-radius: 15px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
@@ -104,8 +104,6 @@
             box-sizing: border-box;
             min-width: min(320px, 95vw);
             margin: 0 auto;
-            /* Changed from hidden to visible to ensure keyboard is fully visible */
-            overflow: visible;
         }
 
         .game-board {
@@ -190,24 +188,27 @@
             gap: 8px;
             margin-top: 20px;
             box-sizing: border-box;
-            padding: 0 5px;
+            padding: 0;
             max-width: 100%;
+            overflow-x: hidden;
         }
 
         .keyboard-row {
             display: flex;
             width: 100%;
             justify-content: center;
-            gap: 6px;
+            gap: 4px; /* Reduced gap to prevent overflow */
             box-sizing: border-box;
             /* Removed flex-wrap to maintain keyboard integrity */
+            max-width: 100%;
+            margin: 0 auto;
         }
 
         .key {
             display: flex;
             justify-content: center;
             align-items: center;
-            min-width: clamp(20px, 6vw, 40px); /* Reduced min-width for better fit */
+            min-width: clamp(18px, 5vw, 35px); /* Further reduced min-width for better fit */
             height: clamp(45px, 10vw, 58px);
             border-radius: 8px;
             background: var(--key-gradient);
@@ -221,7 +222,10 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border: none;
             color: var(--text-color);
-            padding: clamp(2px, 0.5vw, 5px); /* Reduced padding for better fit */
+            padding: clamp(1px, 0.3vw, 3px); /* Further reduced padding for better fit */
+            box-sizing: border-box;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .key:hover {
@@ -237,7 +241,9 @@
 
         .key.wide {
             flex: 1.5;
-            font-size: 12px;
+            font-size: 11px;
+            min-width: 45px; /* Reduced minimum width for wide keys */
+            white-space: nowrap;
         }
 
         .key.correct {
@@ -425,13 +431,14 @@
             }
 
             .key.wide {
-                flex: 2; /* More space for wide keys on large screens */
-                font-size: 16px;
+                flex: 2;
+                font-size: 14px;
+                min-width: 70px; /* Reduced minimum width for wide keys on large screens */
             }
 
             /* Ensure the keyboard has enough horizontal space */
             .keyboard {
-                padding: 0 10px;
+                padding: 0 5px;
             }
 
             .keyboard-row {
@@ -459,13 +466,14 @@
             }
 
             .key.wide {
-                flex: 2.5; /* Even more space for wide keys on extra large screens */
-                font-size: 18px;
+                flex: 2.5;
+                font-size: 16px;
+                min-width: 90px; /* Reduced minimum width for wide keys on extra large screens */
             }
 
             /* Ensure the keyboard has enough horizontal space */
             .keyboard {
-                padding: 0 15px;
+                padding: 0 8px;
             }
 
             .keyboard-row {
@@ -956,18 +964,23 @@
             }
 
             // Calculate minimum width needed for keyboard (10 keys in first row)
-            // Each key needs about 30-60px minimum width depending on screen size
+            // Each key needs about 18-50px minimum width depending on screen size
             let keyMinWidth;
             if (isExtraLargeScreen) {
-                keyMinWidth = 60; // Larger keys for extra large screens
+                keyMinWidth = 50; // Larger keys for extra large screens
             } else if (isLargeScreen) {
-                keyMinWidth = 45; // Larger keys for large screens
+                keyMinWidth = 35; // Larger keys for large screens
             } else {
-                keyMinWidth = 30; // Standard key width for normal screens
+                keyMinWidth = 18; // Standard key width for normal screens
             }
             // Add extra width for the wide keys (Enter and Backspace)
-            const wideKeysExtra = isExtraLargeScreen ? 80 : (isLargeScreen ? 60 : 40);
-            const minKeyboardWidth = Math.max(320, 10 * keyMinWidth + wideKeysExtra); // 10 keys * min width + extra for wide keys
+            const wideKeysExtra = isExtraLargeScreen ? 90 : (isLargeScreen ? 70 : 30);
+            // Account for gaps between keys (9 gaps in first row)
+            const keyGapWidth = isExtraLargeScreen ? 8 : (isLargeScreen ? 6 : 4);
+            const gapTotal = 9 * keyGapWidth;
+            // Add extra padding to ensure keys don't touch the container edges
+            const edgePadding = isExtraLargeScreen ? 40 : (isLargeScreen ? 30 : 20);
+            const minKeyboardWidth = Math.max(320, 10 * keyMinWidth + wideKeysExtra + gapTotal + edgePadding); // 10 keys * min width + extra for wide keys + gaps + padding
 
             // Calculate minimum width needed for game board
             const minGameBoardWidth = Math.max(320, wordLength * tileSize + 60);
@@ -981,12 +994,15 @@
                 Math.min(maxContainerWidth, window.innerWidth * 0.95), // Constrained by screen size
                 Math.max(
                     minContainerWidth, 
-                    wordLength * tileSize + (isLargeScreen ? 80 : 60) // More padding for large screens
+                    wordLength * tileSize + (isExtraLargeScreen ? 120 : (isLargeScreen ? 100 : 60)) // More padding for large screens
                 )
             );
 
+            // Ensure the container is at least as wide as the keyboard needs
+            const finalContainerWidth = Math.max(containerWidth, minKeyboardWidth);
+
             // Apply the calculated width
-            document.querySelector('.game-container').style.maxWidth = `${containerWidth}px`;
+            document.querySelector('.game-container').style.maxWidth = `${finalContainerWidth}px`;
 
             for (let i = 0; i < 6; i++) {
                 const row = document.createElement('div');
