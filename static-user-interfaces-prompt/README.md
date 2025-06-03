@@ -25,6 +25,7 @@ the keyboard still overlaps the white rounded box on the left and on the right
 
 this is almost ok but with full screen navigators, the left and right parts of the keyboard are little bit clipped by the rounded white box
 
+![](2025-06-03-1.png) ![](2025-06-03-2.png)
 
 ## 2025-05-28
 
