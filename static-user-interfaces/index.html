@@ -6,16 +6,22 @@
     <title>ZWords Game</title>
     <style>
         :root {
-            --correct-color: #6aaa64;
-            --misplaced-color: #c9b458;
-            --unused-color: #787c7e;
-            --keyboard-color: #d3d6da;
-            --border-color: #d3d6da;
-            --background-color: #ffffff;
-            --text-color: #000000;
-            --primary-color: #4361ee;
-            --secondary-color: #7209b7;
-            --accent-color: #f72585;
+            --correct-color: #4caf50;
+            --misplaced-color: #ff9800;
+            --unused-color: #9e9e9e;
+            --keyboard-color: #e0f7fa;
+            --border-color: #b2ebf2;
+            --background-color: #f5f9ff;
+            --text-color: #263238;
+            --primary-color: #3f51b5;
+            --secondary-color: #9c27b0;
+            --accent-color: #e91e63;
+            --header-bg: linear-gradient(135deg, #7f7fd5, #86a8e7, #91eae4);
+            --tile-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            --key-gradient: linear-gradient(to bottom, #f5f7fa, #e0e0e0);
+            --correct-gradient: linear-gradient(to bottom, #4caf50, #388e3c);
+            --misplaced-gradient: linear-gradient(to bottom, #ff9800, #f57c00);
+            --unused-gradient: linear-gradient(to bottom, #9e9e9e, #757575);
             --modal-background: rgba(0, 0, 0, 0.7);
         }
 
@@ -29,6 +35,8 @@
             margin: 0;
             padding: 20px;
             background-color: var(--background-color);
+            background-image: radial-gradient(circle at top right, rgba(127, 127, 213, 0.2), transparent 400px),
+                              radial-gradient(circle at bottom left, rgba(145, 234, 228, 0.2), transparent 400px);
             color: var(--text-color);
         }
 
@@ -37,21 +45,30 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
+            padding: 15px;
             border-bottom: 1px solid var(--border-color);
             margin-bottom: 20px;
+            background: var(--header-bg);
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
 
         h1 {
             margin: 0;
-            font-size: 36px;
+            font-size: 38px;
             text-align: left;
-            flex-grow: 1;
-            color: var(--primary-color);
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
             font-family: 'Arial Black', 'Arial Bold', Gadget, sans-serif;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+        }
+
+        h1 svg {
+            margin-right: 10px;
+            filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.3));
         }
 
         h1:hover {
@@ -78,6 +95,14 @@
             align-items: center;
             width: 100%;
             max-width: 500px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(5px);
+            box-sizing: border-box;
+            min-width: 320px;
         }
 
         .game-board {
@@ -86,11 +111,14 @@
             gap: 5px;
             margin-bottom: 30px;
             width: 100%;
+            box-sizing: border-box;
         }
 
         .row {
             display: grid;
             gap: 5px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .tile {
@@ -105,7 +133,13 @@
             text-transform: uppercase;
             transition: all 0.3s ease;
             transform-style: preserve-3d;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--tile-shadow);
+            border-radius: 8px;
+            background: linear-gradient(145deg, #ffffff, #f0f0f0);
+            box-sizing: border-box;
+            min-width: 30px;
+            max-width: 65px;
+            margin: 0 auto;
         }
 
         .tile:not(:empty) {
@@ -125,21 +159,24 @@
         }
 
         .tile.correct {
-            background-color: var(--correct-color);
+            background: var(--correct-gradient);
             color: white;
             border-color: var(--correct-color);
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
         }
 
         .tile.misplaced {
-            background-color: var(--misplaced-color);
+            background: var(--misplaced-gradient);
             color: white;
             border-color: var(--misplaced-color);
+            box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
         }
 
         .tile.unused {
-            background-color: var(--unused-color);
+            background: var(--unused-gradient);
             color: white;
             border-color: var(--unused-color);
+            box-shadow: 0 4px 8px rgba(158, 158, 158, 0.3);
         }
 
         .keyboard {
@@ -165,7 +202,7 @@
             min-width: 40px;
             height: 58px;
             border-radius: 8px;
-            background-color: var(--keyboard-color);
+            background: var(--key-gradient);
             font-weight: bold;
             cursor: pointer;
             user-select: none;
@@ -174,6 +211,7 @@
             transition: all 0.2s ease;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border: none;
+            color: var(--text-color);
         }
 
         .key:hover {
@@ -193,18 +231,21 @@
         }
 
         .key.correct {
-            background-color: var(--correct-color);
+            background: var(--correct-gradient);
             color: white;
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
         }
 
         .key.misplaced {
-            background-color: var(--misplaced-color);
+            background: var(--misplaced-gradient);
             color: white;
+            box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
         }
 
         .key.unused {
-            background-color: var(--unused-color);
+            background: var(--unused-gradient);
             color: white;
+            box-shadow: 0 4px 8px rgba(158, 158, 158, 0.3);
         }
 
         .message {
@@ -340,14 +381,38 @@
         .user-info {
             display: flex;
             align-items: center;
-            margin-left: 20px;
+            justify-content: center;
+            flex-grow: 1;
             color: var(--primary-color);
             font-weight: bold;
+            text-align: center;
+            font-size: 1.2rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                max-width: 90%;
+                min-width: 300px;
+                padding: 15px;
+            }
+
+            .tile {
+                max-width: 60px;
+            }
         }
 
         @media (max-width: 500px) {
+            .game-container {
+                max-width: 95%;
+                min-width: 280px;
+                padding: 10px;
+            }
+
             .tile {
                 font-size: 1.5rem;
+                max-width: 50px;
+                min-width: 25px;
             }
 
             .key {
@@ -355,15 +420,57 @@
                 height: 50px;
                 font-size: 0.8rem;
             }
+
+            header {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+            }
+
+            h1 {
+                font-size: 28px;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .language-selector {
+                margin-right: 0;
+            }
+        }
+
+        @media (max-width: 350px) {
+            .game-container {
+                min-width: 250px;
+                padding: 8px;
+            }
+
+            .tile {
+                font-size: 1.2rem;
+                max-width: 40px;
+                min-width: 20px;
+            }
+
+            .key {
+                min-width: 15px;
+                height: 45px;
+                font-size: 0.7rem;
+            }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>ZWords</h1>
+        <h1>
+            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="white">
+                <path d="M0 0h24v24H0z" fill="none"/>
+                <path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/>
+                <path d="M17.5 10.5c.88 0 1.73.09 2.5.26V9.24c-.79-.15-1.64-.24-2.5-.24-1.7 0-3.24.29-4.5.83v1.66c1.13-.64 2.7-.99 4.5-.99zM13 12.49v1.66c1.13-.64 2.7-.99 4.5-.99.88 0 1.73.09 2.5.26V11.9c-.79-.15-1.64-.24-2.5-.24-1.7 0-3.24.3-4.5.83zm4.5 1.84c-1.7 0-3.24.29-4.5.83v1.66c1.13-.64 2.7-.99 4.5-.99.88 0 1.73.09 2.5.26v-1.52c-.79-.16-1.64-.24-2.5-.24z"/>
+            </svg>
+            ZWords
+        </h1>
         <div class="user-info" id="user-info"></div>
         <div class="language-selector">
-            <label for="language">Language:</label>
+            <label for="language">Chosen dictionary:</label>
             <select id="language"></select>
         </div>
     </header>
@@ -628,6 +735,10 @@
         // Create the game board
         function createGameBoard() {
             gameBoard.innerHTML = '';
+
+            // Adjust container size based on word length
+            const containerWidth = Math.min(500, Math.max(320, wordLength * 65 + 40)); // 65px per tile + padding
+            document.querySelector('.game-container').style.maxWidth = `${containerWidth}px`;
 
             for (let i = 0; i < 6; i++) {
                 const row = document.createElement('div');
