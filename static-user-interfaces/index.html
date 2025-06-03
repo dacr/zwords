@@ -94,22 +94,25 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
-            max-width: 500px;
-            padding: 20px;
+            max-width: min(500px, 95vw);
+            padding: clamp(10px, 3vw, 20px) clamp(10px, 3vw, 20px) clamp(30px, 6vw, 40px); /* Increased bottom padding */
             background: rgba(255, 255, 255, 0.8);
             border-radius: 15px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
             border: 1px solid var(--border-color);
             backdrop-filter: blur(5px);
             box-sizing: border-box;
-            min-width: 320px;
+            min-width: min(320px, 95vw);
+            margin: 0 auto;
+            /* Changed from hidden to visible to ensure keyboard is fully visible */
+            overflow: visible;
         }
 
         .game-board {
             display: grid;
             grid-template-rows: repeat(6, 1fr);
             gap: 5px;
-            margin-bottom: 30px;
+            margin-bottom: clamp(30px, 5vh, 50px);
             width: 100%;
             box-sizing: border-box;
         }
@@ -128,7 +131,7 @@
             width: 100%;
             aspect-ratio: 1;
             border: 2px solid var(--border-color);
-            font-size: 2rem;
+            font-size: clamp(1.2rem, 4vw, 2rem);
             font-weight: bold;
             text-transform: uppercase;
             transition: all 0.3s ease;
@@ -137,8 +140,8 @@
             border-radius: 8px;
             background: linear-gradient(145deg, #ffffff, #f0f0f0);
             box-sizing: border-box;
-            min-width: 30px;
-            max-width: 65px;
+            min-width: clamp(20px, 5vw, 30px);
+            max-width: clamp(40px, 10vw, 65px);
             margin: 0 auto;
         }
 
@@ -186,6 +189,9 @@
             width: 100%;
             gap: 8px;
             margin-top: 20px;
+            box-sizing: border-box;
+            padding: 0 5px;
+            max-width: 100%;
         }
 
         .keyboard-row {
@@ -193,17 +199,20 @@
             width: 100%;
             justify-content: center;
             gap: 6px;
+            box-sizing: border-box;
+            /* Removed flex-wrap to maintain keyboard integrity */
         }
 
         .key {
             display: flex;
             justify-content: center;
             align-items: center;
-            min-width: 40px;
-            height: 58px;
+            min-width: clamp(20px, 6vw, 40px); /* Reduced min-width for better fit */
+            height: clamp(45px, 10vw, 58px);
             border-radius: 8px;
             background: var(--key-gradient);
             font-weight: bold;
+            font-size: clamp(0.7rem, 2.5vw, 1rem);
             cursor: pointer;
             user-select: none;
             text-transform: uppercase;
@@ -212,6 +221,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border: none;
             color: var(--text-color);
+            padding: clamp(2px, 0.5vw, 5px); /* Reduced padding for better fit */
         }
 
         .key:hover {
@@ -390,7 +400,97 @@
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
         }
 
+        /* Responsive design with improved media queries */
+        @media (min-width: 1200px) {
+            /* For large desktop screens */
+            .game-container {
+                max-width: 700px; /* Much larger for big screens */
+                padding: 30px 40px 40px; /* More bottom padding to ensure keyboard fits */
+                overflow: visible; /* Allow keyboard to overflow if needed */
+            }
+
+            body {
+                padding: 40px;
+            }
+
+            .tile {
+                max-width: 85px; /* Larger tiles on big screens */
+                font-size: 2.5rem;
+            }
+
+            .key {
+                min-width: 55px;
+                height: 75px;
+                font-size: 1.2rem;
+            }
+
+            .key.wide {
+                flex: 2; /* More space for wide keys on large screens */
+                font-size: 16px;
+            }
+
+            /* Ensure the keyboard has enough horizontal space */
+            .keyboard {
+                padding: 0 10px;
+            }
+
+            .keyboard-row {
+                gap: 8px; /* Slightly larger gap between keys */
+            }
+        }
+
+        /* Extra large screens */
+        @media (min-width: 1600px) {
+            .game-container {
+                max-width: 800px;
+                padding: 35px 45px 50px; /* Even more bottom padding for extra large screens */
+                overflow: visible; /* Allow keyboard to overflow if needed */
+            }
+
+            .tile {
+                max-width: 95px;
+                font-size: 2.8rem;
+            }
+
+            .key {
+                min-width: 65px;
+                height: 85px;
+                font-size: 1.3rem;
+            }
+
+            .key.wide {
+                flex: 2.5; /* Even more space for wide keys on extra large screens */
+                font-size: 18px;
+            }
+
+            /* Ensure the keyboard has enough horizontal space */
+            .keyboard {
+                padding: 0 15px;
+            }
+
+            .keyboard-row {
+                gap: 10px; /* Larger gap between keys for extra large screens */
+            }
+        }
+
+        @media (max-width: 992px) {
+            /* For medium screens (tablets, small laptops) */
+            .game-container {
+                max-width: 90%;
+                padding: 20px;
+            }
+
+            header {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 32px;
+            }
+        }
+
         @media (max-width: 768px) {
+            /* For tablets and large phones */
             .game-container {
                 max-width: 90%;
                 min-width: 300px;
@@ -400,11 +500,52 @@
             .tile {
                 max-width: 60px;
             }
+
+            body {
+                padding: 15px;
+            }
+
+            header {
+                padding: 10px;
+            }
         }
 
-        @media (max-width: 500px) {
+        @media (max-width: 576px) {
+            /* For medium-sized phones */
             .game-container {
                 max-width: 95%;
+                min-width: 280px;
+                padding: 12px;
+            }
+
+            header {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+
+            h1 {
+                font-size: 28px;
+                width: 100%;
+                justify-content: center;
+                margin-bottom: 5px;
+            }
+
+            .language-selector {
+                margin-right: 0;
+                margin-top: 5px;
+            }
+
+            body {
+                padding: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            /* For smaller phones */
+            .game-container {
+                max-width: 98%;
                 min-width: 280px;
                 padding: 10px;
             }
@@ -416,29 +557,28 @@
             }
 
             .key {
-                min-width: 20px;
+                min-width: 18px; /* Reduced for better fit on small screens */
                 height: 50px;
                 font-size: 0.8rem;
+                padding: 1px; /* Minimal padding */
             }
 
-            header {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 10px;
+            .keyboard-row {
+                gap: 4px; /* Reduced gap between keys */
             }
 
-            h1 {
-                font-size: 28px;
-                width: 100%;
-                justify-content: center;
+            body {
+                padding: 8px;
             }
 
-            .language-selector {
-                margin-right: 0;
+            .message {
+                font-size: 0.9rem;
+                padding: 8px 15px;
             }
         }
 
         @media (max-width: 350px) {
+            /* For very small phones */
             .game-container {
                 min-width: 250px;
                 padding: 8px;
@@ -451,9 +591,63 @@
             }
 
             .key {
-                min-width: 15px;
+                min-width: 14px; /* Further reduced for very small screens */
                 height: 45px;
-                font-size: 0.7rem;
+                font-size: 0.65rem; /* Smaller font */
+                padding: 0; /* No padding */
+            }
+
+            .keyboard-row {
+                gap: 3px; /* Minimal gap */
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .language-selector {
+                font-size: 0.9rem;
+            }
+
+            .language-selector select {
+                padding: 3px;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Handle landscape orientation on mobile */
+        @media (max-height: 500px) and (orientation: landscape) {
+            body {
+                padding: 5px;
+            }
+
+            header {
+                padding: 5px 10px;
+                margin-bottom: 10px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .game-container {
+                padding: 8px;
+            }
+
+            .keyboard {
+                margin-top: 10px;
+                gap: 4px;
+            }
+
+            .keyboard-row {
+                gap: 2px; /* Reduced gap for landscape */
+            }
+
+            .key {
+                height: 36px; /* Smaller height for landscape */
+                min-width: 22px; /* Smaller width for landscape */
+                font-size: 0.7rem; /* Smaller font for landscape */
+                padding: 0; /* No padding for landscape */
             }
         }
     </style>
@@ -736,8 +930,62 @@
         function createGameBoard() {
             gameBoard.innerHTML = '';
 
-            // Adjust container size based on word length
-            const containerWidth = Math.min(500, Math.max(320, wordLength * 65 + 40)); // 65px per tile + padding
+            // Calculate responsive container width based on word length and viewport
+            // For larger words, we need more space, but still constrained by viewport
+            const isLargeScreen = window.innerWidth >= 1200;
+            const isExtraLargeScreen = window.innerWidth >= 1600;
+
+            // Adjust tile size based on screen size
+            let tileSize;
+            if (isExtraLargeScreen) {
+                tileSize = Math.min(95, Math.max(65, window.innerWidth * 0.12));
+            } else if (isLargeScreen) {
+                tileSize = Math.min(85, Math.max(55, window.innerWidth * 0.11));
+            } else {
+                tileSize = Math.min(65, Math.max(40, window.innerWidth * 0.1));
+            }
+
+            // Calculate container width with larger maximums for bigger screens
+            let maxContainerWidth;
+            if (isExtraLargeScreen) {
+                maxContainerWidth = 800;
+            } else if (isLargeScreen) {
+                maxContainerWidth = 700;
+            } else {
+                maxContainerWidth = 500;
+            }
+
+            // Calculate minimum width needed for keyboard (10 keys in first row)
+            // Each key needs about 30-60px minimum width depending on screen size
+            let keyMinWidth;
+            if (isExtraLargeScreen) {
+                keyMinWidth = 60; // Larger keys for extra large screens
+            } else if (isLargeScreen) {
+                keyMinWidth = 45; // Larger keys for large screens
+            } else {
+                keyMinWidth = 30; // Standard key width for normal screens
+            }
+            // Add extra width for the wide keys (Enter and Backspace)
+            const wideKeysExtra = isExtraLargeScreen ? 80 : (isLargeScreen ? 60 : 40);
+            const minKeyboardWidth = Math.max(320, 10 * keyMinWidth + wideKeysExtra); // 10 keys * min width + extra for wide keys
+
+            // Calculate minimum width needed for game board
+            const minGameBoardWidth = Math.max(320, wordLength * tileSize + 60);
+
+            // Use the larger of the two minimums
+            const minContainerWidth = Math.max(minKeyboardWidth, minGameBoardWidth);
+
+            // Ensure the container is wide enough for both the game board and keyboard
+            // For large displays, we prioritize having enough space for the keyboard
+            const containerWidth = Math.min(
+                Math.min(maxContainerWidth, window.innerWidth * 0.95), // Constrained by screen size
+                Math.max(
+                    minContainerWidth, 
+                    wordLength * tileSize + (isLargeScreen ? 80 : 60) // More padding for large screens
+                )
+            );
+
+            // Apply the calculated width
             document.querySelector('.game-container').style.maxWidth = `${containerWidth}px`;
 
             for (let i = 0; i < 6; i++) {
@@ -755,6 +1003,22 @@
                 }
 
                 gameBoard.appendChild(row);
+            }
+
+            // Adjust game board size based on viewport height
+            const viewportHeight = window.innerHeight;
+            if (viewportHeight < 700) {
+                // For smaller screens, reduce the gap between rows
+                gameBoard.style.gap = '3px';
+                document.querySelectorAll('.row').forEach(row => {
+                    row.style.gap = '3px';
+                });
+            } else {
+                // For larger screens, use default gap
+                gameBoard.style.gap = '5px';
+                document.querySelectorAll('.row').forEach(row => {
+                    row.style.gap = '5px';
+                });
             }
         }
 
@@ -976,6 +1240,20 @@
 
         // Initialize the game when the page loads
         window.addEventListener('DOMContentLoaded', initGame);
+
+        // Handle window resize to ensure responsive layout
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            // Debounce the resize event to avoid excessive recalculations
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                // Only recreate the board if a game is active
+                if (currentGame) {
+                    createGameBoard();
+                    updateGameBoard();
+                }
+            }, 250); // Wait for resize to finish before recalculating
+        });
     </script>
 </body>
 </html>
