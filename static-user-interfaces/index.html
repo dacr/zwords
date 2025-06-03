@@ -104,6 +104,7 @@
             box-sizing: border-box;
             min-width: min(320px, 95vw);
             margin: 0 auto;
+            overflow: visible; /* Allow keyboard to extend beyond container if needed */
         }
 
         .game-board {
@@ -190,7 +191,6 @@
             box-sizing: border-box;
             padding: 0;
             max-width: 100%;
-            overflow-x: hidden;
         }
 
         .keyboard-row {
@@ -410,8 +410,8 @@
         @media (min-width: 1200px) {
             /* For large desktop screens */
             .game-container {
-                max-width: 700px; /* Much larger for big screens */
-                padding: 30px 40px 40px; /* More bottom padding to ensure keyboard fits */
+                max-width: 750px; /* Increased width for big screens */
+                padding: 30px 50px 40px; /* More horizontal padding to ensure keyboard fits */
                 overflow: visible; /* Allow keyboard to overflow if needed */
             }
 
@@ -439,18 +439,20 @@
             /* Ensure the keyboard has enough horizontal space */
             .keyboard {
                 padding: 0 5px;
+                width: 100%; /* Ensure keyboard takes full width */
             }
 
             .keyboard-row {
                 gap: 8px; /* Slightly larger gap between keys */
+                width: 100%; /* Ensure keyboard row takes full width */
             }
         }
 
         /* Extra large screens */
         @media (min-width: 1600px) {
             .game-container {
-                max-width: 800px;
-                padding: 35px 45px 50px; /* Even more bottom padding for extra large screens */
+                max-width: 850px; /* Increased width for extra large screens */
+                padding: 35px 60px 50px; /* Increased horizontal padding for extra large screens */
                 overflow: visible; /* Allow keyboard to overflow if needed */
             }
 
@@ -474,10 +476,12 @@
             /* Ensure the keyboard has enough horizontal space */
             .keyboard {
                 padding: 0 8px;
+                width: 100%; /* Ensure keyboard takes full width */
             }
 
             .keyboard-row {
                 gap: 10px; /* Larger gap between keys for extra large screens */
+                width: 100%; /* Ensure keyboard row takes full width */
             }
         }
 
@@ -967,19 +971,19 @@
             // Each key needs about 18-50px minimum width depending on screen size
             let keyMinWidth;
             if (isExtraLargeScreen) {
-                keyMinWidth = 50; // Larger keys for extra large screens
+                keyMinWidth = 55; // Larger keys for extra large screens
             } else if (isLargeScreen) {
-                keyMinWidth = 35; // Larger keys for large screens
+                keyMinWidth = 40; // Larger keys for large screens
             } else {
-                keyMinWidth = 18; // Standard key width for normal screens
+                keyMinWidth = 20; // Standard key width for normal screens
             }
             // Add extra width for the wide keys (Enter and Backspace)
-            const wideKeysExtra = isExtraLargeScreen ? 90 : (isLargeScreen ? 70 : 30);
+            const wideKeysExtra = isExtraLargeScreen ? 100 : (isLargeScreen ? 80 : 40);
             // Account for gaps between keys (9 gaps in first row)
-            const keyGapWidth = isExtraLargeScreen ? 8 : (isLargeScreen ? 6 : 4);
+            const keyGapWidth = isExtraLargeScreen ? 10 : (isLargeScreen ? 8 : 4);
             const gapTotal = 9 * keyGapWidth;
             // Add extra padding to ensure keys don't touch the container edges
-            const edgePadding = isExtraLargeScreen ? 40 : (isLargeScreen ? 30 : 20);
+            const edgePadding = isExtraLargeScreen ? 60 : (isLargeScreen ? 40 : 20);
             const minKeyboardWidth = Math.max(320, 10 * keyMinWidth + wideKeysExtra + gapTotal + edgePadding); // 10 keys * min width + extra for wide keys + gaps + padding
 
             // Calculate minimum width needed for game board
@@ -994,12 +998,14 @@
                 Math.min(maxContainerWidth, window.innerWidth * 0.95), // Constrained by screen size
                 Math.max(
                     minContainerWidth, 
-                    wordLength * tileSize + (isExtraLargeScreen ? 120 : (isLargeScreen ? 100 : 60)) // More padding for large screens
+                    wordLength * tileSize + (isExtraLargeScreen ? 150 : (isLargeScreen ? 120 : 60)) // More padding for large screens
                 )
             );
 
-            // Ensure the container is at least as wide as the keyboard needs
-            const finalContainerWidth = Math.max(containerWidth, minKeyboardWidth);
+            // Ensure the container is at least as wide as the keyboard needs plus extra padding
+            // This is crucial for full-screen navigators to prevent clipping
+            const extraPadding = isExtraLargeScreen ? 40 : (isLargeScreen ? 30 : 20);
+            const finalContainerWidth = Math.max(containerWidth, minKeyboardWidth + extraPadding);
 
             // Apply the calculated width
             document.querySelector('.game-container').style.maxWidth = `${finalContainerWidth}px`;
