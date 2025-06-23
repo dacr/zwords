@@ -32,6 +32,7 @@
 
       installPhase = ''
           mkdir -p $out
+          cp -r static-user-interfaces $out/user-interface
           tar xf webapi/target/universal/zwords-webapi.tgz --directory $out
           makeWrapper $out/bin/zwords-webapi $out/bin/nix-zwords \
             --set PATH ${pkgs.lib.makeBinPath [
@@ -131,6 +132,7 @@
             ExecStart = "${self.packages.${pkgs.system}.default}/bin/nix-zwords";
             User = config.services.zwords.user;
             Restart = "on-failure";
+            WorkingDirectory = "${self.packages.${pkgs.system}.default}";
           };
           wantedBy = [ "multi-user.target" ];
         };
