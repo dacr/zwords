@@ -1,5 +1,32 @@
 # UI prompts
 
+## 2025-06-03
+
+Enhance the user interface of this game which is defined in the directory `Create in a single file `static-user-interfaces/` by :
+- Change Language label to Chosen directory
+- Center the current player name
+- Make the user interface more colorful, add some SVG graphics or icons
+
+rename the label `chosen directory` to `chosen dictrionary`, fix spells if you can see issues
+
+There is a resizing issue with the round box behind the main game play.
+
+Adap the playing board to the size of the display, use raisonnable sizes, not too small and not too big. It should be playable using a smarphone or using a desktop computer.
+
+this is OK for small sizes, but you can increase the size for bigger display. And there is an issue with the keyboard which overlapping the background box.
+
+the keyboard lines must not be splitted into several ones, as it is with your latest changes. Keey the integrity of the qwerty keyboard.
+
+for big display size, playground background box is not big enough to contain all the keys of the keyboard, some keys are partially hidden.
+
+the width of the bounded box behind the game play is not wide enough to contain all the keys of the keyboard, fix that.
+
+the keyboard still overlaps the white rounded box on the left and on the right
+
+this is almost ok but with full screen navigators, the left and right parts of the keyboard are little bit clipped by the rounded white box
+
+![](2025-06-03-1.png) ![](2025-06-03-2.png)
+
 ## 2025-05-28
 
 ### successive prompts
