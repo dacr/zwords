@@ -1,0 +1,207 @@
+/* Responsive Design */
+
+/* Base responsive adjustments */
+@media (max-width: 600px) {
+    #app {
+        padding: 10px;
+    }
+    
+    .game-title {
+        font-size: 2rem;
+    }
+    
+    .user-info {
+        font-size: 1rem;
+    }
+}
+
+/* Small devices (phones) */
+@media (max-width: 480px) {
+    header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .game-title {
+        font-size: 1.8rem;
+    }
+    
+    #game-board {
+        max-width: 300px;
+    }
+    
+    .game-cell {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+    
+    .key {
+        min-width: 30px;
+        height: 45px;
+        font-size: 1rem;
+    }
+    
+    .key[data-key="enter"],
+    .key[data-key="backspace"] {
+        min-width: 50px;
+    }
+    
+    .enter-icon,
+    .backspace-icon {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .modal-content {
+        padding: 20px;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 360px) {
+    .game-title {
+        font-size: 1.5rem;
+    }
+    
+    #game-board {
+        max-width: 250px;
+    }
+    
+    .game-cell {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    
+    .key {
+        min-width: 25px;
+        height: 40px;
+        font-size: 0.9rem;
+    }
+    
+    .key[data-key="enter"],
+    .key[data-key="backspace"] {
+        min-width: 40px;
+    }
+    
+    .enter-icon,
+    .backspace-icon {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+/* Medium devices (tablets) */
+@media (min-width: 601px) and (max-width: 768px) {
+    #game-board {
+        max-width: 400px;
+    }
+    
+    .game-cell {
+        width: 65px;
+        height: 65px;
+    }
+}
+
+/* Large devices (desktops) */
+@media (min-width: 769px) {
+    #app {
+        max-width: 800px;
+    }
+    
+    .game-title {
+        font-size: 3rem;
+    }
+    
+    #game-board {
+        max-width: 450px;
+    }
+    
+    .game-cell {
+        width: 70px;
+        height: 70px;
+        font-size: 2.5rem;
+    }
+    
+    .key {
+        min-width: 45px;
+        height: 65px;
+        font-size: 1.3rem;
+    }
+    
+    .key[data-key="enter"],
+    .key[data-key="backspace"] {
+        min-width: 80px;
+    }
+}
+
+/* Landscape orientation adjustments for mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+    #app {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    header {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    main {
+        flex: 0 0 60%;
+        margin-bottom: 10px;
+    }
+    
+    #keyboard {
+        flex: 0 0 35%;
+        margin-left: 5%;
+    }
+    
+    footer {
+        width: 100%;
+        margin-top: 10px;
+    }
+    
+    .game-cell {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    
+    .key {
+        min-width: 30px;
+        height: 35px;
+        font-size: 0.9rem;
+    }
+}
+
+/* High-resolution displays */
+@media (min-width: 1200px) {
+    #app {
+        max-width: 1000px;
+    }
+    
+    .game-title {
+        font-size: 3.5rem;
+    }
+}
+
+/* Print styles for sharing */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    
+    #game-board, #game-board * {
+        visibility: visible;
+    }
+    
+    #game-board {
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+}

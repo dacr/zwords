@@ -1,0 +1,670 @@
+openapi: 3.1.0
+info:
+  title: ZWORDS Game API
+  version: '2.0'
+  description: A wordle like game as an API by @BriossantC and @crodav
+paths:
+  /api/system/status:
+    get:
+      tags:
+      - System
+      summary: Get the game service status
+      description: Returns the service status, can also be used as a health check
+        end point for monitoring purposes
+      operationId: Game service status
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceStatus'
+  /api/system/info:
+    get:
+      tags:
+      - System
+      summary: Get game information and some global statistics
+      description: Returns game service global information such as release information,
+        authors and global game statistics
+      operationId: Game service global information
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameInfo'
+        '500':
+          description: Something went wrong with the game engine backend
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInternalError'
+  /api/players/player:
+    get:
+      tags:
+      - Players
+      summary: Create player or get player information
+      description: Create a new player if no playerId is provided and return the current
+        player information
+      operationId: Player setup
+      parameters:
+      - name: playerId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          description: 'Invalid value for: query parameter playerId, Invalid value'
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: Player does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnknownPlayerIssue'
+        '500':
+          description: Something went wrong with the game engine backend
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInternalError'
+    put:
+      tags:
+      - Players
+      summary: Update some player information or settings
+      description: Update player pseudo, change default language, ...
+      operationId: Player update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Player'
+        required: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          description: 'Invalid value for: body, Invalid value'
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: Player does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnknownPlayerIssue'
+        '460':
+          description: Given pseudo is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPseudoIssue'
+        '500':
+          description: Something went wrong with the game engine backend
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInternalError'
+  /api/players/player/{playerId}:
+    delete:
+      tags:
+      - Players
+      summary: Delete player
+      description: Delete player definitively
+      operationId: Player delete
+      parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: ''
+        '400':
+          description: 'Invalid value for: path parameter playerId, Invalid value'
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: Player does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnknownPlayerIssue'
+        '500':
+          description: Something went wrong with the game engine backend
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInternalError'
+  /api/game/languages:
+    get:
+      tags:
+      - Game
+      summary: List all supported dictionary languages, used to play
+      description: Returns the list of supported languages keys which can be used
+        as parameter to play the game
+      operationId: Available languages
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Languages'
+  /api/game/play/{languageKey}/{playerId}:
+    get:
+      tags:
+      - Game
+      summary: Get the current player game status
+      description: Returns the current game status for given player
+      operationId: Game state
+      parameters:
+      - name: languageKey
+        in: path
+        required: true
+        schema:
+          type: string
+        example: en
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentGame'
+        '400':
+          description: No dictionary is available for the given language, don't try
+            to hack me
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnsupportedLanguageIssue'
+        '404':
+          description: Player does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnknownPlayerIssue'
+        '500':
+          description: Something went wrong with the game engine backend
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInternalError'
+    post:
+      tags:
+      - Game
+      summary: Play next round
+      description: Play the next round of the game if the current game is not finished
+        and returns the next game state
+      operationId: Game play
+      parameters:
+      - name: languageKey
+        in: path
+        required: true
+        schema:
+          type: string
+        example: en
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GivenWord'
+        required: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentGame'
+        '400':
+          description: No dictionary is available for the given language, don't try
+            to hack me
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnsupportedLanguageIssue'
+        '404':
+          description: Player does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnknownPlayerIssue'
+        '461':
+          description: Invalid word given, don't try to hack me
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidGameWordIssue'
+        '462':
+          description: Given word doesn't have the same size as the word to guess
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidGameWordSizeIssue'
+        '463':
+          description: Given word is not in the dictionary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WordNotInDictionaryIssue'
+        '470':
+          description: No game found to play this round
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundGameIssue'
+        '471':
+          description: Game has expired, day has changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpiredGameIssue'
+        '472':
+          description: Game is finished, couldn't play any more round
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameIsOverIssue'
+        '500':
+          description: Something went wrong with the game engine backend
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInternalError'
+  /api/game/statistics/{languageKey}/{playerId}:
+    get:
+      tags:
+      - Game
+      summary: Get your game statistics
+      description: Returns statistics about all the games you've played with this
+        player and for the given selected language
+      operationId: Player game statistics
+      parameters:
+      - name: languageKey
+        in: path
+        required: true
+        schema:
+          type: string
+        example: en
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerStatistics'
+        '400':
+          description: No dictionary is available for the given language, don't try
+            to hack me
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnsupportedLanguageIssue'
+        '404':
+          description: Player does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnknownPlayerIssue'
+        '500':
+          description: Something went wrong with the game engine backend
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInternalError'
+  /api/social/leaderboard:
+    get:
+      tags:
+      - Social
+      summary: Get the global leaderboard
+      description: Returns the global top50 leaderboard, don't forget to provide some
+        player information such as your pseudo
+      operationId: global leader board
+      responses:
+        '200':
+          description: ''
+components:
+  schemas:
+    CurrentGame:
+      title: CurrentGame
+      type: object
+      required:
+      - gameSexyId
+      - gameUUID
+      - currentMask
+      - possibleWordsCount
+      - state
+      - finished
+      properties:
+        gameSexyId:
+          type: string
+        gameUUID:
+          type: string
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameRow'
+        currentMask:
+          type: string
+        possibleWordsCount:
+          type: integer
+          format: int32
+        state:
+          type: string
+        hiddenWord:
+          type: string
+        winRank:
+          type: integer
+          format: int32
+        finished:
+          type: boolean
+    DictionaryStats:
+      title: DictionaryStats
+      type: object
+      required:
+      - dictionaryBaseSize
+      - dictionaryExpandedSize
+      - filteredSelectedWordsCount
+      - filteredAcceptableWordsCount
+      properties:
+        dictionaryBaseSize:
+          type: integer
+          format: int32
+        dictionaryExpandedSize:
+          type: integer
+          format: int32
+        filteredSelectedWordsCount:
+          type: integer
+          format: int32
+        filteredAcceptableWordsCount:
+          type: integer
+          format: int32
+    ExpiredGameIssue:
+      title: ExpiredGameIssue
+      type: object
+      required:
+      - wasCreatedOn
+      properties:
+        wasCreatedOn:
+          type: string
+          format: date-time
+    GameInfo:
+      title: GameInfo
+      type: object
+      required:
+      - message
+      - dictionaryStats
+      - playedStats
+      - playedTodayStats
+      properties:
+        authors:
+          type: array
+          items:
+            type: string
+        message:
+          type: string
+        dictionaryStats:
+          $ref: '#/components/schemas/Map_DictionaryStats'
+        playedStats:
+          $ref: '#/components/schemas/Map_PlayedStats'
+        playedTodayStats:
+          $ref: '#/components/schemas/Map_PlayedTodayStats'
+    GameIsOverIssue:
+      title: GameIsOverIssue
+      type: object
+    GameRow:
+      title: GameRow
+      type: object
+      required:
+      - goodPlacesMask
+      - wrongPlacesMask
+      - notUsedPlacesMask
+      properties:
+        givenWord:
+          type: string
+        goodPlacesMask:
+          type: string
+        wrongPlacesMask:
+          type: string
+        notUsedPlacesMask:
+          type: string
+    GivenWord:
+      title: GivenWord
+      type: object
+      required:
+      - word
+      properties:
+        word:
+          type: string
+    InvalidGameWordIssue:
+      title: InvalidGameWordIssue
+      type: object
+      required:
+      - givenGameWordBase64
+      properties:
+        givenGameWordBase64:
+          type: string
+    InvalidGameWordSizeIssue:
+      title: InvalidGameWordSizeIssue
+      type: object
+      required:
+      - word
+      properties:
+        word:
+          type: string
+    InvalidPseudoIssue:
+      title: InvalidPseudoIssue
+      type: object
+      required:
+      - givenPseudoBase64
+      properties:
+        givenPseudoBase64:
+          type: string
+    Languages:
+      title: Languages
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            type: string
+    Map_DictionaryStats:
+      title: Map_DictionaryStats
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/DictionaryStats'
+    Map_Int:
+      title: Map_Int
+      type: object
+      additionalProperties:
+        type: integer
+        format: int32
+    Map_PlayedStats:
+      title: Map_PlayedStats
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/PlayedStats'
+    Map_PlayedTodayStats:
+      title: Map_PlayedTodayStats
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/PlayedTodayStats'
+    NotFoundGameIssue:
+      title: NotFoundGameIssue
+      type: object
+    PlayedStats:
+      title: PlayedStats
+      type: object
+      required:
+      - playedCount
+      - wonCount
+      - lostCount
+      - triedCount
+      - wonIn
+      properties:
+        playedCount:
+          type: integer
+          format: int32
+        wonCount:
+          type: integer
+          format: int32
+        lostCount:
+          type: integer
+          format: int32
+        triedCount:
+          type: integer
+          format: int32
+        wonIn:
+          $ref: '#/components/schemas/Map_Int'
+    PlayedTodayStats:
+      title: PlayedTodayStats
+      type: object
+      required:
+      - dailyGameId
+      - playedCount
+      - wonCount
+      - lostCount
+      - triedCount
+      - wonIn
+      properties:
+        dailyGameId:
+          type: string
+        playedCount:
+          type: integer
+          format: int32
+        wonCount:
+          type: integer
+          format: int32
+        lostCount:
+          type: integer
+          format: int32
+        triedCount:
+          type: integer
+          format: int32
+        wonIn:
+          $ref: '#/components/schemas/Map_Int'
+    Player:
+      title: Player
+      type: object
+      required:
+      - playerId
+      properties:
+        playerId:
+          type: string
+          format: uuid
+        pseudo:
+          type: string
+    PlayerStatistics:
+      title: PlayerStatistics
+      type: object
+      required:
+      - playedCount
+      - wonCount
+      - lostCount
+      - activeCount
+      - wonIn
+      - goodPlaceLetterCount
+      - wrongPlaceLetterCount
+      - unusedLetterCount
+      properties:
+        playedCount:
+          type: integer
+          format: int32
+        wonCount:
+          type: integer
+          format: int32
+        lostCount:
+          type: integer
+          format: int32
+        activeCount:
+          type: integer
+          format: int32
+        wonIn:
+          $ref: '#/components/schemas/Map_Int'
+        goodPlaceLetterCount:
+          type: integer
+          format: int32
+        wrongPlaceLetterCount:
+          type: integer
+          format: int32
+        unusedLetterCount:
+          type: integer
+          format: int32
+    ServiceInternalError:
+      title: ServiceInternalError
+      type: object
+    ServiceStatus:
+      title: ServiceStatus
+      type: object
+      required:
+      - alive
+      properties:
+        alive:
+          type: boolean
+    UnknownPlayerIssue:
+      title: UnknownPlayerIssue
+      type: object
+      required:
+      - playerId
+      properties:
+        playerId:
+          type: string
+          format: uuid
+    UnsupportedLanguageIssue:
+      title: UnsupportedLanguageIssue
+      type: object
+      required:
+      - givenLanguageBase64
+      properties:
+        givenLanguageBase64:
+          type: string
+    WordNotInDictionaryIssue:
+      title: WordNotInDictionaryIssue
+      type: object
+      required:
+      - word
+      properties:
+        word:
+          type: string

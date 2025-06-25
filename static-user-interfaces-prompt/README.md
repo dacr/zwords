@@ -4,8 +4,10 @@
 
 - restart from scratch
 - SWITCH to a .junie/guidelines.md and docs/requirements.md approach
-- prompts history
+- Prompts history
   - Implement the user interface of this game - the backend is already started (do not execute `make run`) the API is available through this link : http://127.0.0.1:8090/docs/docs.yaml use curl to download it.
+
+
 
 ## 2025-06-03
 
