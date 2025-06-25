@@ -26,9 +26,9 @@ const Game = {
             const languages = await API.getLanguages();
             this.state.availableLanguages = languages.keys || [];
 
-            // Check if player exists in session storage
-            const storedPlayerId = sessionStorage.getItem('playerId');
-            const storedLanguage = sessionStorage.getItem('language');
+            // Check if player exists in local storage (for permanent persistence)
+            const storedPlayerId = localStorage.getItem('playerId');
+            const storedLanguage = localStorage.getItem('language');
 
             if (storedLanguage && this.state.availableLanguages.includes(storedLanguage)) {
                 this.state.currentLanguage = storedLanguage;
@@ -68,9 +68,9 @@ const Game = {
             player.pseudo = pseudo;
             player = await API.updatePlayer(player);
 
-            // Store player ID and language in session storage
-            sessionStorage.setItem('playerId', player.playerId);
-            sessionStorage.setItem('language', language);
+            // Store player ID and language in local storage for permanent persistence
+            localStorage.setItem('playerId', player.playerId);
+            localStorage.setItem('language', language);
 
             this.state.player = player;
             this.state.currentLanguage = language;
@@ -127,7 +127,7 @@ const Game = {
 
         try {
             this.state.currentLanguage = language;
-            sessionStorage.setItem('language', language);
+            localStorage.setItem('language', language);
 
             await this.startGame();
         } catch (error) {

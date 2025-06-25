@@ -42,7 +42,7 @@
     - Display also a message to invite the player to come back tomorrow for a new word to guess
 - When first started
   - Ask the user for a pseudo and a language dictionary
-    - keep this pseudo and dictionary into the current navigator session.
+    - persist permanently this pseudo and dictionary into the current navigator
     - select the `FR` language dictionary as the default one among possible ones (`/api/game/languages` API call)
 - Look & feel
   - New-entered word must fit in a single line
