@@ -6,7 +6,7 @@
 - SWITCH to a .junie/guidelines.md and docs/requirements.md approach
 - Prompt history
   - step1
-    - Implement the user interface of this game - the backend is already started (do not execute `make run`) the API is available through this link : http://127.0.0.1:8090/docs/docs.yaml use curl to download it.
+    - Implement the user interface of this game - the backend is already started (do not execute `make run`) the API is available through this link: http://127.0.0.1:8090/docs/docs.yaml use curl to download it.
   - step2
     - widen the header and footer
     - in the displayed result summary, use several liens and not everything in the same one
@@ -20,7 +20,15 @@
   - step5
     - The game is won, but it is considered as lost (game over)
   - step6
-    - 
+    - on dictionary change, new daily word size can change, update the grid to have all the characters shown on the same line
+  - step7
+    - the first letter typed on the real keyboard is not taken into account, have to press the key two times
+    - no the issue is still here have to press two times
+    - it works fine for the first word, but for all others I have to press two times on the first letter I want
+    - now it doesn't work for the first ones but it works fine for all others
+  - step8
+    - the results summary lines are in the reverse order, fix
+  - step9
 
 ## 2025-06-03
 

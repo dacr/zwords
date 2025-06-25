@@ -192,7 +192,10 @@ const UI = {
         pseudoDiv.style.fontWeight = 'bold';
         this.elements.gameSummary.appendChild(pseudoDiv);
 
-        for (const row of game.rows) {
+        // Create a copy of the rows array and reverse it to show oldest first
+        const reversedRows = [...game.rows].reverse();
+
+        for (const row of reversedRows) {
             const rowDiv = document.createElement('div');
             rowDiv.style.display = 'flex';
 
@@ -213,6 +216,15 @@ const UI = {
 
             this.elements.gameSummary.appendChild(rowDiv);
         }
+
+        // Add message to invite player to come back tomorrow
+        const tomorrowDiv = document.createElement('div');
+        tomorrowDiv.textContent = 'Come back tomorrow for a new word to guess!';
+        tomorrowDiv.style.marginTop = '15px';
+        tomorrowDiv.style.marginBottom = '15px';
+        tomorrowDiv.style.fontWeight = 'bold';
+        tomorrowDiv.style.color = 'var(--primary-color)';
+        this.elements.gameSummary.appendChild(tomorrowDiv);
 
         // Reset copy button text
         this.elements.copyResultBtn.textContent = 'Copy to Clipboard';
@@ -267,6 +279,8 @@ const UI = {
             const rowDiv = document.createElement('div');
             rowDiv.className = 'grid-row';
             rowDiv.dataset.row = i;
+            // Set grid-template-columns dynamically based on word length
+            rowDiv.style.gridTemplateColumns = `repeat(${wordLength}, 1fr)`;
 
             // Create cells for each letter
             for (let j = 0; j < wordLength; j++) {
@@ -298,14 +312,14 @@ const UI = {
                 }
                 // If this is the current row, fill with current word being typed
                 else if (i === game.rows?.length) {
-                    // For the first cell, always show the first letter from the mask
-                    if (j === 0) {
-                        cellDiv.textContent = game.currentMask.charAt(0).toUpperCase();
+                    // Show the current word being typed, including the first letter
+                    if (j < Game.state.currentWord.length) {
+                        cellDiv.textContent = Game.state.currentWord.charAt(j).toUpperCase();
                         cellDiv.classList.add('filled');
                     }
-                    // For other cells, show the current word being typed
-                    else if (j < Game.state.currentWord.length) {
-                        cellDiv.textContent = Game.state.currentWord.charAt(j).toUpperCase();
+                    // If no letter has been typed yet for the first cell, show the mask's first letter as a hint
+                    else if (j === 0 && Game.state.currentWord.length === 0) {
+                        cellDiv.textContent = game.currentMask.charAt(0).toUpperCase();
                         cellDiv.classList.add('filled');
                     }
                 }
@@ -329,18 +343,27 @@ const UI = {
         const cells = currentRow.querySelectorAll('.grid-cell');
         const currentWord = Game.state.currentWord;
 
+        console.log('updateCurrentRow - currentWord:', currentWord);
+
         // Update each cell in the current row
         cells.forEach((cell, index) => {
-            if (index === 0) {
-                // First letter is always fixed
-                cell.textContent = Game.state.currentGame.currentMask.charAt(0).toUpperCase();
-                cell.classList.add('filled');
-            } else if (index < currentWord.length) {
+            if (index < currentWord.length) {
+                // Display the actual letter from currentWord, including the first letter
                 cell.textContent = currentWord.charAt(index).toUpperCase();
                 cell.classList.add('filled');
+                console.log(`Cell ${index} updated with: ${currentWord.charAt(index).toUpperCase()}`);
             } else {
-                cell.textContent = '';
-                cell.classList.remove('filled');
+                // For empty cells, if it's the first cell and no letter has been typed yet,
+                // show the first letter from the mask as a hint
+                if (index === 0 && currentWord.length === 0) {
+                    cell.textContent = Game.state.currentGame.currentMask.charAt(0).toUpperCase();
+                    cell.classList.add('filled');
+                    console.log(`Cell ${index} showing hint: ${Game.state.currentGame.currentMask.charAt(0).toUpperCase()}`);
+                } else {
+                    cell.textContent = '';
+                    cell.classList.remove('filled');
+                    console.log(`Cell ${index} cleared`);
+                }
             }
         });
     },

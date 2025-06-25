@@ -39,6 +39,7 @@
         - same orange, green, and gray colors at the same place
       - this summary should be copied into the clipboard
       - also put the link to the game into this summary
+    - Display also a message to invite the player to come back tomorrow for a new word to guess
 - When first started
   - Ask the user for a pseudo and a language dictionary
     - keep this pseudo and dictionary into the current navigator session.

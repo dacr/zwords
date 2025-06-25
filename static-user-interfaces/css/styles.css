@@ -164,12 +164,11 @@ body {
     gap: 5px;
     margin-bottom: 20px;
     width: 100%;
-    max-width: 350px;
+    max-width: 600px; /* Increased to accommodate longer words */
 }
 
 .grid-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
     gap: 5px;
 }
 
@@ -184,6 +183,7 @@ body {
     border-radius: 4px;
     text-transform: uppercase;
     transition: transform var(--animation-duration), background-color var(--animation-duration);
+    min-width: 30px; /* Ensure cells don't get too small */
 }
 
 .grid-cell.filled {

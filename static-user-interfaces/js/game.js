@@ -159,16 +159,44 @@ const Game = {
      * @param {string} letter - Letter to add
      */
     addLetter: function(letter) {
+        console.log('addLetter called with:', letter, 'currentWord:', this.state.currentWord);
+
         if (this.state.currentWord.length < this.state.wordLength) {
-            // If this is the first letter, ensure it matches the first letter of the mask
+            // If this is the first letter, check if it matches the first letter of the mask
             if (this.state.currentWord.length === 0) {
-                const firstLetter = this.state.currentGame.currentMask.charAt(0);
-                this.state.currentWord = firstLetter;
+                const firstLetter = this.state.currentGame.currentMask.charAt(0).toLowerCase();
+                console.log('First letter of mask:', firstLetter, 'Typed letter:', letter.toLowerCase());
+
+                // If the typed letter matches the first letter of the mask, use it
+                // Otherwise, use the first letter from the mask
+                if (letter.toLowerCase() === firstLetter) {
+                    this.state.currentWord += letter.toLowerCase();
+                    console.log('Using typed letter:', this.state.currentWord);
+                } else {
+                    // If the first letter doesn't match, initialize with the correct first letter
+                    this.state.currentWord = firstLetter;
+                    console.log('Using mask letter:', this.state.currentWord);
+                }
+
+                // For the first letter, update UI immediately to provide visual feedback
+                UI.updateCurrentRow();
+                console.log('UI updated with first letter:', this.state.currentWord);
+
+                // Add the letter again for the first word to ensure consistency with subsequent words
+                // This ensures the first letter is registered immediately for all words
+                if (this.state.currentWord.length < this.state.wordLength) {
+                    this.state.currentWord += letter.toLowerCase();
+                    console.log('Added first letter again for consistency:', this.state.currentWord);
+                    UI.updateCurrentRow();
+                }
             } else {
                 this.state.currentWord += letter;
-            }
+                console.log('Adding letter to word:', this.state.currentWord);
 
-            UI.updateCurrentRow();
+                // Force UI update immediately
+                UI.updateCurrentRow();
+                console.log('UI updated with currentWord:', this.state.currentWord);
+            }
         }
     },
 
@@ -299,7 +327,10 @@ const Game = {
         const playerPseudo = this.state.player?.pseudo || 'Player';
         let summary = `ZWORDS ${this.state.currentLanguage} - ${playerPseudo}\n${this.state.currentGame.rows.length}/${this.state.maxAttempts} tries\n\n`;
 
-        for (const row of this.state.currentGame.rows) {
+        // Create a copy of the rows array and reverse it to show oldest first
+        const reversedRows = [...this.state.currentGame.rows].reverse();
+
+        for (const row of reversedRows) {
             for (let i = 0; i < row.givenWord.length; i++) {
                 if (row.goodPlacesMask.charAt(i) !== '_') {
                     summary += '🟩';
