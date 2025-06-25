@@ -42,5 +42,6 @@ This project provides a web user interface which has the following characteristi
     - get the specs : `curl http://127.0.0.1:8090/docs/docs.yaml`
 - For graphics SVG can be used.
 - the user interface must be reactive
-  - can be played using a smartphone or a desktop computer
+  - it can be played using a smartphone or a desktop computer
+  - adapt the game board to the size and form factor of the currently used navigator 
 - This user interface will be deployed on https://zwords.code-examples.org
