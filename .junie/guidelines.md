@@ -1,6 +1,7 @@
 # Project guidelines
 
 - User interfaces requirements are defined in the [user interface requirements](../docs/requirements.md) document.
+- Ignore the directory `static-user-interfaces-prompt`
 - Any tools can be installed and executed using the nix-shell approach :
     - example : `nix-shell -p imagemagick --command "convert --version"`
 - A `Makefile` is provided for shortcuts to common tasks
