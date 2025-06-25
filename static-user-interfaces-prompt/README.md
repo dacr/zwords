@@ -4,10 +4,23 @@
 
 - restart from scratch
 - SWITCH to a .junie/guidelines.md and docs/requirements.md approach
-- Prompts history
-  - Implement the user interface of this game - the backend is already started (do not execute `make run`) the API is available through this link : http://127.0.0.1:8090/docs/docs.yaml use curl to download it.
-
-
+- Prompt history
+  - step1
+    - Implement the user interface of this game - the backend is already started (do not execute `make run`) the API is available through this link : http://127.0.0.1:8090/docs/docs.yaml use curl to download it.
+  - step2
+    - widen the header and footer
+    - in the displayed result summary, use several liens and not everything in the same one
+    - played words order is wrong. reverse
+  - step3
+    - add player pseudo in the game result summary
+    - put the just played game below the previously played one, currently it is added on top of it
+    - when the game is won, show a winning message and the tried count
+  - step4
+    - already played words are still in reverse order!
+  - step5
+    - The game is won, but it is considered as lost (game over)
+  - step6
+    - 
 
 ## 2025-06-03
 

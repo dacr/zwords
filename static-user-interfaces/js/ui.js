@@ -157,9 +157,20 @@ const UI = {
 
         if (!game || !game.finished) return;
 
+        // Get player pseudo
+        const playerPseudo = Game.state.player?.pseudo || 'Player';
+
+        // Debug information to help diagnose game state issues
+        console.log('Game state:', game.state);
+        console.log('Game finished:', game.finished);
+        console.log('Game hiddenWord:', game.hiddenWord);
+        console.log('Game winRank:', game.winRank);
+
         // Set result message
-        if (game.state === 'WON') {
-            this.elements.gameResult.textContent = 'You Won!';
+        // Check for win condition: either state is 'WON' or winRank is defined
+        if (game.state === 'WON' || (game.winRank !== undefined && game.winRank !== null)) {
+            const triedCount = game.rows.length;
+            this.elements.gameResult.textContent = `You Won in ${triedCount} tries!`;
             this.elements.gameResult.style.color = 'var(--correct-color)';
         } else {
             this.elements.gameResult.textContent = 'Game Over';
@@ -173,6 +184,13 @@ const UI = {
 
         // Generate visual summary
         this.elements.gameSummary.innerHTML = '';
+
+        // Add player pseudo to summary
+        const pseudoDiv = document.createElement('div');
+        pseudoDiv.textContent = `Player: ${playerPseudo}`;
+        pseudoDiv.style.marginBottom = '10px';
+        pseudoDiv.style.fontWeight = 'bold';
+        this.elements.gameSummary.appendChild(pseudoDiv);
 
         for (const row of game.rows) {
             const rowDiv = document.createElement('div');
@@ -258,12 +276,14 @@ const UI = {
 
                 // If this is a completed row, fill with played word
                 if (i < game.rows?.length) {
-                    const row = game.rows[i];
+                    // Reverse the order of rows - newest at the top
+                    const rowIndex = game.rows.length - 1 - i;
+                    const row = game.rows[rowIndex];
                     const letter = row.givenWord.charAt(j);
                     cellDiv.textContent = letter.toUpperCase();
 
                     // Add state class with delay for animation
-                    const state = Game.getLetterState(i, j);
+                    const state = Game.getLetterState(rowIndex, j);
                     if (state) {
                         cellDiv.classList.add('filled');
 

@@ -25,15 +25,15 @@ const Game = {
             // Get available languages
             const languages = await API.getLanguages();
             this.state.availableLanguages = languages.keys || [];
-            
+
             // Check if player exists in session storage
             const storedPlayerId = sessionStorage.getItem('playerId');
             const storedLanguage = sessionStorage.getItem('language');
-            
+
             if (storedLanguage && this.state.availableLanguages.includes(storedLanguage)) {
                 this.state.currentLanguage = storedLanguage;
             }
-            
+
             if (storedPlayerId) {
                 try {
                     this.state.player = await API.getPlayer(storedPlayerId);
@@ -44,7 +44,7 @@ const Game = {
                     // Continue to create a new player
                 }
             }
-            
+
             // If no player in storage or retrieval failed, show welcome screen
             UI.showWelcomeScreen();
         } catch (error) {
@@ -63,18 +63,18 @@ const Game = {
         try {
             // Create a new player
             let player = await API.getPlayer();
-            
+
             // Update player with pseudo
             player.pseudo = pseudo;
             player = await API.updatePlayer(player);
-            
+
             // Store player ID and language in session storage
             sessionStorage.setItem('playerId', player.playerId);
             sessionStorage.setItem('language', language);
-            
+
             this.state.player = player;
             this.state.currentLanguage = language;
-            
+
             await this.startGame();
         } catch (error) {
             console.error('Error creating player:', error);
@@ -91,23 +91,23 @@ const Game = {
             if (!this.state.player) {
                 throw new Error('No player available');
             }
-            
+
             // Get current game state
             const gameState = await API.getGameState(
                 this.state.currentLanguage, 
                 this.state.player.playerId
             );
-            
+
             this.state.currentGame = gameState;
             this.state.isGameOver = gameState.finished;
             this.state.wordLength = gameState.currentMask.length;
             this.state.currentWord = '';
-            
+
             // Show game screen and update UI
             UI.showGameScreen();
             UI.updateGameBoard();
             UI.updateKeyboard();
-            
+
             if (this.state.isGameOver) {
                 UI.showGameOverModal();
             }
@@ -124,11 +124,11 @@ const Game = {
      */
     changeLanguage: async function(language) {
         if (this.state.currentLanguage === language) return;
-        
+
         try {
             this.state.currentLanguage = language;
             sessionStorage.setItem('language', language);
-            
+
             await this.startGame();
         } catch (error) {
             console.error('Error changing language:', error);
@@ -142,9 +142,9 @@ const Game = {
      */
     handleKeyInput: function(key) {
         if (this.state.isGameOver) return;
-        
+
         key = key.toLowerCase();
-        
+
         if (key === 'enter') {
             this.submitWord();
         } else if (key === 'backspace') {
@@ -167,7 +167,7 @@ const Game = {
             } else {
                 this.state.currentWord += letter;
             }
-            
+
             UI.updateCurrentRow();
         }
     },
@@ -192,27 +192,27 @@ const Game = {
             UI.showError('Word is not complete');
             return;
         }
-        
+
         try {
             const result = await API.playWord(
                 this.state.currentLanguage,
                 this.state.player.playerId,
                 this.state.currentWord
             );
-            
+
             this.state.currentGame = result;
             this.state.isGameOver = result.finished;
             this.state.currentWord = '';
-            
+
             UI.updateGameBoard();
             UI.updateKeyboard();
-            
+
             if (this.state.isGameOver) {
                 UI.showGameOverModal();
             }
         } catch (error) {
             console.error('Error submitting word:', error);
-            
+
             if (error.status === 463) {
                 UI.showError('Word not in dictionary');
             } else if (error.status === 462) {
@@ -241,10 +241,10 @@ const Game = {
         if (!this.state.currentGame || !this.state.currentGame.rows || rowIndex >= this.state.currentGame.rows.length) {
             return null;
         }
-        
+
         const row = this.state.currentGame.rows[rowIndex];
         const letter = row.givenWord.charAt(colIndex);
-        
+
         if (row.goodPlacesMask.charAt(colIndex) !== '_') {
             return 'correct';
         } else if (row.wrongPlacesMask.charAt(colIndex) !== '_') {
@@ -252,7 +252,7 @@ const Game = {
         } else if (row.notUsedPlacesMask.charAt(colIndex) !== '_') {
             return 'absent';
         }
-        
+
         return null;
     },
 
@@ -265,15 +265,15 @@ const Game = {
         if (!this.state.currentGame || !this.state.currentGame.rows) {
             return '';
         }
-        
+
         let bestState = '';
-        
+
         for (const row of this.state.currentGame.rows) {
             const word = row.givenWord.toLowerCase();
-            
+
             for (let i = 0; i < word.length; i++) {
                 if (word.charAt(i) !== letter) continue;
-                
+
                 if (row.goodPlacesMask.charAt(i) !== '_') {
                     return 'correct'; // Correct is the best state, return immediately
                 } else if (row.wrongPlacesMask.charAt(i) !== '_' && bestState !== 'correct') {
@@ -283,7 +283,7 @@ const Game = {
                 }
             }
         }
-        
+
         return bestState;
     },
 
@@ -295,9 +295,10 @@ const Game = {
         if (!this.state.currentGame || !this.state.currentGame.rows) {
             return '';
         }
-        
-        let summary = `ZWORDS ${this.state.currentLanguage} ${this.state.currentGame.rows.length}/${this.state.maxAttempts}\n\n`;
-        
+
+        const playerPseudo = this.state.player?.pseudo || 'Player';
+        let summary = `ZWORDS ${this.state.currentLanguage} - ${playerPseudo}\n${this.state.currentGame.rows.length}/${this.state.maxAttempts} tries\n\n`;
+
         for (const row of this.state.currentGame.rows) {
             for (let i = 0; i < row.givenWord.length; i++) {
                 if (row.goodPlacesMask.charAt(i) !== '_') {
@@ -310,9 +311,9 @@ const Game = {
             }
             summary += '\n';
         }
-        
+
         summary += '\nhttps://zwords.code-examples.org';
-        
+
         return summary;
     }
 };

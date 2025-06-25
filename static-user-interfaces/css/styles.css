@@ -127,6 +127,8 @@ body {
     padding: 15px;
     background-color: white;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 100%;
 }
 
 .game-header .game-title {
@@ -316,7 +318,9 @@ body {
 
 #game-summary {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
     margin: 20px 0;
     font-family: monospace;
     font-size: 1.5rem;
@@ -350,6 +354,8 @@ body {
     text-align: center;
     background-color: white;
     box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 100%;
 }
 
 .game-footer a {
@@ -368,21 +374,21 @@ body {
         gap: 10px;
         text-align: center;
     }
-    
+
     .game-title {
         font-size: 2.5rem;
     }
-    
+
     .game-header .game-title {
         font-size: 1.8rem;
     }
-    
+
     .key {
         min-width: 30px;
         height: 50px;
         font-size: 0.9rem;
     }
-    
+
     .key.wide {
         min-width: 50px;
     }
@@ -392,13 +398,13 @@ body {
     .grid-cell {
         font-size: 1.2rem;
     }
-    
+
     .key {
         min-width: 25px;
         height: 45px;
         font-size: 0.8rem;
     }
-    
+
     .key.wide {
         min-width: 40px;
     }
