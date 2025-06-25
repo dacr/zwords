@@ -29,6 +29,10 @@
   - step8
     - the results summary lines are in the reverse order, fix
   - step9
+    - When game is finished ever won or lost, also display a message to invite the player to come back tomorrow for a new word to guess
+
+![](2025-06-25.png)
+
 
 ## 2025-06-03
 
