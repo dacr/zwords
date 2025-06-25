@@ -1,5 +1,9 @@
 # UI prompts
 
+## 2025-06-25
+
+SWITCH to a .junie/guidelines.md and docs/requirements.md approach
+
 ## 2025-06-03
 
 Enhance the user interface of this game which is defined in the directory `Create in a single file `static-user-interfaces/` by :
