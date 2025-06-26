@@ -1,5 +1,14 @@
 # UI prompts
 
+## 2025-06-26
+
+- minor improvements
+- prompts history
+  - Automatically update the shown keyboard layout depending on the currently selected  dictionary language: for `fr` based use AZERTY and for `en` based use QWERTY.
+  - inverse backspace and enter key on the displayed keyboard
+  - Add a logo and a favicon (based on the provided image `static-user-interfaces/logo.png`
+  - Make the header and footer sections more colorful and enjoyable
+
 ## 2025-06-25
 
 - restart from scratch

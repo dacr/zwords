@@ -2,6 +2,8 @@
 :root {
     --primary-color: #6a5acd;
     --secondary-color: #ff6b6b;
+    --tertiary-color: #4ecdc4;
+    --accent-color: #ffbe0b;
     --correct-color: #6aaa64;
     --present-color: #c9b458;
     --absent-color: #787c7e;
@@ -9,6 +11,8 @@
     --text-color: #333;
     --border-radius: 8px;
     --animation-duration: 0.5s;
+    --header-gradient: linear-gradient(135deg, var(--primary-color), var(--tertiary-color));
+    --footer-gradient: linear-gradient(135deg, var(--tertiary-color), var(--primary-color));
 }
 
 * {
@@ -88,11 +92,34 @@ body {
     background-color: #5a4aad;
 }
 
+/* Logo and Game title styles */
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.logo {
+    height: 50px;
+    width: auto;
+    margin-right: 10px;
+    animation: logoSpin 3s infinite alternate;
+}
+
+@keyframes logoSpin {
+    0% {
+        transform: rotate(-5deg);
+    }
+    100% {
+        transform: rotate(5deg);
+    }
+}
+
 /* Game title animation */
 .game-title {
     font-size: 3rem;
     font-weight: bold;
-    margin-bottom: 20px;
     text-align: center;
     background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
     -webkit-background-clip: text;
@@ -125,26 +152,90 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 15px;
-    background-color: white;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    background: var(--header-gradient);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     width: 100%;
     max-width: 100%;
+    color: white;
+    border-bottom: 3px solid var(--accent-color);
+    animation: headerGlow 3s infinite alternate;
+}
+
+@keyframes headerGlow {
+    0% {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+    100% {
+        box-shadow: 0 4px 20px rgba(106, 90, 205, 0.5);
+    }
+}
+
+.game-header .logo-container {
+    margin-bottom: 0;
+    justify-content: flex-start;
+}
+
+.game-header .logo {
+    height: 40px;
 }
 
 .game-header .game-title {
-    font-size: 2rem;
+    font-size: 2.2rem;
     margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3), 0 0 10px rgba(255, 255, 255, 0.5);
+    background: linear-gradient(45deg, var(--accent-color), white, var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: titleRainbow 4s infinite alternate;
+    letter-spacing: 2px;
+}
+
+@keyframes titleRainbow {
+    0% {
+        filter: hue-rotate(0deg);
+    }
+    100% {
+        filter: hue-rotate(90deg);
+    }
 }
 
 .player-info {
     font-weight: bold;
     font-size: 1.2rem;
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 8px 15px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    animation: playerPulse 2s infinite alternate;
+}
+
+@keyframes playerPulse {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.05);
+    }
 }
 
 .language-selector select {
-    padding: 8px;
-    border-radius: 4px;
-    border: 1px solid #ddd;
+    padding: 8px 12px;
+    border-radius: var(--border-radius);
+    border: 2px solid var(--accent-color);
+    background-color: rgba(255, 255, 255, 0.9);
+    font-weight: bold;
+    color: var(--primary-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.language-selector select:hover {
+    background-color: var(--accent-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .game-board {
@@ -352,19 +443,69 @@ body {
 .game-footer {
     padding: 15px;
     text-align: center;
-    background-color: white;
-    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    background: var(--footer-gradient);
+    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.2);
     width: 100%;
     max-width: 100%;
+    color: white;
+    border-top: 3px solid var(--accent-color);
+    animation: footerGlow 3s infinite alternate;
+    position: relative;
+    overflow: hidden;
+}
+
+.game-footer::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    background: linear-gradient(45deg, 
+        rgba(255, 255, 255, 0) 0%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        rgba(255, 255, 255, 0) 100%);
+    animation: footerShine 5s infinite linear;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.game-footer p {
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes footerGlow {
+    0% {
+        box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.2);
+    }
+    100% {
+        box-shadow: 0 -4px 20px rgba(78, 205, 196, 0.5);
+    }
+}
+
+@keyframes footerShine {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
 }
 
 .game-footer a {
-    color: var(--primary-color);
+    color: var(--accent-color);
     text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    padding: 2px 5px;
+    border-radius: 4px;
 }
 
 .game-footer a:hover {
-    text-decoration: underline;
+    background-color: rgba(255, 255, 255, 0.2);
+    text-shadow: 0 0 5px var(--accent-color);
+    transform: scale(1.05);
 }
 
 /* Responsive styles */
@@ -373,14 +514,37 @@ body {
         flex-direction: column;
         gap: 10px;
         text-align: center;
+        padding: 12px;
+    }
+
+    .logo {
+        height: 40px;
     }
 
     .game-title {
         font-size: 2.5rem;
     }
 
+    .game-header .logo-container {
+        justify-content: center;
+        margin-bottom: 8px;
+    }
+
+    .game-header .logo {
+        height: 35px;
+    }
+
     .game-header .game-title {
-        font-size: 1.8rem;
+        font-size: 2rem;
+    }
+
+    .player-info {
+        margin: 8px 0;
+        padding: 6px 12px;
+    }
+
+    .language-selector select {
+        padding: 6px 10px;
     }
 
     .key {
@@ -395,6 +559,37 @@ body {
 }
 
 @media (max-width: 480px) {
+    .logo {
+        height: 30px;
+    }
+
+    .game-title {
+        font-size: 2rem;
+    }
+
+    .game-header .logo {
+        height: 28px;
+    }
+
+    .game-header .game-title {
+        font-size: 1.7rem;
+        letter-spacing: 1px;
+    }
+
+    .player-info {
+        font-size: 1rem;
+        padding: 5px 10px;
+    }
+
+    .game-footer {
+        padding: 12px 10px;
+        font-size: 0.9rem;
+    }
+
+    .game-footer a {
+        padding: 2px 4px;
+    }
+
     .grid-cell {
         font-size: 1.2rem;
     }

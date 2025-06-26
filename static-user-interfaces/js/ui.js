@@ -376,13 +376,13 @@ const UI = {
         const qwertyLayout = [
             ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
             ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-            ['enter', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'backspace']
+            ['backspace', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'enter']
         ];
 
         const azertyLayout = [
             ['a', 'z', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
             ['q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm'],
-            ['enter', 'w', 'x', 'c', 'v', 'b', 'n', 'backspace']
+            ['backspace', 'w', 'x', 'c', 'v', 'b', 'n', 'enter']
         ];
 
         // Select layout based on language

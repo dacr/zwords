@@ -5,12 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZWORDS - A Wordle-like Game</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
 </head>
 <body>
     <div id="app">
         <!-- Initial screen for pseudo and language selection -->
         <div id="welcome-screen" class="screen">
-            <h1 class="game-title">ZWORDS</h1>
+            <div class="logo-container">
+                <img src="images/logo.png" alt="ZWORDS Logo" class="logo">
+                <h1 class="game-title">ZWORDS</h1>
+            </div>
             <div class="welcome-form">
                 <div class="form-group">
                     <label for="pseudo-input">Enter your pseudo:</label>
@@ -29,7 +33,10 @@
             <!-- Header section -->
             <header class="game-header">
                 <div class="game-title-container">
-                    <h1 class="game-title">ZWORDS</h1>
+                    <div class="logo-container">
+                        <img src="images/logo.png" alt="ZWORDS Logo" class="logo">
+                        <h1 class="game-title">ZWORDS</h1>
+                    </div>
                 </div>
                 <div class="player-info">
                     <span id="player-pseudo"></span>
@@ -44,7 +51,7 @@
                 <div class="words-grid" id="words-grid">
                     <!-- Grid rows will be dynamically generated -->
                 </div>
-                
+
                 <div class="keyboard" id="keyboard">
                     <!-- Keyboard will be dynamically generated -->
                 </div>
