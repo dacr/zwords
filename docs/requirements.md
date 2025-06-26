@@ -25,7 +25,6 @@
   - a footer section with
     - Copyright 2025 Crosson David and a link to the zwords github project (https://github.com/dacr/zwords)
 - Overall behavior
-  - The game can be played with the keyboard or with the mouse
   - the language/dictionary can be changed
     - take into account the new size for the word to guess related to the current language/dictionary
   - The board displays words from the top to the bottom
@@ -36,10 +35,14 @@
     - Show the word to be guessed if lost
     - In all cases add a "copy to clipboard" option to share the result of the game
       - use colored rectangle (as characters) to show a summary of the just played game
-        - same orange, green, and gray colors at the same place
+    - same orange, green, and gray colors at the same place
       - this summary should be copied into the clipboard
       - also put the link to the game into this summary
     - Display also a message to invite the player to come back tomorrow for a new word to guess
+  - The game can be played with the keyboard or with the mouse
+    - Automatically update the shown keyboard layout depending on the currently selected  dictionary language:
+      - for `fr` based use AZERTY
+      - for `en` based use QWERTY.
 - When first started
   - Ask the user for a pseudo and a language dictionary
     - persist permanently this pseudo and dictionary into the current navigator

@@ -372,12 +372,22 @@ const UI = {
      * Create and update the keyboard
      */
     updateKeyboard: function() {
-        // Define keyboard layout
-        const keyboardLayout = [
+        // Define keyboard layouts
+        const qwertyLayout = [
             ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
             ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
             ['enter', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'backspace']
         ];
+
+        const azertyLayout = [
+            ['a', 'z', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+            ['q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm'],
+            ['enter', 'w', 'x', 'c', 'v', 'b', 'n', 'backspace']
+        ];
+
+        // Select layout based on language
+        const currentLanguage = Game.state.currentLanguage.toLowerCase();
+        const keyboardLayout = currentLanguage.startsWith('fr') ? azertyLayout : qwertyLayout;
 
         // Clear existing keyboard
         this.elements.keyboard.innerHTML = '';
