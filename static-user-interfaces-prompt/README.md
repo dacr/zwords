@@ -8,6 +8,8 @@
   - inverse backspace and enter key on the displayed keyboard
   - Add a logo and a favicon (based on the provided image `static-user-interfaces/logo.png`
   - Make the header and footer sections more colorful and enjoyable
+  - edit the image `static-user-interfaces/images/logo.png` to make the white background transparent
+  - it didn't work, the background is still white instead of being transparent
 
 ## 2025-06-25
 
