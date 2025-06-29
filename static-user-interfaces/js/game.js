@@ -54,18 +54,30 @@ const Game = {
     },
 
     /**
-     * Create a new player and start the game
+     * Create a new player or update existing player and start the game
      * @param {string} pseudo - Player's pseudo
      * @param {string} language - Selected language
      * @returns {Promise<void>}
      */
     createPlayer: async function(pseudo, language) {
         try {
-            // Create a new player
-            let player = await API.getPlayer();
+            // Check if there's an existing player ID in localStorage
+            const storedPlayerId = localStorage.getItem('playerId');
+            let player;
 
-            // Update player with pseudo
-            player.pseudo = pseudo;
+            if (storedPlayerId) {
+                // Get the existing player
+                player = await API.getPlayer(storedPlayerId);
+                // Update the pseudo
+                player.pseudo = pseudo;
+            } else {
+                // Create a new player
+                player = await API.getPlayer();
+                // Set the pseudo
+                player.pseudo = pseudo;
+            }
+
+            // Update the player on the server
             player = await API.updatePlayer(player);
 
             // Store player ID and language in local storage for permanent persistence
@@ -77,8 +89,8 @@ const Game = {
 
             await this.startGame();
         } catch (error) {
-            console.error('Error creating player:', error);
-            UI.showError('Failed to create player. Please try again.');
+            console.error('Error creating/updating player:', error);
+            UI.showError('Failed to create/update player. Please try again.');
         }
     },
 

@@ -13,6 +13,7 @@ const UI = {
         gameLanguageSelect: null,
         startGameBtn: null,
         playerPseudo: null,
+        playerSettingsBtn: null,
         wordsGrid: null,
         keyboard: null,
         gameOverModal: null,
@@ -41,6 +42,7 @@ const UI = {
             gameLanguageSelect: document.getElementById('game-language-select'),
             startGameBtn: document.getElementById('start-game-btn'),
             playerPseudo: document.getElementById('player-pseudo'),
+            playerSettingsBtn: document.getElementById('player-settings-btn'),
             wordsGrid: document.getElementById('words-grid'),
             keyboard: document.getElementById('keyboard'),
             gameOverModal: document.getElementById('game-over-modal'),
@@ -73,6 +75,10 @@ const UI = {
         });
 
         // Game screen events
+        this.elements.playerSettingsBtn.addEventListener('click', () => {
+            this.showConfigurationScreen();
+        });
+
         this.elements.gameLanguageSelect.addEventListener('change', (e) => {
             Game.changeLanguage(e.target.value);
         });
@@ -131,6 +137,19 @@ const UI = {
         this.elements.gameOverModal.classList.add('hidden');
 
         this.populateLanguageSelectors();
+    },
+
+    /**
+     * Show configuration screen (welcome screen with pre-filled values)
+     */
+    showConfigurationScreen: function() {
+        // Pre-fill the pseudo input with the current player's pseudo
+        if (Game.state.player && Game.state.player.pseudo) {
+            this.elements.pseudoInput.value = Game.state.player.pseudo;
+        }
+
+        // Show the welcome screen
+        this.showWelcomeScreen();
     },
 
     /**

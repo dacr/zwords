@@ -203,12 +203,36 @@ body {
 .player-info {
     font-weight: bold;
     font-size: 1.2rem;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.player-settings-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     background-color: rgba(255, 255, 255, 0.2);
     padding: 8px 15px;
     border-radius: var(--border-radius);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    border: none;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
     animation: playerPulse 2s infinite alternate;
+}
+
+.player-settings-btn:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.settings-icon {
+    fill: white;
+    width: 20px;
+    height: 20px;
 }
 
 @keyframes playerPulse {
@@ -540,7 +564,16 @@ body {
 
     .player-info {
         margin: 8px 0;
+    }
+
+    .player-settings-btn {
         padding: 6px 12px;
+        font-size: 1.1rem;
+    }
+
+    .settings-icon {
+        width: 18px;
+        height: 18px;
     }
 
     .language-selector select {
@@ -578,7 +611,17 @@ body {
 
     .player-info {
         font-size: 1rem;
+    }
+
+    .player-settings-btn {
         padding: 5px 10px;
+        font-size: 1rem;
+        gap: 6px;
+    }
+
+    .settings-icon {
+        width: 16px;
+        height: 16px;
     }
 
     .game-footer {
