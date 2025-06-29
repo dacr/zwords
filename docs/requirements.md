@@ -14,8 +14,8 @@
 - User interface structure is made of
   - a header section with
     - game title `ZWORDS` on the left (colorful, animated, and big)
-    - show user pseudo on the center
-    - selected dictionary on the right (can be modified)
+    - Add a setting button on the right labeled with the user pseudo and a setting icon
+      - it gives access to the pseudo and language/dictionary config panel
   - a game board with
     - words grid to show the already played words
       - Use green for well-placed letters, orange for misplaced ones and gray for others
@@ -27,7 +27,6 @@
 - Overall behavior
   - the language/dictionary can be changed
     - take into account the new size for the word to guess related to the current language/dictionary
-    - Hide `*-common` language/dictionary 
   - The board displays words from the top to the bottom
     - first on top
     - the newest played word **below the previous one**
@@ -48,6 +47,8 @@
   - Ask the user for a pseudo and a language dictionary
     - persist permanently this pseudo and dictionary into the current navigator
     - select the `FR` language dictionary as the default one among possible ones (`/api/game/languages` API call)
+    - Hide `*-common` languages/dictionaries
+    - Use a button labeled `Continue` to invite the user to start or continue the game
 - Look & feel
   - New-entered word must fit in a single line
   - Make the user interface fun and colorful
@@ -71,3 +72,5 @@ This project provides a web user interface which has the following characteristi
 - This user interface will be deployed on https://zwords.code-examples.org
 - Use the cache busting technique for css and js resources being loaded to force their reload on next deployments.
   - use the currently defined release number in the file `version.sbt` (remove any `-SNAPSHOT` string if present)
+- Always keep and reuse the originally gotten `playerId` (in navigator permanent storage)
+  - in particular on configuration changes (pseudo update)
