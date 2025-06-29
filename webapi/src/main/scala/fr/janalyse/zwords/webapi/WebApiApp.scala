@@ -22,7 +22,9 @@ import fr.janalyse.zwords.webapi.protocol.*
 import fr.janalyse.zwords.webapi.store.*
 import fr.janalyse.zwords.wordgen.{WordGeneratorLanguageNotSupported, WordGeneratorService, WordStats}
 import sttp.apispec.openapi.Info
-import sttp.model.StatusCode
+import sttp.model.headers.CacheDirective
+import sttp.model.headers.CacheDirective.NoCache
+import sttp.model.{Header, StatusCode}
 import sttp.tapir.generic.auto.*
 import sttp.tapir.json.zio.*
 import sttp.tapir.files.staticFilesGetServerEndpoint
@@ -44,6 +46,8 @@ import java.net.{Inet4Address, InetAddress, InetSocketAddress}
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoField
 import java.util.UUID
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
 
 object WebApiApp extends ZIOAppDefault {
   import ApiLogics.*
@@ -255,10 +259,12 @@ object WebApiApp extends ZIOAppDefault {
         apiRoutes,
         Info(title = "ZWORDS Game API", version = "2.0", description = Some("A wordle like game as an API by @BriossantC and @crodav"))
       )
-
+  val staticHeaders = List(
+    Header.cacheControl(CacheDirective.MaxStale(Some(FiniteDuration(25, TimeUnit.HOURS)))),
+  )
   def server = for {
     clientResources             <- System.envOrElse("ZWORDS_CLIENT_RESOURCES_PATH", "static-user-interfaces")
-    clientSideResourcesEndPoints = staticFilesGetServerEndpoint(emptyInput)(clientResources).widen[GameEnv]
+    clientSideResourcesEndPoints = staticFilesGetServerEndpoint(emptyInput)(clientResources, extraHeaders = staticHeaders).widen[GameEnv]
     clientSideRoutes             = List(clientSideResourcesEndPoints)
     allRoutes                    = apiRoutes ++ apiDocRoutes ++ clientSideRoutes
     httpApp                      = ZioHttpInterpreter().toHttp(allRoutes)
