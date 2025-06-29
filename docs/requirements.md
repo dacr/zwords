@@ -69,3 +69,5 @@ This project provides a web user interface which has the following characteristi
     - get the specs : `curl http://127.0.0.1:8090/docs/docs.yaml`
 - For graphics SVG can be used.
 - This user interface will be deployed on https://zwords.code-examples.org
+- Use the cache busting technique for css and js resources being loaded to force their reload on next deployments.
+  - use the currently defined release number in the file `version.sbt` (remove any `-SNAPSHOT` string if present)
