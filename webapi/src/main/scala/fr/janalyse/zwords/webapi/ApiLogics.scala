@@ -180,7 +180,9 @@ object ApiLogics {
   // =======================================================================================
 
   val gameLanguagesLogic = ZIO.logSpan("gameLanguages") {
-    WordGeneratorService.languages.map(Languages.apply)
+    WordGeneratorService.languages
+      .map(langs => langs.filterNot(_.endsWith("-common")))
+      .map(Languages.apply)
   }
 
   private def checkGivenLanguageInput(language: String): ZIO[WordGeneratorService, UnsupportedLanguageIssue, List[String]] =

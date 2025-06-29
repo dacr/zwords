@@ -27,6 +27,7 @@
 - Overall behavior
   - the language/dictionary can be changed
     - take into account the new size for the word to guess related to the current language/dictionary
+    - Hide `*-common` language/dictionary 
   - The board displays words from the top to the bottom
     - first on top
     - the newest played word **below the previous one**
@@ -40,7 +41,7 @@
       - also put the link to the game into this summary
     - Display also a message to invite the player to come back tomorrow for a new word to guess
   - The game can be played with the keyboard or with the mouse
-    - Automatically update the shown keyboard layout depending on the currently selected  dictionary language:
+    - Automatically update the shown keyboard layout depending on the currently selected dictionary language:
       - for `fr` based use AZERTY
       - for `en` based use QWERTY.
 - When first started
