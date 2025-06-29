@@ -161,6 +161,17 @@ body {
     animation: headerGlow 3s infinite alternate;
 }
 
+/* Base flex layout for header components */
+.game-header .game-title-container {
+    flex: 2;  /* Give more space to the title by default */
+}
+
+.player-info {
+    flex: 1;  /* Give less space to the player info by default */
+    display: flex;
+    justify-content: flex-end;  /* Align the pseudo button to the right */
+}
+
 @keyframes headerGlow {
     0% {
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
@@ -189,6 +200,7 @@ body {
     color: transparent;
     animation: titleRainbow 4s infinite alternate;
     letter-spacing: 2px;
+    white-space: nowrap;  /* Prevent title from wrapping on all screen sizes */
 }
 
 @keyframes titleRainbow {
@@ -535,10 +547,20 @@ body {
 /* Responsive styles */
 @media (max-width: 768px) {
     .game-header {
-        flex-direction: column;
+        flex-direction: row;
         gap: 10px;
-        text-align: center;
         padding: 12px;
+    }
+
+    .game-header .game-title-container {
+        flex: 3;  /* Give more space to the title container */
+    }
+
+    .player-info {
+        flex: 1;  /* Give less space to the player info */
+        margin: 0;
+        display: flex;
+        justify-content: flex-end;  /* Maintain right alignment */
     }
 
     .logo {
@@ -550,8 +572,8 @@ body {
     }
 
     .game-header .logo-container {
-        justify-content: center;
-        margin-bottom: 8px;
+        justify-content: flex-start;
+        margin-bottom: 0;
     }
 
     .game-header .logo {
@@ -560,15 +582,13 @@ body {
 
     .game-header .game-title {
         font-size: 2rem;
-    }
-
-    .player-info {
-        margin: 8px 0;
+        white-space: nowrap;  /* Prevent title from wrapping */
     }
 
     .player-settings-btn {
         padding: 6px 12px;
         font-size: 1.1rem;
+        min-width: 0;  /* Allow button to shrink if needed */
     }
 
     .settings-icon {
@@ -592,6 +612,15 @@ body {
 }
 
 @media (max-width: 480px) {
+    /* Maintain row layout but adjust sizes */
+    .game-header .game-title-container {
+        flex: 4;  /* Give even more space to the title container on very small screens */
+    }
+
+    .player-info {
+        flex: 1;
+    }
+
     .logo {
         height: 30px;
     }
@@ -607,22 +636,27 @@ body {
     .game-header .game-title {
         font-size: 1.7rem;
         letter-spacing: 1px;
+        white-space: nowrap;  /* Ensure title doesn't wrap */
     }
 
     .player-info {
         font-size: 1rem;
+        display: flex;
+        justify-content: flex-end;  /* Maintain right alignment */
     }
 
     .player-settings-btn {
-        padding: 5px 10px;
-        font-size: 1rem;
-        gap: 6px;
+        padding: 5px 8px;  /* Reduce padding to save space */
+        font-size: 0.9rem;  /* Slightly smaller font */
+        gap: 4px;  /* Reduce gap between icon and text */
     }
 
     .settings-icon {
         width: 16px;
         height: 16px;
     }
+
+    /* Settings icon is handled in a separate media query for very small screens */
 
     .game-footer {
         padding: 12px 10px;
@@ -645,5 +679,21 @@ body {
 
     .key.wide {
         min-width: 40px;
+    }
+}
+
+/* Very small screens - hide settings icon to save more space */
+@media (max-width: 360px) {
+    .settings-icon {
+        display: none;
+    }
+
+    /* Further optimize header for tiny screens */
+    .game-header .game-title-container {
+        flex: 5;  /* Give even more space to the title */
+    }
+
+    .player-settings-btn {
+        padding: 4px 6px;  /* Minimal padding */
     }
 }
