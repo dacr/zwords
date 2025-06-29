@@ -253,16 +253,19 @@ object WebApiApp extends ZIOAppDefault {
     socialLeaderboardEndpoint
   )
 
-  def apiDocRoutes =
+  def apiDocRoutes  =
     SwaggerInterpreter()
       .fromServerEndpoints(
         apiRoutes,
         Info(title = "ZWORDS Game API", version = "2.0", description = Some("A wordle like game as an API by @BriossantC and @crodav"))
       )
   val staticHeaders = List(
-    Header.cacheControl(CacheDirective.MaxStale(Some(FiniteDuration(25, TimeUnit.HOURS)))),
+    Header.cacheControl(
+      CacheDirective.MaxStale(Some(FiniteDuration(15, TimeUnit.MINUTES))),
+      CacheDirective.MaxAge(FiniteDuration(15, TimeUnit.MINUTES))
+    )
   )
-  def server = for {
+  def server        = for {
     clientResources             <- System.envOrElse("ZWORDS_CLIENT_RESOURCES_PATH", "static-user-interfaces")
     clientSideResourcesEndPoints = staticFilesGetServerEndpoint(emptyInput)(clientResources, extraHeaders = staticHeaders).widen[GameEnv]
     clientSideRoutes             = List(clientSideResourcesEndPoints)
