@@ -261,7 +261,6 @@ object WebApiApp extends ZIOAppDefault {
       )
   val staticHeaders = List(
     Header.cacheControl(
-      CacheDirective.MaxStale(Some(FiniteDuration(15, TimeUnit.MINUTES))),
       CacheDirective.MaxAge(FiniteDuration(15, TimeUnit.MINUTES))
     )
   )
