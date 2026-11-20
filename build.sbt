@@ -15,7 +15,7 @@ val versions = new {
   val ziocli     = "0.2.2"
   val ziojson    = "0.9.2"
   val ziologging = "2.5.4"
-  val ziolmdb    = "2.8.6"
+  val ziolmdb    = "3.0.0-RC4"
   val tapir      = "1.13.31"
   val logback    = "1.6.7"
 }

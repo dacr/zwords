@@ -22,7 +22,7 @@
     packages.default = sbt.mkSbtDerivation.${system} {
       pname = "nix-zwords";
       version = builtins.elemAt (builtins.match ''[^"]+"(.*)".*'' (builtins.readFile ./version.sbt)) 0;
-      depsSha256 = "sha256-wZ3WwJGc3UNviRg9ofkMYynPx+UDMbkg6FNbwbU6Myg=";
+      depsSha256 = "sha256-vHYsTtFS3GprDXLskc1swNE8LJI5GS5v3CGa6TaZjc0=";
 
       src = ./.;
 

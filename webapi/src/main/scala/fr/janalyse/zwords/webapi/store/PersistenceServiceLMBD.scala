@@ -157,12 +157,30 @@ object PersistenceServiceLMBD {
     }
   }
 
-  def setup(lmdb: LMDB) = {
-    // failIfExists = false also registers metadata for collections created by older zio-lmdb releases
-    (lmdb.collectionCreate[String, StoredPlayer](dbNamePlayers, failIfExists = false) *>
+  // failIfExists = false also registers metadata for collections created by older zio-lmdb releases
+  private def createCollections(lmdb: LMDB) =
+    lmdb.collectionCreate[String, StoredPlayer](dbNamePlayers, failIfExists = false) *>
       lmdb.collectionCreate[String, StoredCurrentGame](dbNameCurrentGames, failIfExists = false) *>
       lmdb.collectionCreate[String, StoredPlayedStats](dbNameDailyStats, failIfExists = false) *>
-      lmdb.collectionCreate[String, StoredPlayerStats](dbNameGlobalStats, failIfExists = false))
+      lmdb.collectionCreate[String, StoredPlayerStats](dbNameGlobalStats, failIfExists = false)
+
+  // zio-lmdb 3 changed the shape of its metadata entries and can't decode the ones written by 2.x : the
+  // typed collection creation then fails with "Metadata lookup failed". The metadata only holds the catalog
+  // (kind and schemas of each collection), not the data : it is cleared once, and createCollections
+  // registers every collection again in the new format. See zio-lmdb docs/internal/MIGRATION_METADATA_ENTRY.md
+  private def isLegacyMetadata(error: Any): Boolean = error match {
+    case StorageSystemError.InternalError(msg, _) => msg.startsWith("Metadata lookup failed")
+    case _                                        => false
+  }
+
+  def setup(lmdb: LMDB) = {
+    createCollections(lmdb)
+      .catchSome {
+        case error if isLegacyMetadata(error) =>
+          ZIO.logWarning(s"Metadata written by an older zio-lmdb, rebuilding it : $error") *>
+            lmdb.collectionClear("meta-data") *>
+            createCollections(lmdb)
+      }
       .mapError(errorConverter)
       .as(PersistenceServiceLMBD(lmdb))
   }
