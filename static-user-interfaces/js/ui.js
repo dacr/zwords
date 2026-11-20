@@ -50,8 +50,19 @@ const UI = {
             secretWordDisplay: document.getElementById('secret-word-display'),
             gameSummary: document.getElementById('game-summary'),
             copyResultBtn: document.getElementById('copy-result-btn'),
-            closeModalBtn: document.getElementById('close-modal-btn')
+            closeModalBtn: document.getElementById('close-modal-btn'),
+            statsScreen: document.getElementById('stats-screen'),
+            statsBtn: document.getElementById('stats-btn'),
+            statsBackBtn: document.getElementById('stats-back-btn'),
+            modalStatsBtn: document.getElementById('modal-stats-btn')
         };
+
+        // Copyright runs up to the current year
+        document.querySelectorAll('.copyright-year').forEach(el => {
+            el.textContent = new Date().getFullYear();
+        });
+
+        Stats.init();
 
         // Set up event listeners
         this.setupEventListeners();
@@ -103,6 +114,23 @@ const UI = {
             this.elements.gameOverModal.classList.add('hidden');
         });
 
+        // Statistics screen events
+        this.elements.statsBtn.addEventListener('click', () => {
+            this.showStatsScreen();
+        });
+
+        this.elements.modalStatsBtn.addEventListener('click', () => {
+            this.showStatsScreen();
+        });
+
+        this.elements.statsBackBtn.addEventListener('click', () => {
+            if (Game.state.player) {
+                this.showGameScreen();
+            } else {
+                this.showWelcomeScreen();
+            }
+        });
+
         // Keyboard events
         document.addEventListener('keydown', (e) => {
             if (this.elements.gameScreen.classList.contains('hidden')) return;
@@ -134,7 +162,9 @@ const UI = {
     showWelcomeScreen: function() {
         this.elements.welcomeScreen.classList.remove('hidden');
         this.elements.gameScreen.classList.add('hidden');
+        this.elements.statsScreen.classList.add('hidden');
         this.elements.gameOverModal.classList.add('hidden');
+        this.clearStatsHash();
 
         this.populateLanguageSelectors();
     },
@@ -158,7 +188,9 @@ const UI = {
     showGameScreen: function() {
         this.elements.welcomeScreen.classList.add('hidden');
         this.elements.gameScreen.classList.remove('hidden');
+        this.elements.statsScreen.classList.add('hidden');
         this.elements.gameOverModal.classList.add('hidden');
+        this.clearStatsHash();
 
         this.populateLanguageSelectors();
 
@@ -166,6 +198,24 @@ const UI = {
         if (Game.state.player) {
             this.elements.playerPseudo.textContent = Game.state.player.pseudo;
         }
+    },
+
+    /**
+     * Show statistics screen, also reachable directly through the #stats address
+     */
+    showStatsScreen: function() {
+        this.elements.welcomeScreen.classList.add('hidden');
+        this.elements.gameScreen.classList.add('hidden');
+        this.elements.gameOverModal.classList.add('hidden');
+        this.elements.statsScreen.classList.remove('hidden');
+        if (location.hash !== '#stats') history.replaceState(null, '', '#stats');
+        window.scrollTo(0, 0);
+
+        Stats.show();
+    },
+
+    clearStatsHash: function() {
+        if (location.hash === '#stats') history.replaceState(null, '', location.pathname + location.search);
     },
 
     /**

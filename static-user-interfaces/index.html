@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZWORDS - A Wordle-like Game</title>
-    <link rel="stylesheet" href="css/styles.css?v=2.0.17">
+    <link rel="stylesheet" href="css/styles.css?v=2.0.23">
     <link rel="icon" href="images/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -39,6 +39,11 @@
                     </div>
                 </div>
                 <div class="player-info">
+                    <button id="stats-btn" class="header-icon-btn" title="Statistics" aria-label="Statistics">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" class="stats-icon" aria-hidden="true">
+                            <path d="M5 20V10h3v10H5zm5.5 0V4h3v16h-3zM16 20v-7h3v7h-3z"/>
+                        </svg>
+                    </button>
                     <button id="player-settings-btn" class="player-settings-btn">
                         <span id="player-pseudo"></span>
                         <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" class="settings-icon">
@@ -69,20 +74,53 @@
                     <p id="secret-word-display"></p>
                     <div id="game-summary"></div>
                     <button id="copy-result-btn" class="btn">Copy to Clipboard</button>
+                    <button id="modal-stats-btn" class="btn">Statistics</button>
                     <button id="close-modal-btn" class="btn">Close</button>
                 </div>
             </div>
 
             <!-- Footer section -->
             <footer class="game-footer">
-                <p>Copyright 2025 Crosson David - <a href="https://github.com/dacr/zwords" target="_blank">ZWORDS GitHub Project</a></p>
+                <p>Copyright 2022&ndash;<span class="copyright-year">2026</span> Crosson David - <a href="https://github.com/dacr/zwords" target="_blank">ZWORDS GitHub Project</a></p>
+            </footer>
+        </div>
+
+        <!-- Statistics screen -->
+        <div id="stats-screen" class="screen hidden">
+            <header class="game-header">
+                <div class="game-title-container">
+                    <div class="logo-container">
+                        <img src="images/logo.png" alt="ZWORDS Logo" class="logo">
+                        <h1 class="game-title">ZWORDS</h1>
+                    </div>
+                </div>
+                <div class="player-info">
+                    <button id="stats-back-btn" class="player-settings-btn">Back<span class="back-label-long"> to game</span></button>
+                </div>
+            </header>
+
+            <main class="stats-page">
+                <div class="stats-toolbar">
+                    <h2>Statistics</h2>
+                    <label class="stats-language">Language
+                        <select id="stats-language-select"></select>
+                    </label>
+                </div>
+                <section class="stats-card" id="stats-player" aria-live="polite"></section>
+                <section class="stats-card" id="stats-today" aria-live="polite"></section>
+                <section class="stats-card" id="stats-global" aria-live="polite"></section>
+            </main>
+
+            <footer class="game-footer">
+                <p>Copyright 2022&ndash;<span class="copyright-year">2026</span> Crosson David - <a href="https://github.com/dacr/zwords" target="_blank">ZWORDS GitHub Project</a></p>
             </footer>
         </div>
     </div>
 
-    <script src="js/api.js?v=2.0.17"></script>
-    <script src="js/game.js?v=2.0.17"></script>
-    <script src="js/ui.js?v=2.0.17"></script>
-    <script src="js/app.js?v=2.0.17"></script>
+    <script src="js/api.js?v=2.0.23"></script>
+    <script src="js/game.js?v=2.0.23"></script>
+    <script src="js/ui.js?v=2.0.23"></script>
+    <script src="js/stats.js?v=2.0.23"></script>
+    <script src="js/app.js?v=2.0.23"></script>
 </body>
 </html>
