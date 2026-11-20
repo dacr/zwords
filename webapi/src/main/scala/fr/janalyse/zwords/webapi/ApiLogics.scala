@@ -8,6 +8,7 @@ import fr.janalyse.zwords.gamelogic.*
 import fr.janalyse.zwords.webapi.protocol.*
 import fr.janalyse.zwords.webapi.store.PersistenceService
 import fr.janalyse.zwords.webapi.store.model.*
+import fr.janalyse.zwords.webapi.presence.GameEvents
 
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoField
@@ -85,12 +86,14 @@ object ApiLogics {
       .someOrFail(UnknownPlayerIssue(playerId))
       .tapError(err => ZIO.logWarning(err.toString))
 
-  private def playerGet(playerId: UUID) = for {
-    storedPlayer <- storedPlayerGet(playerId)
-  } yield Player(
-    playerId = storedPlayer.playerId,
-    pseudo = storedPlayer.pseudo
-  )
+  private def toPlayer(storedPlayer: StoredPlayer): Player =
+    Player(
+      playerId = storedPlayer.playerId,
+      pseudo = storedPlayer.pseudo,
+      showOnLeaderboard = Some(storedPlayer.showOnLeaderboard.getOrElse(true))
+    )
+
+  private def playerGet(playerId: UUID) = storedPlayerGet(playerId).map(toPlayer)
 
   private def playerUpsert(storedPlayer: StoredPlayer): ZIO[PersistenceService, ServiceInternalError, StoredPlayer] = {
     PersistenceService
@@ -115,10 +118,7 @@ object ApiLogics {
                    )
     _           <- playerUpsert(storedPlayer) @@ annotated("playerId" -> playerId.toString)
     _           <- ZIO.logInfo("New player created") @@ annotated("playerId" -> playerId.toString)
-  } yield Player(
-    playerId = storedPlayer.playerId,
-    pseudo = storedPlayer.pseudo
-  )
+  } yield toPlayer(storedPlayer)
 
   def playerGetLogic(mayBePlayerId: Option[UUID], ip: Option[String], userAgent: Option[String]): ZIO[PersistenceService, ServiceInternalError | UnknownPlayerIssue, Player] = {
     ZIO.logSpan("playerGet") {
@@ -147,12 +147,13 @@ object ApiLogics {
                                       .cond(player.pseudo.isEmpty || player.pseudo.exists(p => pseudoRegexPattern.matches(p)), (), InvalidPseudoIssue(b64encode(player.pseudo.get)))
               updatedStoredPlayer = storedPlayer.copy(
                                       pseudo = player.pseudo,
+                                      showOnLeaderboard = player.showOnLeaderboard.orElse(storedPlayer.showOnLeaderboard),
                                       lastUpdatedDateTime = now,
                                       lastUpdatedFromIP = ip,
                                       lastUpdatedFromUserAgent = userAgent
                                     )
               _                  <- playerUpsert(updatedStoredPlayer)
-            } yield player
+            } yield toPlayer(updatedStoredPlayer)
           }
         }
       }
@@ -346,11 +347,31 @@ object ApiLogics {
       case _: WordGeneratorLanguageNotSupported => UnsupportedLanguageIssue(language)
     }
 
+  // A finished game feeds the weekly and monthly leaderboards, and tells the open pages to refresh theirs. Never fails : a
+  // leaderboard issue must not prevent the move from being played.
+  private def recordFinishedGame(playerId: UUID, language: String, storedGame: StoredCurrentGame, now: OffsetDateTime): URIO[PersistenceService & GameEvents, Unit] = {
+    val game   = storedGame.game
+    val result = StoredDailyResult(
+      day = game.createdDate.toLocalDate,
+      languageKey = language,
+      playerId = playerId,
+      dailyGameId = game.dailyGameId,
+      won = game.isWin,
+      tries = game.board.playedRows.size,
+      winRank = storedGame.winRank,
+      finishedDateTime = now
+    )
+    PersistenceService
+      .upsertDailyResult(result)
+      .tapError(err => ZIO.logError(s"Couldn't record the daily result ${err.getMessage}"))
+      .ignore *> GameEvents.gameFinished(language)
+  }
+
   def gamePlayLogic(
     language: String,
     playerId: UUID,
     givenWord: GivenWord
-  ): ZIO[PersistenceService & WordGeneratorService, GamePlayLogicIssues, CurrentGame] = {
+  ): ZIO[PersistenceService & WordGeneratorService & GameEvents, GamePlayLogicIssues, CurrentGame] = {
     ZIO.logSpan("gamePlay") {
       ZIO.logAnnotate("playerId", playerId.toString) {
         for {
@@ -378,6 +399,7 @@ object ApiLogics {
                                   lastUpdatedDateTime = now
                                 )
           _                  <- storedGameUpsert(playerId, language, updatedStoredGame)
+          _                  <- ZIO.when(!game.isOver && nextGame.isOver)(recordFinishedGame(playerId, language, updatedStoredGame, now))
           _                  <- ZIO.log(s"played word:${givenWord.word}")
         } yield CurrentGame.from(updatedStoredGame)
       }
@@ -397,9 +419,36 @@ object ApiLogics {
 
   // =======================================================================================
 
-  def socialLeaderboard = {
-    ZIO.logSpan("socialLeaderboard") {
-      ???
+  def leaderboardLogic(
+    language: String,
+    period: String,
+    playerId: Option[UUID]
+  ): ZIO[PersistenceService & WordGeneratorService, ServiceInternalError | UnsupportedLanguageIssue, Leaderboard] = {
+    def loaded[A](what: String)(task: RIO[PersistenceService, A]): ZIO[PersistenceService, ServiceInternalError, A] =
+      task
+        .tapError(err => ZIO.logError(s"Couldn't load the $what for the leaderboard ${err.getMessage}"))
+        .mapError(_ => ServiceInternalError())
+
+    ZIO.logSpan("leaderboard") {
+      for {
+        _          <- checkGivenLanguageInput(language)
+        today      <- Clock.currentDateTime.map(_.toLocalDate)
+        start       = Leaderboards.periodStart(period, today)
+        players    <- loaded("players")(PersistenceService.getAllPlayers).map(_.map(player => player.playerId -> player).toMap)
+        candidates <- period match {
+                        case "today" => loaded("current games")(PersistenceService.getCurrentGames(language)).map(Leaderboards.today(today, players, _))
+                        case "all"   => ZIO.succeed(Leaderboards.allTime(players))
+                        case _       => loaded("daily results")(PersistenceService.getDailyResults(language, start.getOrElse(today), today)).map(Leaderboards.period(players, _))
+                      }
+        ranked      = Leaderboards.rank(candidates).map((id, entry) => id -> entry.copy(you = playerId.contains(id)))
+      } yield Leaderboard(
+        period = period,
+        languageKey = if (period == "all") "all" else language,
+        from = start.map(_.toString),
+        to = Option.when(period != "all")(today.toString),
+        entries = ranked.take(Leaderboards.topSize).map(_._2),
+        you = ranked.collectFirst { case (_, entry) if entry.you => entry }
+      )
     }
   }
 

@@ -19,6 +19,7 @@ import zio.lmdb.*
 import fr.janalyse.zwords.webapi.store.model.*
 import zio.lmdb.StorageUserError.CollectionAlreadExists
 
+import java.time.LocalDate
 import java.util.UUID
 
 case class PersistenceServiceLMBD(lmdb: LMDB) extends PersistenceService {
@@ -28,6 +29,7 @@ case class PersistenceServiceLMBD(lmdb: LMDB) extends PersistenceService {
   val currentGamesCollection = lmdb.collectionGet[String, StoredCurrentGame](dbNameCurrentGames)
   val globalStatsCollection  = lmdb.collectionGet[String, StoredPlayerStats](dbNameGlobalStats)
   val dailyStatsCollection   = lmdb.collectionGet[String, StoredPlayedStats](dbNameDailyStats)
+  val dailyResultsCollection = lmdb.collectionGet[String, StoredDailyResult](dbNameDailyResults)
 
   override def getPlayer(playerId: UUID): Task[Option[StoredPlayer]] = {
     val result = for {
@@ -119,6 +121,40 @@ case class PersistenceServiceLMBD(lmdb: LMDB) extends PersistenceService {
     } yield state
     result.mapError(errorConverter)
   }
+
+  // -------------------------------------------------------------------------------------------------------------------
+  // leaderboards : full scans, the collections hold a few thousand records at most
+
+  override def getAllPlayers: Task[List[StoredPlayer]] =
+    playersCollection.flatMap(_.collect()).mapError(errorConverter)
+
+  // current games are stored under "<playerId>-<languageKey>", a UUID being 36 characters long
+  override def getCurrentGames(languageKey: String): Task[List[(UUID, StoredCurrentGame)]] = {
+    val suffix = s"-$languageKey"
+    currentGamesCollection
+      .flatMap(_.streamWithKeys(keyFilter = key => key.length == 36 + suffix.length && key.endsWith(suffix)).runCollect)
+      .mapError(errorConverter)
+      .map(_.toList.map((key, game) => UUID.fromString(key.take(36)) -> game))
+  }
+
+  // "<day>_<languageKey>_<playerId>" : ISO days sort, so a period is a range of keys
+  private def makeDailyResultStoreId(day: LocalDate, languageKey: String, playerId: UUID): String =
+    s"${day}_${languageKey}_$playerId"
+
+  override def upsertDailyResult(result: StoredDailyResult): Task[StoredDailyResult] =
+    dailyResultsCollection
+      .flatMap(_.upsertOverwrite(makeDailyResultStoreId(result.day, result.languageKey, result.playerId), result))
+      .mapError(errorConverter)
+      .as(result)
+
+  override def getDailyResults(languageKey: String, from: LocalDate, to: LocalDate): Task[List[StoredDailyResult]] = {
+    val (first, last) = (from.toString, to.toString)
+    def inRange(key: String) = {
+      val day = key.take(10)
+      day >= first && day <= last && key.drop(11).startsWith(s"${languageKey}_")
+    }
+    dailyResultsCollection.flatMap(_.collect(keyFilter = inRange)).mapError(errorConverter)
+  }
 }
 
 object PersistenceServiceLMBD {
@@ -126,6 +162,7 @@ object PersistenceServiceLMBD {
   val dbNameCurrentGames = "current-games"
   val dbNameDailyStats   = "daily-stats"
   val dbNameGlobalStats  = "global-stats"
+  val dbNameDailyResults = "daily-results"
 
   val autoCreateCollections = List(
     dbNamePlayers,
@@ -162,7 +199,8 @@ object PersistenceServiceLMBD {
     lmdb.collectionCreate[String, StoredPlayer](dbNamePlayers, failIfExists = false) *>
       lmdb.collectionCreate[String, StoredCurrentGame](dbNameCurrentGames, failIfExists = false) *>
       lmdb.collectionCreate[String, StoredPlayedStats](dbNameDailyStats, failIfExists = false) *>
-      lmdb.collectionCreate[String, StoredPlayerStats](dbNameGlobalStats, failIfExists = false)
+      lmdb.collectionCreate[String, StoredPlayerStats](dbNameGlobalStats, failIfExists = false) *>
+      lmdb.collectionCreate[String, StoredDailyResult](dbNameDailyResults, failIfExists = false)
 
   // zio-lmdb 3 changed the shape of its metadata entries and can't decode the ones written by 2.x : the
   // typed collection creation then fails with "Metadata lookup failed". The metadata only holds the catalog

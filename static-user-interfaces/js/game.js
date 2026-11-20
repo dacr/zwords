@@ -59,7 +59,7 @@ const Game = {
      * @param {string} language - Selected language
      * @returns {Promise<void>}
      */
-    createPlayer: async function(pseudo, language) {
+    createPlayer: async function(pseudo, language, showOnLeaderboard = true) {
         try {
             // Check if there's an existing player ID in localStorage
             const storedPlayerId = localStorage.getItem('playerId');
@@ -70,11 +70,13 @@ const Game = {
                 player = await API.getPlayer(storedPlayerId);
                 // Update the pseudo
                 player.pseudo = pseudo;
+                player.showOnLeaderboard = showOnLeaderboard;
             } else {
                 // Create a new player
                 player = await API.getPlayer();
                 // Set the pseudo
                 player.pseudo = pseudo;
+                player.showOnLeaderboard = showOnLeaderboard;
             }
 
             // Update the player on the server

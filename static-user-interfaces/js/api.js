@@ -161,6 +161,23 @@ const API = {
      * @param {string} playerId - Player ID
      * @returns {Promise<Object>} Player statistics
      */
+    /**
+     * Get a leaderboard
+     * @param {string} languageKey - Language key
+     * @param {string} period - today, week, month or all
+     * @param {string|null} playerId - to get the player's own rank, even outside the top
+     * @returns {Promise<Object>} Leaderboard
+     */
+    getLeaderboard: async function(languageKey, period, playerId = null) {
+        const params = new URLSearchParams({ language: languageKey, period });
+        if (playerId) params.set('playerId', playerId);
+        const response = await fetch(`${this.BASE_URL}/api/social/leaderboard?${params}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    },
+
     getPlayerStatistics: async function(languageKey, playerId) {
         try {
             const response = await fetch(`${this.BASE_URL}/api/game/statistics/${languageKey}/${playerId}`);

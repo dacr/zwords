@@ -26,6 +26,10 @@ const Presence = {
             const count = parseInt(event.data, 10);
             if (!isNaN(count)) this.show(count);
         };
+        // A game finished somewhere : the statistics screen refreshes the leaderboard of that language
+        this.source.addEventListener('leaderboard', (event) => {
+            Stats.onGameFinished(event.data);
+        });
         // The browser reconnects by itself, meanwhile the count is shown as stale
         this.source.onerror = () => {
             document.getElementById('online-indicator').classList.add('offline');

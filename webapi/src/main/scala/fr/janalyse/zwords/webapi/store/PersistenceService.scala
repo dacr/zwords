@@ -18,7 +18,7 @@ package fr.janalyse.zwords.webapi.store
 import zio.*
 import zio.lmdb.LMDB
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import java.util.UUID
 import fr.janalyse.zwords.gamelogic.Game
 import fr.janalyse.zwords.webapi.store.model.*
@@ -37,6 +37,12 @@ trait PersistenceService {
 
   def getDailyStats(dailyId: String, languageKey: String): Task[Option[StoredPlayedStats]]
   def upsertDailyStats(dailyId: String, languageKey: String, modifier: Option[StoredPlayedStats] => StoredPlayedStats): Task[StoredPlayedStats]
+
+  // leaderboards
+  def getAllPlayers: Task[List[StoredPlayer]]
+  def getCurrentGames(languageKey: String): Task[List[(UUID, StoredCurrentGame)]]
+  def upsertDailyResult(result: StoredDailyResult): Task[StoredDailyResult]
+  def getDailyResults(languageKey: String, from: LocalDate, to: LocalDate): Task[List[StoredDailyResult]] // both days included
 }
 
 object PersistenceService {
@@ -54,13 +60,19 @@ object PersistenceService {
   def getDailyStats(dailyId: String, languageKey: String): RIO[PersistenceService, Option[StoredPlayedStats]]                                                      = ZIO.serviceWithZIO(_.getDailyStats(dailyId, languageKey))
   def upsertDailyStats(dailyId: String, languageKey: String, modifier: Option[StoredPlayedStats] => StoredPlayedStats): RIO[PersistenceService, StoredPlayedStats] = ZIO.serviceWithZIO(_.upsertDailyStats(dailyId, languageKey, modifier))
 
+  def getAllPlayers: RIO[PersistenceService, List[StoredPlayer]]                                                         = ZIO.serviceWithZIO(_.getAllPlayers)
+  def getCurrentGames(languageKey: String): RIO[PersistenceService, List[(UUID, StoredCurrentGame)]]                      = ZIO.serviceWithZIO(_.getCurrentGames(languageKey))
+  def upsertDailyResult(result: StoredDailyResult): RIO[PersistenceService, StoredDailyResult]                           = ZIO.serviceWithZIO(_.upsertDailyResult(result))
+  def getDailyResults(languageKey: String, from: LocalDate, to: LocalDate): RIO[PersistenceService, List[StoredDailyResult]] = ZIO.serviceWithZIO(_.getDailyResults(languageKey, from, to))
+
   lazy val mem = ZLayer.fromZIO(
     for {
       playersRef     <- Ref.make(Map.empty[UUID, StoredPlayer])
       gamesRef       <- Ref.make(Map.empty[(UUID, String), StoredCurrentGame])
       dailyStatsRef  <- Ref.make(Map.empty[(String, String), StoredPlayedStats])
       globalStatsRef <- Ref.make(Map.empty[String, StoredPlayerStats])
-    } yield PersistenceServiceMemory(playersRef, gamesRef, dailyStatsRef, globalStatsRef)
+      resultsRef     <- Ref.make(Map.empty[(LocalDate, String, UUID), StoredDailyResult])
+    } yield PersistenceServiceMemory(playersRef, gamesRef, dailyStatsRef, globalStatsRef, resultsRef)
   )
 
   lazy val live = ZLayer.fromZIO(

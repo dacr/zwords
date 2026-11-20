@@ -1049,3 +1049,133 @@ body {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* ---------------------------------------------------------
+ * Leaderboard
+ * --------------------------------------------------------- */
+.leaderboard-periods {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: var(--border-radius);
+    background-color: var(--background-color);
+}
+
+.leaderboard-period {
+    flex: 1;
+    white-space: nowrap;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 4px;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.leaderboard-period[aria-pressed="true"] {
+    background-color: white;
+    color: var(--primary-color);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.leaderboard-period:focus-visible {
+    outline: 3px solid var(--accent-color);
+    outline-offset: 1px;
+}
+
+.leaderboard-description {
+    margin-top: 10px;
+}
+
+.leaderboard {
+    list-style: none;
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.leaderboard-row {
+    display: grid;
+    grid-template-columns: 2.2em 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 6px;
+    border-bottom: 1px solid #eee;
+}
+
+.leaderboard-row:last-child {
+    border-bottom: none;
+}
+
+.leaderboard-row.you {
+    background-color: rgba(106, 170, 100, 0.12);
+    border-radius: 6px;
+}
+
+.leaderboard-rank {
+    font-weight: bold;
+    color: var(--primary-color);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.leaderboard-pseudo {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: bold;
+}
+
+.leaderboard-you {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: white;
+    background-color: var(--correct-color);
+    border-radius: 999px;
+    padding: 1px 7px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.leaderboard-score {
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.leaderboard-gap {
+    text-align: center;
+    color: var(--absent-color);
+    padding: 2px 0;
+}
+
+/* Settings : show me on the leaderboard */
+.form-check label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.form-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+}
+
+.form-check small {
+    display: block;
+    margin-top: 4px;
+    color: var(--absent-color);
+}
+
+/* Very narrow phones : the four leaderboard periods on one line (after the leaderboard rules, to win the cascade) */
+@media (max-width: 360px) {
+    .leaderboard-period {
+        font-size: 0.8rem;
+    }
+}

@@ -18,13 +18,15 @@ package fr.janalyse.zwords.webapi.store
 import zio.*
 import fr.janalyse.zwords.webapi.store.model.*
 
+import java.time.LocalDate
 import java.util.UUID
 
 case class PersistenceServiceMemory(
   playersRef: Ref[Map[UUID, StoredPlayer]],
   gamesRef: Ref[Map[(UUID, String), StoredCurrentGame]],
   dailyStatsRef: Ref[Map[(String, String), StoredPlayedStats]],
-  globalStatsRef: Ref[Map[String, StoredPlayerStats]]
+  globalStatsRef: Ref[Map[String, StoredPlayerStats]],
+  resultsRef: Ref[Map[(LocalDate, String, UUID), StoredDailyResult]]
 ) extends PersistenceService {
 
   override def getPlayer(playerId: UUID): Task[Option[StoredPlayer]] =
@@ -63,4 +65,16 @@ case class PersistenceServiceMemory(
       .map(entries => entries(key)) // Can not fail as this key has been inserted in the previous operation
   }
 
+
+  override def getAllPlayers: Task[List[StoredPlayer]] =
+    playersRef.get.map(_.values.toList)
+
+  override def getCurrentGames(languageKey: String): Task[List[(UUID, StoredCurrentGame)]] =
+    gamesRef.get.map(_.collect { case ((playerId, lang), game) if lang == languageKey => playerId -> game }.toList)
+
+  override def upsertDailyResult(result: StoredDailyResult): Task[StoredDailyResult] =
+    resultsRef.update(_ + ((result.day, result.languageKey, result.playerId) -> result)).as(result)
+
+  override def getDailyResults(languageKey: String, from: LocalDate, to: LocalDate): Task[List[StoredDailyResult]] =
+    resultsRef.get.map(_.values.filter(r => r.languageKey == languageKey && !r.day.isBefore(from) && !r.day.isAfter(to)).toList)
 }

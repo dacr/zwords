@@ -76,13 +76,14 @@ const UI = {
         this.elements.startGameBtn.addEventListener('click', () => {
             const pseudo = this.elements.pseudoInput.value.trim();
             const language = this.elements.languageSelect.value;
+            const showOnLeaderboard = document.getElementById('leaderboard-checkbox').checked;
 
             if (!pseudo) {
                 this.showError('Please enter a pseudo');
                 return;
             }
 
-            Game.createPlayer(pseudo, language);
+            Game.createPlayer(pseudo, language, showOnLeaderboard);
         });
 
         // Game screen events
@@ -176,6 +177,9 @@ const UI = {
         // Pre-fill the pseudo input with the current player's pseudo
         if (Game.state.player && Game.state.player.pseudo) {
             this.elements.pseudoInput.value = Game.state.player.pseudo;
+        }
+        if (Game.state.player) {
+            document.getElementById('leaderboard-checkbox').checked = Game.state.player.showOnLeaderboard !== false;
         }
 
         // Show the welcome screen

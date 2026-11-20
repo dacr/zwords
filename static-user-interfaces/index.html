@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZWORDS - A Wordle-like Game</title>
-    <link rel="stylesheet" href="css/styles.css?v=2.0.23">
+    <link rel="stylesheet" href="css/styles.css?v=2.0.24">
     <link rel="icon" href="images/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -23,6 +23,10 @@
                 <div class="form-group">
                     <label for="language-select">Select language:</label>
                     <select id="language-select"></select>
+                </div>
+                <div class="form-group form-check">
+                    <label for="leaderboard-checkbox"><input type="checkbox" id="leaderboard-checkbox" checked> Show me on the leaderboard</label>
+                    <small>Only players with a pseudo appear on it.</small>
                 </div>
                 <button id="start-game-btn" class="btn">Continue</button>
             </div>
@@ -114,6 +118,16 @@
                     </label>
                 </div>
                 <section class="stats-card" id="stats-player" aria-live="polite"></section>
+                <section class="stats-card" id="stats-leaderboard">
+                    <h3>Leaderboard</h3>
+                    <div class="leaderboard-periods" role="group" aria-label="Leaderboard period">
+                        <button type="button" class="leaderboard-period" data-period="today" aria-pressed="true">Today</button>
+                        <button type="button" class="leaderboard-period" data-period="week" aria-pressed="false">Week</button>
+                        <button type="button" class="leaderboard-period" data-period="month" aria-pressed="false">Month</button>
+                        <button type="button" class="leaderboard-period" data-period="all" aria-pressed="false">All time</button>
+                    </div>
+                    <div id="leaderboard-content" aria-live="polite"></div>
+                </section>
                 <section class="stats-card" id="stats-today" aria-live="polite"></section>
                 <section class="stats-card" id="stats-global" aria-live="polite"></section>
             </main>
@@ -124,11 +138,11 @@
         </div>
     </div>
 
-    <script src="js/api.js?v=2.0.23"></script>
-    <script src="js/game.js?v=2.0.23"></script>
-    <script src="js/ui.js?v=2.0.23"></script>
-    <script src="js/stats.js?v=2.0.23"></script>
-    <script src="js/presence.js?v=2.0.23"></script>
-    <script src="js/app.js?v=2.0.23"></script>
+    <script src="js/api.js?v=2.0.24"></script>
+    <script src="js/game.js?v=2.0.24"></script>
+    <script src="js/ui.js?v=2.0.24"></script>
+    <script src="js/stats.js?v=2.0.24"></script>
+    <script src="js/presence.js?v=2.0.24"></script>
+    <script src="js/app.js?v=2.0.24"></script>
 </body>
 </html>

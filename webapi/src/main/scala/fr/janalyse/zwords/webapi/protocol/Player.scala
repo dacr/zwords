@@ -7,7 +7,8 @@ import java.util.UUID
 
 case class Player(
   playerId: UUID,
-  pseudo: Option[String]
+  pseudo: Option[String],
+  showOnLeaderboard: Option[Boolean] = None // in an update, None keeps the current setting
 )
 
 object Player {

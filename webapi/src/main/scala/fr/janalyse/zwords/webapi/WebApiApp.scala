@@ -38,9 +38,9 @@ import zio.lmdb.{LMDB, LMDBConfig}
 import zio.stream.ZStream
 import sttp.capabilities.zio.ZioStreams
 import sttp.model.sse.ServerSentEvent
-import sttp.tapir.CodecFormat
+import sttp.tapir.{CodecFormat, Validator}
 import sttp.tapir.ztapir.ZioServerSentEvents
-import fr.janalyse.zwords.webapi.presence.PresenceService
+import fr.janalyse.zwords.webapi.presence.{GameEvents, PresenceService}
 import java.nio.charset.StandardCharsets
 import zio.http.Server
 import zio.logging.LogFormat
@@ -57,7 +57,7 @@ import scala.concurrent.duration.FiniteDuration
 object WebApiApp extends ZIOAppDefault {
   import ApiLogics.*
 
-  type GameEnv = PersistenceService & WordGeneratorService & PresenceService
+  type GameEnv = PersistenceService & WordGeneratorService & PresenceService & GameEvents
 
   // -------------------------------------------------------------------------------------------------------------------
 
@@ -237,18 +237,31 @@ object WebApiApp extends ZIOAppDefault {
 
   val socialLeaderboardEndpoint =
     socialEndpoint
-      .name("global leader board")
-      .summary("Get the global leaderboard")
-      .description("Returns the global top50 leaderboard, don't forget to provide some player information such as your pseudo")
+      .name("leaderboard")
+      .summary("Get a leaderboard")
+      .description(
+        "Only the players who chose a pseudo, and who didn't hide themselves, are ranked. " +
+          "today : today's winners, fewest tries first then the first to find the word ; " +
+          "week, month (current calendar ones) : most won games first, then fewest tries on average ; " +
+          s"all : since the beginning, every language together, at least ${Leaderboards.allTimeMinimumPlayed} games played, best win rate first. " +
+          "Give your playerId to get your own rank, even outside the top."
+      )
       .get
       .in("leaderboard")
-      .zServerLogic[GameEnv](_ => socialLeaderboard)
+      .in(query[String]("language").example("fr"))
+      .in(query[String]("period").default("today").validate(Validator.enumeration(Leaderboards.periods)))
+      .in(query[Option[UUID]]("playerId"))
+      .out(jsonBody[Leaderboard])
+      .errorOut(oneOf(statusForServiceInternalError, statusForUnsupportedLanguageIssue))
+      .zServerLogic[GameEnv]((language, period, playerId) => leaderboardLogic(language, period, playerId))
 
   // The count of players online, as server-sent events: sent on every change, and at least every 20 seconds, which also keeps the
   // connection alive through the reverse proxy (its read timeout must be longer, see the thorgal nginx configuration).
-  def onlineEvents(presence: PresenceService, playerId: Option[UUID]): ZStream[Any, Throwable, Byte] = {
-    val counts = presence.connect(playerId).merge(ZStream.tick(20.seconds).drop(1).mapZIO(_ => presence.onlineCount))
-    ZioServerSentEvents.serialiseSSEToBytes(counts.map(count => ServerSentEvent(data = Some(count.toString))))
+  // The same stream also carries a "leaderboard" event, with the language, each time a game finishes.
+  def onlineEvents(presence: PresenceService, gameEvents: GameEvents, playerId: Option[UUID]): ZStream[Any, Throwable, Byte] = {
+    val counts   = presence.connect(playerId).merge(ZStream.tick(20.seconds).drop(1).mapZIO(_ => presence.onlineCount))
+    val finished = gameEvents.finishedGames.map(language => ServerSentEvent(data = Some(language), eventType = Some("leaderboard")))
+    ZioServerSentEvents.serialiseSSEToBytes(counts.map(count => ServerSentEvent(data = Some(count.toString))).merge(finished))
   }
 
   val socialOnlineEndpoint =
@@ -265,7 +278,9 @@ object WebApiApp extends ZIOAppDefault {
       .out(header("Cache-Control", "no-cache"))
       .out(header("X-Accel-Buffering", "no")) // nginx must forward each event instead of buffering the response
       .out(streamTextBody(ZioStreams)(CodecFormat.TextEventStream(), Some(StandardCharsets.UTF_8)))
-      .zServerLogic[GameEnv](playerId => ZIO.serviceWith[PresenceService](presence => onlineEvents(presence, playerId)))
+      .zServerLogic[GameEnv](playerId =>
+        ZIO.environmentWith[PresenceService & GameEvents](env => onlineEvents(env.get[PresenceService], env.get[GameEvents], playerId))
+      )
 
   // -------------------------------------------------------------------------------------------------------------------
   val apiRoutes = List(
@@ -324,7 +339,8 @@ object WebApiApp extends ZIOAppDefault {
         PersistenceService.live,
         DictionaryService.live,
         WordGeneratorService.live,
-        PresenceService.live
+        PresenceService.live,
+        GameEvents.live
       )
 
 }

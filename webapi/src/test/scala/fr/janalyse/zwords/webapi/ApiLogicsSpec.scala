@@ -1,5 +1,7 @@
 package fr.janalyse.zwords.webapi
 
+import fr.janalyse.zwords.webapi.presence.GameEvents
+
 import zio.*
 import zio.nio.file.Files
 import zio.stream.{ZSink, ZStream}
@@ -65,7 +67,7 @@ object ApiLogicsSpec extends BaseSpecDefault {
         round3.winRank.contains(1)
       )
     )
-  ).provide(PersistenceService.mem, WordGeneratorService.live, DictionaryService.live)
+  ).provide(PersistenceService.mem, WordGeneratorService.live, DictionaryService.live, GameEvents.live)
 
   override def spec = suite("game implementations specs")(
     playerSuite,

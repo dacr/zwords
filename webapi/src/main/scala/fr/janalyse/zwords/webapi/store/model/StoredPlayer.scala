@@ -16,7 +16,8 @@ case class StoredPlayer(
   createdFromUserAgent: Option[String],
   lastUpdatedDateTime: OffsetDateTime,
   lastUpdatedFromIP: Option[String],
-  lastUpdatedFromUserAgent: Option[String]
+  lastUpdatedFromUserAgent: Option[String],
+  showOnLeaderboard: Option[Boolean] = None // None : shown, the default, only players with a pseudo appear
 )
 
 object StoredPlayer {

@@ -11,6 +11,13 @@ const Stats = {
 
     // Used to drop the results of an older request when the language changes quickly
     requestId: 0,
+    leaderboardRequestId: 0,
+
+    // Leaderboard period shown : today, week, month or all
+    leaderboardPeriod: 'today',
+
+    // Groups the refreshes when several games finish within a short time
+    refreshTimer: null,
 
     /**
      * Initialize the statistics module
@@ -21,12 +28,32 @@ const Stats = {
             languageSelect: document.getElementById('stats-language-select'),
             player: document.getElementById('stats-player'),
             today: document.getElementById('stats-today'),
-            global: document.getElementById('stats-global')
+            global: document.getElementById('stats-global'),
+            leaderboard: document.getElementById('leaderboard-content'),
+            periodButtons: document.querySelectorAll('.leaderboard-period')
         };
 
         this.elements.languageSelect.addEventListener('change', (e) => {
             this.load(e.target.value);
         });
+
+        this.elements.periodButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                this.leaderboardPeriod = button.dataset.period;
+                this.elements.periodButtons.forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+                this.loadLeaderboard(false);
+            });
+        });
+    },
+
+    /**
+     * A game just finished (live event) : refresh what the screen shows for its language
+     * @param {string} language - Language of the finished game
+     */
+    onGameFinished: function(language) {
+        if (this.elements.screen.classList.contains('hidden') || language !== this.language) return;
+        clearTimeout(this.refreshTimer);
+        this.refreshTimer = setTimeout(() => this.load(this.language, true), 1500);
     },
 
     /**
@@ -52,14 +79,18 @@ const Stats = {
      * Load and render every section for the given language
      * @param {string} language - Language key
      */
-    load: async function(language) {
+    load: async function(language, silent = false) {
         this.language = language;
         const requestId = ++this.requestId;
         const player = Game.state.player;
 
-        for (const section of [this.elements.player, this.elements.today, this.elements.global]) {
-            section.innerHTML = '<p class="stats-empty">Loading&hellip;</p>';
+        // a live refresh keeps the current content until the new one is there
+        if (!silent) {
+            for (const section of [this.elements.player, this.elements.today, this.elements.global]) {
+                section.innerHTML = '<p class="stats-empty">Loading&hellip;</p>';
+            }
         }
+        this.loadLeaderboard(silent);
 
         const [playerStats, info] = await Promise.all([
             player ? API.getPlayerStatistics(language, player.playerId).catch(() => null) : Promise.resolve(null),
@@ -90,10 +121,94 @@ const Stats = {
     },
 
     /**
+     * Load and render the leaderboard of the shown language and period
+     * @param {boolean} silent - keep the current content until the new one is there
+     */
+    loadLeaderboard: async function(silent) {
+        const requestId = ++this.leaderboardRequestId;
+        const player = Game.state.player;
+        if (!silent) this.elements.leaderboard.innerHTML = '<p class="stats-empty">Loading&hellip;</p>';
+
+        let board = null;
+        try {
+            board = await API.getLeaderboard(this.language, this.leaderboardPeriod, player ? player.playerId : null);
+        } catch (error) {
+            board = null;
+        }
+        if (requestId !== this.leaderboardRequestId) return; // another period or language was selected meanwhile
+
+        this.elements.leaderboard.innerHTML = board
+            ? this.renderLeaderboard(board, player)
+            : '<p class="stats-empty">The leaderboard is unavailable right now, please try again later.</p>';
+    },
+
+    renderLeaderboard: function(board, player) {
+        const period = board.period;
+        const description = {
+            today: 'Today\'s winners: fewest tries first, then the first to find the word.',
+            week: `Since Monday ${this.day(board.from)}: most won games, then fewest tries on average.`,
+            month: `Since ${this.day(board.from)}: most won games, then fewest tries on average.`,
+            all: `Every language together, at least 20 games played: best win rate first.`
+        }[period] || '';
+        const empty = {
+            today: 'Nobody has found today\'s word yet.',
+            week: 'No game finished this week yet.',
+            month: 'No game finished this month yet.',
+            all: 'Nobody has played 20 games yet.'
+        }[period] || 'Nobody yet.';
+
+        const rows = board.entries.map(entry => this.renderLeaderboardRow(entry, period));
+        if (board.you && !board.entries.some(entry => entry.you)) {
+            rows.push('<li class="leaderboard-gap" aria-hidden="true">&hellip;</li>');
+            rows.push(this.renderLeaderboardRow(board.you, period));
+        }
+
+        let hint = '';
+        if (!player || !player.pseudo) {
+            hint = 'Choose a pseudo in the settings to appear on the leaderboard.';
+        } else if (player.showOnLeaderboard === false) {
+            hint = 'You are hidden from the leaderboard, you can change it in the settings.';
+        }
+
+        return `
+            <p class="stats-note leaderboard-description">${description}</p>
+            ${rows.length > 0 ? `<ol class="leaderboard">${rows.join('')}</ol>` : `<p class="stats-empty">${empty}</p>`}
+            ${hint ? `<p class="stats-note">${hint}</p>` : ''}
+        `;
+    },
+
+    renderLeaderboardRow: function(entry, period) {
+        let score;
+        if (period === 'today') {
+            const tries = Math.round(entry.averageTries || 0);
+            score = `${tries} ${tries > 1 ? 'tries' : 'try'}`;
+        } else if (period === 'all') {
+            score = `${entry.winRate}% <span class="stats-muted">${this.number(entry.won)} won</span>`;
+        } else {
+            const average = entry.averageTries != null ? ` <span class="stats-muted">${entry.averageTries.toFixed(1)} avg</span>` : '';
+            score = `${this.number(entry.won)} won${average}`;
+        }
+        return `
+            <li class="leaderboard-row${entry.you ? ' you' : ''}">
+                <span class="leaderboard-rank">${entry.rank}</span>
+                <span class="leaderboard-pseudo">${this.escape(entry.pseudo)}${entry.you ? ' <span class="leaderboard-you">you</span>' : ''}</span>
+                <span class="leaderboard-score">${score}</span>
+            </li>`;
+    },
+
+    day: function(isoDay) {
+        if (!isoDay) return '';
+        const [year, month, day] = isoDay.split('-').map(Number);
+        return new Date(year, month - 1, day).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }); // inside an English sentence
+    },
+
+    /**
      * Section : the player's own results
      */
     renderPlayer: function(player, stats, todayTries) {
-        const title = player && player.pseudo ? `Your results, ${this.escape(player.pseudo)}` : 'Your results';
+        // A player's results are kept for every language together, the language selector doesn't change them
+        const title = (player && player.pseudo ? `Your results, ${this.escape(player.pseudo)}` : 'Your results')
+            + ' <span class="stats-subtitle">all languages</span>';
         if (!player) {
             return `<h3>Your results</h3><p class="stats-empty">Play a game to see your own statistics here.</p>`;
         }
