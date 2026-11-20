@@ -198,6 +198,9 @@ const UI = {
         if (Game.state.player) {
             this.elements.playerPseudo.textContent = Game.state.player.pseudo;
         }
+
+        // Players online indicator, the stream stays open while the page is
+        Presence.start(Game.state.player ? Game.state.player.playerId : null);
     },
 
     /**

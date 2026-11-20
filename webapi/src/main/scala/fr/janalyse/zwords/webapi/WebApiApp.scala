@@ -35,6 +35,13 @@ import zio.*
 import zio.Runtime.removeDefaultLoggers
 import zio.config.typesafe.TypesafeConfigProvider
 import zio.lmdb.{LMDB, LMDBConfig}
+import zio.stream.ZStream
+import sttp.capabilities.zio.ZioStreams
+import sttp.model.sse.ServerSentEvent
+import sttp.tapir.CodecFormat
+import sttp.tapir.ztapir.ZioServerSentEvents
+import fr.janalyse.zwords.webapi.presence.PresenceService
+import java.nio.charset.StandardCharsets
 import zio.http.Server
 import zio.logging.LogFormat
 import zio.logging.backend.SLF4J
@@ -50,7 +57,7 @@ import scala.concurrent.duration.FiniteDuration
 object WebApiApp extends ZIOAppDefault {
   import ApiLogics.*
 
-  type GameEnv = PersistenceService & WordGeneratorService
+  type GameEnv = PersistenceService & WordGeneratorService & PresenceService
 
   // -------------------------------------------------------------------------------------------------------------------
 
@@ -237,6 +244,29 @@ object WebApiApp extends ZIOAppDefault {
       .in("leaderboard")
       .zServerLogic[GameEnv](_ => socialLeaderboard)
 
+  // The count of players online, as server-sent events: sent on every change, and at least every 20 seconds, which also keeps the
+  // connection alive through the reverse proxy (its read timeout must be longer, see the thorgal nginx configuration).
+  def onlineEvents(presence: PresenceService, playerId: Option[UUID]): ZStream[Any, Throwable, Byte] = {
+    val counts = presence.connect(playerId).merge(ZStream.tick(20.seconds).drop(1).mapZIO(_ => presence.onlineCount))
+    ZioServerSentEvents.serialiseSSEToBytes(counts.map(count => ServerSentEvent(data = Some(count.toString))))
+  }
+
+  val socialOnlineEndpoint =
+    socialEndpoint
+      .name("players online")
+      .summary("Stream the number of players online")
+      .description(
+        "Server-sent events: the number of players who have the game open, sent on every change and at least every 20 seconds. " +
+          "Give your playerId so that a player with several pages open is counted once."
+      )
+      .get
+      .in("online")
+      .in(query[Option[UUID]]("playerId"))
+      .out(header("Cache-Control", "no-cache"))
+      .out(header("X-Accel-Buffering", "no")) // nginx must forward each event instead of buffering the response
+      .out(streamTextBody(ZioStreams)(CodecFormat.TextEventStream(), Some(StandardCharsets.UTF_8)))
+      .zServerLogic[GameEnv](playerId => ZIO.serviceWith[PresenceService](presence => onlineEvents(presence, playerId)))
+
   // -------------------------------------------------------------------------------------------------------------------
   val apiRoutes = List(
     serviceStatusEndpoint,
@@ -248,7 +278,8 @@ object WebApiApp extends ZIOAppDefault {
     gameGetEndpoint,
     gamePlayEndpoint,
     gameStatsEndpoint,
-    socialLeaderboardEndpoint
+    socialLeaderboardEndpoint,
+    socialOnlineEndpoint
   )
 
   def apiDocRoutes  =
@@ -292,7 +323,8 @@ object WebApiApp extends ZIOAppDefault {
         Server.live,
         PersistenceService.live,
         DictionaryService.live,
-        WordGeneratorService.live
+        WordGeneratorService.live,
+        PresenceService.live
       )
 
 }
