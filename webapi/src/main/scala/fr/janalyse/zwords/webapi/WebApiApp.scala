@@ -26,7 +26,7 @@ import sttp.model.headers.CacheDirective
 import sttp.model.headers.CacheDirective.NoCache
 import sttp.model.{Header, StatusCode}
 import sttp.tapir.generic.auto.*
-import sttp.tapir.json.zio.*
+import sttp.tapir.json.jsoniter.*
 import sttp.tapir.files.staticFilesGetServerEndpoint
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
@@ -36,8 +36,6 @@ import zio.Runtime.removeDefaultLoggers
 import zio.config.typesafe.TypesafeConfigProvider
 import zio.lmdb.{LMDB, LMDBConfig}
 import zio.http.Server
-import zio.json.*
-import zio.json.ast.*
 import zio.logging.LogFormat
 import zio.logging.backend.SLF4J
 import zio.nio.file.{Files, Path}

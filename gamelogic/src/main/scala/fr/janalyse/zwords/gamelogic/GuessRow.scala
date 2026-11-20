@@ -15,7 +15,9 @@
  */
 package fr.janalyse.zwords.gamelogic
 
-import zio.json.{DeriveJsonCodec, JsonCodec}
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 
 case class GuessRow(triedWord: Option[String], state: List[GuessCell]):
   val pattern = state.map {
@@ -26,7 +28,7 @@ case class GuessRow(triedWord: Option[String], state: List[GuessCell]):
   override def toString = state.mkString
 
 object GuessRow:
-  given JsonCodec[GuessRow] = DeriveJsonCodec.gen
+  given JsonValueCodec[GuessRow] = JsonCodecs.make[GuessRow]
 
   def buildRow(hiddenWord: String, givenWord: String): GuessRow =
     val hiddenTuples     = hiddenWord.zipWithIndex.map(_.swap).toSet

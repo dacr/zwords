@@ -1,6 +1,8 @@
 package fr.janalyse.zwords.webapi.protocol
 
-import zio.json.{DeriveJsonCodec, JsonCodec}
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 import fr.janalyse.zwords.gamelogic.{GoodPlaceCell, NotUsedCell, WrongPlaceCell}
 import fr.janalyse.zwords.gamelogic.Game
 import fr.janalyse.zwords.webapi.store.model.{StoredPlayedStats, StoredCurrentGame}
@@ -20,7 +22,7 @@ case class CurrentGame(
 )
 
 object CurrentGame {
-  given JsonCodec[CurrentGame] = DeriveJsonCodec.gen
+  given JsonValueCodec[CurrentGame] = JsonCodecs.make[CurrentGame]
 
   def stateFromGame(game: Game): String =
     if (game.isWin) "success"

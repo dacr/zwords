@@ -1,6 +1,8 @@
 package fr.janalyse.zwords.webapi.protocol
 
-import zio.json.{DeriveJsonCodec, JsonCodec}
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 import java.util.UUID
 
 case class Player(
@@ -9,5 +11,5 @@ case class Player(
 )
 
 object Player {
-  given JsonCodec[Player] = DeriveJsonCodec.gen
+  given JsonValueCodec[Player] = JsonCodecs.make[Player]
 }

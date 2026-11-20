@@ -1,8 +1,10 @@
 package fr.janalyse.zwords.webapi.protocol
 
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 import fr.janalyse.zwords.webapi.store.model.{StoredPlayedStats, StoredPlayerStats}
 import fr.janalyse.zwords.wordgen.WordStats
-import zio.json.*
 
 case class GameInfo(
   authors: List[String],
@@ -12,5 +14,5 @@ case class GameInfo(
   playedTodayStats: Map[String, PlayedTodayStats]
 )
 object GameInfo {
-  given JsonCodec[GameInfo] = DeriveJsonCodec.gen
+  given JsonValueCodec[GameInfo] = JsonCodecs.make[GameInfo]
 }

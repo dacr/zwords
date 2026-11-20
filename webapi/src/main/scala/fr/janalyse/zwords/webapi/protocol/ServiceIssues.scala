@@ -15,9 +15,11 @@
  */
 package fr.janalyse.zwords.webapi.protocol
 
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 import fr.janalyse.zwords.webapi.*
 import jnr.ffi.Struct.Offset
-import zio.json.{DeriveJsonCodec, JsonCodec, jsonDiscriminator}
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -25,54 +27,54 @@ import java.util.UUID
 sealed trait ServiceIssue
 
 object ServiceIssue:
-  given JsonCodec[ServiceIssue] = DeriveJsonCodec.gen
+  given JsonValueCodec[ServiceIssue] = JsonCodecs.make[ServiceIssue]
 
 case class ServiceInternalError() extends ServiceIssue
 object ServiceInternalError {
-  given JsonCodec[ServiceInternalError] = DeriveJsonCodec.gen
+  given JsonValueCodec[ServiceInternalError] = JsonCodecs.make[ServiceInternalError]
 }
 
 case class InvalidPseudoIssue(givenPseudoBase64: String) extends ServiceIssue
 object InvalidPseudoIssue {
-  given JsonCodec[InvalidPseudoIssue] = DeriveJsonCodec.gen
+  given JsonValueCodec[InvalidPseudoIssue] = JsonCodecs.make[InvalidPseudoIssue]
 }
 
 case class InvalidGameWordIssue(givenGameWordBase64: String) extends ServiceIssue
 object InvalidGameWordIssue {
-  given JsonCodec[InvalidGameWordIssue] = DeriveJsonCodec.gen
+  given JsonValueCodec[InvalidGameWordIssue] = JsonCodecs.make[InvalidGameWordIssue]
 }
 
 case class UnknownPlayerIssue(playerId: UUID) extends ServiceIssue
 object UnknownPlayerIssue {
-  given JsonCodec[UnknownPlayerIssue] = DeriveJsonCodec.gen
+  given JsonValueCodec[UnknownPlayerIssue] = JsonCodecs.make[UnknownPlayerIssue]
 }
 
 case class UnsupportedLanguageIssue(givenLanguageBase64: String) extends ServiceIssue
 object UnsupportedLanguageIssue {
-  given JsonCodec[UnsupportedLanguageIssue] = DeriveJsonCodec.gen
+  given JsonValueCodec[UnsupportedLanguageIssue] = JsonCodecs.make[UnsupportedLanguageIssue]
 }
 
 case class ExpiredGameIssue(wasCreatedOn: OffsetDateTime) extends ServiceIssue
 object ExpiredGameIssue {
-  given JsonCodec[ExpiredGameIssue] = DeriveJsonCodec.gen
+  given JsonValueCodec[ExpiredGameIssue] = JsonCodecs.make[ExpiredGameIssue]
 }
 
 case class NotFoundGameIssue() extends ServiceIssue
 object NotFoundGameIssue {
-  given JsonCodec[NotFoundGameIssue] = DeriveJsonCodec.gen
+  given JsonValueCodec[NotFoundGameIssue] = JsonCodecs.make[NotFoundGameIssue]
 }
 
 case class GameIsOverIssue() extends ServiceIssue
 object GameIsOverIssue {
-  given JsonCodec[GameIsOverIssue] = DeriveJsonCodec.gen
+  given JsonValueCodec[GameIsOverIssue] = JsonCodecs.make[GameIsOverIssue]
 }
 
 case class InvalidGameWordSizeIssue(word: String) extends ServiceIssue
 object InvalidGameWordSizeIssue {
-  given JsonCodec[InvalidGameWordSizeIssue] = DeriveJsonCodec.gen
+  given JsonValueCodec[InvalidGameWordSizeIssue] = JsonCodecs.make[InvalidGameWordSizeIssue]
 }
 
 case class WordNotInDictionaryIssue(word: String) extends ServiceIssue
 object WordNotInDictionaryIssue {
-  given JsonCodec[WordNotInDictionaryIssue] = DeriveJsonCodec.gen
+  given JsonValueCodec[WordNotInDictionaryIssue] = JsonCodecs.make[WordNotInDictionaryIssue]
 }

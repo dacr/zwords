@@ -15,7 +15,9 @@
  */
 package fr.janalyse.zwords.gamelogic
 
-import zio.json.{DeriveJsonCodec, JsonCodec}
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 
 sealed trait GameInternalIssue {
   def message: String
@@ -26,16 +28,16 @@ case class GameWordGeneratorIssue(message: String) extends GameInternalIssue
 case class GameStorageIssue(message: String)       extends GameInternalIssue
 
 object GameInternalIssue:
-  given JsonCodec[GameInternalIssue] = DeriveJsonCodec.gen
+  given JsonValueCodec[GameInternalIssue] = JsonCodecs.make[GameInternalIssue]
 
 object GameDictionaryIssue:
-  given JsonCodec[GameDictionaryIssue]          = DeriveJsonCodec.gen
+  given JsonValueCodec[GameDictionaryIssue] = JsonCodecs.make[GameDictionaryIssue]
   def apply(th: Throwable): GameDictionaryIssue = GameDictionaryIssue(th.getMessage)
 
 object GameWordGeneratorIssue:
-  given JsonCodec[GameWordGeneratorIssue]          = DeriveJsonCodec.gen
+  given JsonValueCodec[GameWordGeneratorIssue] = JsonCodecs.make[GameWordGeneratorIssue]
   def apply(th: Throwable): GameWordGeneratorIssue = GameWordGeneratorIssue(th.getMessage)
 
 object GameStorageIssue:
-  given JsonCodec[GameStorageIssue]          = DeriveJsonCodec.gen
+  given JsonValueCodec[GameStorageIssue] = JsonCodecs.make[GameStorageIssue]
   def apply(th: Throwable): GameStorageIssue = GameStorageIssue(th.getMessage)

@@ -1,9 +1,11 @@
 package fr.janalyse.zwords.wordgen
 
-import zio.json.*
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 
 case class WordGeneratorLanguageNotSupported(language: String)
 
 object WordGeneratorLanguageNotSupported {
-  given JsonCodec[WordGeneratorLanguageNotSupported] = DeriveJsonCodec.gen
+  given JsonValueCodec[WordGeneratorLanguageNotSupported] = JsonCodecs.make[WordGeneratorLanguageNotSupported]
 }

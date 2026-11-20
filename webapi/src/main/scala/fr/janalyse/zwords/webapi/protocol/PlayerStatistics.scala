@@ -1,7 +1,9 @@
 package fr.janalyse.zwords.webapi.protocol
 
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 import fr.janalyse.zwords.webapi.store.model.StoredPlayedTodayStats
-import zio.json.{DeriveJsonCodec, JsonCodec}
 
 case class PlayerStatistics(
   playedCount: Int,
@@ -14,7 +16,7 @@ case class PlayerStatistics(
   unusedLetterCount: Int
 )
 object PlayerStatistics {
-  given JsonCodec[PlayerStatistics] = DeriveJsonCodec.gen
+  given JsonValueCodec[PlayerStatistics] = JsonCodecs.make[PlayerStatistics]
 
   def fromStats(stats: StoredPlayedTodayStats): PlayerStatistics =
     PlayerStatistics(

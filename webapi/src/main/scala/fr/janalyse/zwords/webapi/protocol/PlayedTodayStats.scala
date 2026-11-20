@@ -1,7 +1,9 @@
 package fr.janalyse.zwords.webapi.protocol
 
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 import fr.janalyse.zwords.webapi.store.model.StoredPlayedStats
-import zio.json.*
 
 import java.time.OffsetDateTime
 
@@ -15,7 +17,7 @@ case class PlayedTodayStats(
 )
 
 object PlayedTodayStats {
-  given JsonCodec[PlayedTodayStats] = DeriveJsonCodec.gen
+  given JsonValueCodec[PlayedTodayStats] = JsonCodecs.make[PlayedTodayStats]
 
   def from(stats: StoredPlayedStats): PlayedTodayStats = {
     PlayedTodayStats(

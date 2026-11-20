@@ -15,8 +15,10 @@
  */
 package fr.janalyse.zwords.webapi.protocol
 
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 import fr.janalyse.zwords.webapi.store.model.StoredPlayerStats
-import zio.json.*
 
 case class PlayedStats(
   playedCount: Int = 0, // number of finished game either win or lost
@@ -27,7 +29,7 @@ case class PlayedStats(
 )
 
 object PlayedStats {
-  given JsonCodec[PlayedStats] = DeriveJsonCodec.gen
+  given JsonValueCodec[PlayedStats] = JsonCodecs.make[PlayedStats]
 
   def from(stats: StoredPlayerStats): PlayedStats =
     PlayedStats(

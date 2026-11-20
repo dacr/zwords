@@ -1,6 +1,7 @@
 package fr.janalyse.zwords.webapi.store.model
 
-import zio.json.{DeriveJsonCodec, JsonCodec}
+import fr.janalyse.zwords.json.JsonCodecs
+
 import zio.lmdb.json.LMDBCodecJson
 
 import java.time.OffsetDateTime
@@ -16,4 +17,8 @@ case class StoredPlayer(
   lastUpdatedDateTime: OffsetDateTime,
   lastUpdatedFromIP: Option[String],
   lastUpdatedFromUserAgent: Option[String]
-) derives LMDBCodecJson
+)
+
+object StoredPlayer {
+  given LMDBCodecJson[StoredPlayer] = LMDBCodecJson(JsonCodecs.make[StoredPlayer])
+}

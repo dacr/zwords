@@ -15,8 +15,9 @@
  */
 package fr.janalyse.zwords.webapi.store.model
 
+import fr.janalyse.zwords.json.JsonCodecs
+
 import fr.janalyse.zwords.webapi.store.model.StoredPlayedTodayStats
-import zio.json.*
 import zio.lmdb.json.LMDBCodecJson
 
 case class StoredPlayedTodayStats(
@@ -28,4 +29,8 @@ case class StoredPlayedTodayStats(
   goodPlaceLetterCount: Int = 0,
   wrongPlaceLetterCount: Int = 0,
   unusedLetterCount: Int = 0
-) derives LMDBCodecJson
+)
+
+object StoredPlayedTodayStats {
+  given LMDBCodecJson[StoredPlayedTodayStats] = LMDBCodecJson(JsonCodecs.make[StoredPlayedTodayStats])
+}

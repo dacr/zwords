@@ -1,6 +1,8 @@
 package fr.janalyse.zwords.webapi.protocol
 
-import zio.json.*
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 
 case class DictionaryStats(
   dictionaryBaseSize: Int,
@@ -10,5 +12,5 @@ case class DictionaryStats(
 )
 
 object DictionaryStats {
-  given JsonCodec[DictionaryStats] = DeriveJsonCodec.gen
+  given JsonValueCodec[DictionaryStats] = JsonCodecs.make[DictionaryStats]
 }

@@ -1,9 +1,6 @@
 package fr.janalyse.zwords.webapi
 
 import zio.*
-import zio.json.*
-import zio.json.ast.Json
-import zio.json.ast.Json.*
 import zio.nio.file.Files
 import zio.stream.{ZSink, ZStream}
 import zio.test.*

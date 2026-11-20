@@ -15,10 +15,12 @@
  */
 package fr.janalyse.zwords.gamelogic
 
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 import fr.janalyse.zwords.*
 import fr.janalyse.zwords.wordgen.{WordGeneratorLanguageNotSupported, WordGeneratorService}
 import zio.*
-import zio.json.*
 
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoField
@@ -66,7 +68,7 @@ case class Game(
 }
 
 object Game {
-  given JsonCodec[Game] = DeriveJsonCodec.gen
+  given JsonValueCodec[Game] = JsonCodecs.make[Game]
 
   def makeDailyGameId(dateTime: OffsetDateTime) = {
     val fields = List(ChronoField.YEAR, ChronoField.DAY_OF_YEAR)

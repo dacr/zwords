@@ -16,7 +16,6 @@
 package fr.janalyse.zwords.webapi.store
 
 import zio.*
-import zio.json.*
 import zio.lmdb.LMDB
 
 import java.time.OffsetDateTime

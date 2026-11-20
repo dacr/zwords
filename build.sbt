@@ -13,7 +13,7 @@ val versions = new {
   val zionio     = "2.0.2"
   val zioconfig  = "4.1.2"
   val ziocli     = "0.2.2"
-  val ziojson    = "0.9.2"
+  val jsoniter   = "2.40.1"
   val ziologging = "2.5.4"
   val ziolmdb    = "3.0.0-RC4"
   val tapir      = "1.13.31"
@@ -44,7 +44,9 @@ lazy val dictionary =
         "dev.zio" %% "zio-config"          % versions.zioconfig,
         "dev.zio" %% "zio-config-typesafe" % versions.zioconfig,
         "dev.zio" %% "zio-config-magnolia" % versions.zioconfig,
-        "dev.zio" %% "zio-nio"             % versions.zionio
+        "dev.zio" %% "zio-nio"             % versions.zionio,
+        "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % versions.jsoniter,
+        "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % versions.jsoniter
       )
     )
 
@@ -55,10 +57,7 @@ lazy val wordGenerator =
     .settings(
       name        := "zwords-word-generator",
       description := "generate word candidate from dictionary",
-      sharedSettings,
-      libraryDependencies ++= Seq(
-        "dev.zio" %% "zio-json" % versions.ziojson
-      )
+      sharedSettings
     )
 
 lazy val gameLogic =
@@ -117,7 +116,7 @@ lazy val webapi =
         "dev.zio"                     %% "zio-logging-slf4j"       % versions.ziologging,
         "com.softwaremill.sttp.tapir" %% "tapir-zio"               % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server"   % versions.tapir,
-        "com.softwaremill.sttp.tapir" %% "tapir-json-zio"          % versions.tapir,
+        "com.softwaremill.sttp.tapir" %% "tapir-jsoniter-scala"    % versions.tapir,
         "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % versions.tapir,
         "fr.janalyse"                 %% "zio-lmdb"                % versions.ziolmdb,
         "ch.qos.logback"               % "logback-classic"         % versions.logback

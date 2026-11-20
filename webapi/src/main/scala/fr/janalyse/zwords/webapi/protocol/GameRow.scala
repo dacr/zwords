@@ -1,6 +1,8 @@
 package fr.janalyse.zwords.webapi.protocol
 
-import zio.json.{DeriveJsonCodec, JsonCodec}
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import fr.janalyse.zwords.json.JsonCodecs
+
 
 case class GameRow(
   givenWord: Option[String],
@@ -10,5 +12,5 @@ case class GameRow(
 )
 
 object GameRow {
-  given JsonCodec[GameRow] = DeriveJsonCodec.gen
+  given JsonValueCodec[GameRow] = JsonCodecs.make[GameRow]
 }
