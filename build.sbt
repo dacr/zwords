@@ -4,20 +4,20 @@ ThisBuild / description  := "Guess a word everyday game"
 
 ThisBuild / licenses += "Apache 2" -> url(s"https://www.apache.org/licenses/LICENSE-2.0.txt")
 
-ThisBuild / scalaVersion := "3.7.1"
+ThisBuild / scalaVersion := "3.10.1"
 
 publishArtifact := false // no artifact for "root" project
 
 val versions = new {
-  val zio        = "2.1.19"
+  val zio        = "2.1.27"
   val zionio     = "2.0.2"
-  val zioconfig  = "4.0.4"
+  val zioconfig  = "4.1.2"
   val ziocli     = "0.2.2"
-  val ziojson    = "0.7.44"
-  val ziologging = "2.5.0"
-  val ziolmdb    = "2.0.2"
-  val tapir      = "1.11.35"
-  val logback    = "1.5.18"
+  val ziojson    = "0.9.2"
+  val ziologging = "2.5.4"
+  val ziolmdb    = "2.8.6"
+  val tapir      = "1.13.31"
+  val logback    = "1.6.7"
 }
 
 val sharedSettings = Seq(

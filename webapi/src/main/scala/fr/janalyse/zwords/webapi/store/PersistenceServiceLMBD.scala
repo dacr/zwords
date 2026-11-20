@@ -24,10 +24,10 @@ import java.util.UUID
 case class PersistenceServiceLMBD(lmdb: LMDB) extends PersistenceService {
   import PersistenceServiceLMBD.*
 
-  val playersCollection      = lmdb.collectionGet[StoredPlayer](dbNamePlayers)
-  val currentGamesCollection = lmdb.collectionGet[StoredCurrentGame](dbNameCurrentGames)
-  val globalStatsCollection  = lmdb.collectionGet[StoredPlayerStats](dbNameGlobalStats)
-  val dailyStatsCollection   = lmdb.collectionGet[StoredPlayedStats](dbNameDailyStats)
+  val playersCollection      = lmdb.collectionGet[String, StoredPlayer](dbNamePlayers)
+  val currentGamesCollection = lmdb.collectionGet[String, StoredCurrentGame](dbNameCurrentGames)
+  val globalStatsCollection  = lmdb.collectionGet[String, StoredPlayerStats](dbNameGlobalStats)
+  val dailyStatsCollection   = lmdb.collectionGet[String, StoredPlayedStats](dbNameDailyStats)
 
   override def getPlayer(playerId: UUID): Task[Option[StoredPlayer]] = {
     val result = for {
@@ -149,16 +149,21 @@ object PersistenceServiceLMBD {
           case CollectionNotFound(name)              => Exception(s"Collection $name not found")
           case CodecFailure(issue)                   => Exception(s"Codec encoding issue : $issue")
           case OverSizedKey(id, expandedSize, limit) => Exception(s"Key size ($expandedSize) is too big, should be below $limit")
+          case IndexAlreadyExists(name)              => Exception(s"Index $name already exists")
+          case IndexNotFound(name)                   => Exception(s"Index $name not found")
+          case NestedWriteTransactionError(txn)      => Exception(s"Nested write transaction not allowed : $txn")
+          case KeyAlreadyExists(name, key)           => Exception(s"Key $key already exists in collection $name")
         }
     }
   }
 
   def setup(lmdb: LMDB) = {
-    ZIO
-      .foreachDiscard(autoCreateCollections)(collectionName =>
-        lmdb
-          .collectionAllocate(collectionName)
-          .ignore
-      ) *> ZIO.succeed(PersistenceServiceLMBD(lmdb))
+    // failIfExists = false also registers metadata for collections created by older zio-lmdb releases
+    (lmdb.collectionCreate[String, StoredPlayer](dbNamePlayers, failIfExists = false) *>
+      lmdb.collectionCreate[String, StoredCurrentGame](dbNameCurrentGames, failIfExists = false) *>
+      lmdb.collectionCreate[String, StoredPlayedStats](dbNameDailyStats, failIfExists = false) *>
+      lmdb.collectionCreate[String, StoredPlayerStats](dbNameGlobalStats, failIfExists = false))
+      .mapError(errorConverter)
+      .as(PersistenceServiceLMBD(lmdb))
   }
 }
